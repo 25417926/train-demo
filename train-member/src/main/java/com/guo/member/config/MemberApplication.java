@@ -1,4 +1,4 @@
-package com.guo.config;
+package com.guo.member.config;
 
 /**
  * @Description
