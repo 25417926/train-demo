@@ -5,8 +5,12 @@
     <groupId>org.guo</groupId>
     <artifactId>train</artifactId>
     <version>0.0.1-SNAPSHOT</version>
+    <packaging>pom</packaging>
     <name>train</name>
     <description>train</description>
+    <modules>
+        <module>member</module>
+    </modules>
     <properties>
         <java.version>1.8</java.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
