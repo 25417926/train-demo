@@ -10,6 +10,9 @@
     <description>train</description>
     <modules>
         <module>train-member</module>
+        <module>common</module>
+        <module>gateway</module>
+        <module>gateway</module>
     </modules>
     <properties>
         <java.version>1.8</java.version>
@@ -18,9 +21,26 @@
         <spring-boot.version>2.6.13</spring-boot.version>
         <spring-cloud.version>2021.0.5</spring-cloud.version>
     </properties>
-
     <dependencyManagement>
         <dependencies>
+
+            <dependency>
+                <groupId>org.guo</groupId>
+                <artifactId>common</artifactId>
+                <version>0.0.1-SNAPSHOT</version>
+            </dependency>
+
+            <dependency>
+                <groupId>com.alibaba</groupId>
+                <artifactId>fastjson</artifactId>
+                <version>1.2.70</version>
+            </dependency>
+            <dependency>
+                <groupId>cn.hutool</groupId>
+                <artifactId>hutool-all</artifactId>
+                <version>5.6.3</version>
+            </dependency>
+
             <dependency>
                 <groupId>org.springframework.cloud</groupId>
                 <artifactId>spring-cloud-dependencies</artifactId>
