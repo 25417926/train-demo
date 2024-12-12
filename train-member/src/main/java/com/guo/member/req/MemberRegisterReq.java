@@ -4,6 +4,9 @@ import lombok.Getter;
 import lombok.Setter;
 import lombok.ToString;
 
+import javax.validation.constraints.NotBlank;
+
+
 /**
  * @Description
  * @Author: 派
@@ -13,6 +16,7 @@ import lombok.ToString;
 @Setter
 @ToString
 public class MemberRegisterReq {
+    @NotBlank(message = "手机号不能为空")
     private String mobile;
 
 }

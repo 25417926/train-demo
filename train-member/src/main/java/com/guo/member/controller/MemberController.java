@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import javax.annotation.Resource;
+import javax.validation.Valid;
 
 /**
  * @Description
@@ -31,7 +32,7 @@ public class MemberController {
     }
 
     @PostMapping("/register")
-    public CommonResp<Long> register(MemberRegisterReq req) {
+    public CommonResp<Long> register(@Valid MemberRegisterReq req) {
         Long id = memberService.register(req);
         CommonResp<Long> commonResp = new CommonResp(HttpStatus.SUCCESS,id,"注册成功");
         return commonResp;
