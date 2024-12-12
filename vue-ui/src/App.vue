@@ -3,6 +3,7 @@
     <router-link to="/">Home</router-link> |
     <router-link to="/about">About</router-link>
   </nav>
+  <a-button>测试1</a-button>
   <router-view/>
 </template>
 
@@ -28,3 +29,5 @@ nav a.router-link-exact-active {
   color: #42b983;
 }
 </style>
+<script setup lang="ts">
+</script>

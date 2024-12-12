@@ -1,8 +1,9 @@
 package com.guo.member.service;
 
 import cn.hutool.core.collection.CollUtil;
-import com.guo.common.exception.ExceptionEnum;
 import com.guo.common.exception.ExceptionConsole;
+import com.guo.common.exception.ExceptionEnum;
+import com.guo.common.util.SnowUtil;
 import com.guo.member.domain.Member;
 import com.guo.member.domain.MemberExample;
 import com.guo.member.mapper.MemberMapper;
@@ -40,7 +41,9 @@ public class MemberService {
             throw new ExceptionConsole(ExceptionEnum.MEMBER_MOBILE_EXIST);
         }
         Member member = new Member();
-        member.setId(System.currentTimeMillis());
+        //为了防止并发出现问题，将前面的时间戳改为雪花算法来当做id
+        //getSnowflake(1,1)第一个参数为机器id，第二个参数为数据中心id
+        member.setId(SnowUtil.getSnowflakeNextId());
         member.setMobile(req.getMobile());
         memberMapper.insertSelective(member);
         return member.getId();
