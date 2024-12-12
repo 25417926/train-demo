@@ -5,6 +5,7 @@ package com.guo.member.config;
  * @Author: 派
  * @Date: 2024/12/11
  */
+import org.mybatis.spring.annotation.MapperScan;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.ComponentScan;
@@ -14,6 +15,7 @@ import java.util.logging.Logger;
 
 @SpringBootApplication
 @ComponentScan("com.guo")
+@MapperScan("com.guo.member.mapper")
 public class MemberApplication {
     private static final Logger LOG = Logger.getLogger(MemberApplication.class.getName());
     public static void main(String[] args) {
