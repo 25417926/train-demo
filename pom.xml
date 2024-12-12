@@ -12,7 +12,6 @@
         <module>train-member</module>
         <module>common</module>
         <module>gateway</module>
-        <module>gateway</module>
         <module>builder</module>
     </modules>
     <properties>
@@ -51,6 +50,12 @@
                 <groupId>cn.hutool</groupId>
                 <artifactId>hutool-all</artifactId>
                 <version>5.6.3</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.projectlombok</groupId>
+                <artifactId>lombok</artifactId>
+                <version>1.18.30</version>
             </dependency>
 
             <dependency>
