@@ -1,9 +1,4 @@
 <template>
-  <nav>
-    <router-link to="/">Home</router-link> |
-    <router-link to="/about">About</router-link>
-  </nav>
-  <a-button>测试1</a-button>
   <router-view/>
 </template>
 
