@@ -8,3 +8,12 @@ spring:
           predicates:
             - Path=/member/**
           uri: http://127.0.0.1:8080
+  # 配置CORS相关设置
+      globalcors:
+        cors-configurations:
+          '[/**]':
+            allowedOrigins: "http://localhost:1001"
+            allowedMethods: "GET,POST,PUT,DELETE,OPTIONS"
+            allowedHeaders: "*"
+            allowCredentials: true
+            maxAge: 3600

@@ -2,12 +2,10 @@ package com.guo.member.controller;
 
 import com.guo.common.resp.CommonResp;
 import com.guo.common.util.HttpStatus;
+import com.guo.member.req.MemberLoginReq;
 import com.guo.member.req.MemberRegisterReq;
 import com.guo.member.service.MemberService;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import javax.annotation.Resource;
 import javax.validation.Valid;
@@ -35,6 +33,21 @@ public class MemberController {
     public CommonResp<Long> register(@Valid MemberRegisterReq req) {
         Long id = memberService.register(req);
         CommonResp<Long> commonResp = new CommonResp(HttpStatus.SUCCESS,id,"注册成功");
+        return commonResp;
+    }
+
+    @GetMapping("/SendCode")
+    public CommonResp<Long> SendCode() {
+        String s = memberService.SendCode();
+        CommonResp<Long> commonResp = new CommonResp(HttpStatus.SUCCESS,s,"发送成功");
+        return commonResp;
+    }
+
+    @PostMapping("/LoginCode")
+    public CommonResp<MemberLoginReq> LoginCode(@Valid @RequestBody MemberLoginReq req) {
+        String token =memberService.Login(req);
+        req.setToken(token);
+        CommonResp commonResp = new CommonResp<>(HttpStatus.SUCCESS,req,"登录成功");
         return commonResp;
     }
 }

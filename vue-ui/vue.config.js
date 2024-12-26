@@ -4,6 +4,6 @@ module.exports = defineConfig({
 })
 module.exports = {
   devServer: {
-    port: 1001
+    port: 1001,
   }
 };

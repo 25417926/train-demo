@@ -1,150 +1,154 @@
-<script >
+<script>
+
+import {reactive, ref} from "vue";
+import {SendCodes,LoginCode} from "@/api/login"
+import { useRouter } from 'vue-router';
+import { UserOutlined, LockOutlined } from '@ant-design/icons-vue';
+
 export default {
-  name: 'registerView'
-}
+  name: "loginView",
+  components: {
+    UserOutlined,
+    LockOutlined,
+  },
+  setup() {
+    const formState = reactive({
+      username: '',
+      password: '',
+      remember: true,
+      code:null,
+      codes:null
+    });
+    const SendCode = ref('1234');
+    const router = useRouter();
+    // 使用箭头函数，这里的 this 会正确指向 Vue 实例
+    const SendsCodes = async () => {
+      try {
+        const res = await SendCodes();
+        // 通过.value 属性来更新 ref 类型的响应式数据的值
+        SendCode.value = res.content;
+        formState.codes=res.content;
+        console.log(formState.codes);
+      } catch (e) {
+        console.log(e);
+      }
+    };
+    const login = async (mobile, code, pwd) => {
+      try {
+        const data = {mobile: mobile, code: code, pwd: pwd}
+        const res = await LoginCode(data);
+        if (res.code === 200) {
+          router.push('/');
+        }
+        console.log(res);
+      }catch (e){
+        console.log(e);
+      }
+    };
+    return {
+      SendsCodes,
+      login,
+      SendCode,
+      formState
+    };
+  },
+  mounted() {
+    this.SendsCodes();
+  },
+};
 </script>
 
 <template>
-  <div class="register">
-    <div class="register_box">
-      <!-- required就是不能为空  必须在css效果中有很大的作用 -->
-      <input type="text" name='name' id='name' required />
-      <label for="name">手机号</label>
-    </div>
-    <div class="register_box">
-      <input type="password" name='pwd' id='pwd' required>
-      <label for="pwd">密码</label>
-    </div>
-    <div class="code_box">
-      <input type="text" name='code' id='code' required>
-      <label for="code">图形验证码</label>
-      <a-button>发送验证码</a-button>
-    </div>
-    <div class="code_box">
-      <input type="text" name='code' id='code' required>
-      <label for="code">验证码</label>
-      <a-button>发送验证码</a-button>
-    </div>
-    <a href="#">
-      登录
-    </a>
-  </div>
+  <a-form
+      :model="formState"
+      name="normal_login"
+      class="login-form"
+      @finish="onFinish"
+      @finishFailed="onFinishFailed"
+  >
+    <a-form-item
+
+        name="username"
+        :rules="[{ required: true, message: 'Please input your username!' }]"
+    >
+      <span style="margin-right: 8px">用户名</span>
+      <a-input v-model:value="formState.username" style="width: 260px">
+        <template #prefix>
+          <UserOutlined class="site-form-item-icon" />
+        </template>
+      </a-input>
+    </a-form-item>
+
+    <a-form-item
+        name="password"
+        :rules="[{ required: true, message: 'Please input your password!' }]"
+    >
+      <span style="margin-right: 8px">密&emsp;码:</span>
+      <a-input-password v-model:value="formState.password" style="width: 260px">
+        <template #prefix>
+          <LockOutlined class="site-form-item-icon" />
+        </template>
+      </a-input-password>
+    </a-form-item>
+    <a-form-item  name="code" >
+      <span style="margin-right: 8px">验证码:</span>
+      <a-input v-model:value="formState.code" style="width: calc(100% - 220px)" />
+      <a-button type="primary" @click="SendsCodes">{{ formState.codes }}</a-button>
+    </a-form-item>
+    <a-form-item>
+      <a-form-item name="remember" no-style>
+        <a-checkbox v-model:checked="formState.remember">Remember me</a-checkbox>
+      </a-form-item>
+    </a-form-item>
+
+    <a-form-item>
+      <a-button :disabled="disabled" type="primary" html-type="submit" class="login-form-button">
+        Log in
+      </a-button>
+    </a-form-item>
+  </a-form>
 </template>
 
-<style scoped>
-.register{
-  width: 300px;
+<style >
+/* 全局样式初始化，清除默认边距等 */
+* {
+  padding: 0;
+  margin: 0;
+  box-sizing: border-box;
 }
-.register .register_box {
-  /*相对定位*/
-  position: relative;
-  width: 100%;
+.ant-form-item-control-input{
+  justify-self: center;
 }
-.register .code_box {
-  /*相对定位*/
-  position: relative;
-}
-.register .register_box input{
-  /*清除input框自带的边框和轮廓*/
-  outline: none;
-  border: none;
-  width: 100%;
-  padding: 10px 0;
-  margin-bottom: 30px;
-  color: #fff;
-  font-size: 16px;
-  border-bottom: 1px solid #fff;
-  /*背景颜色为透明色*/
-  background-color: transparent;
-  transition: border-bottom 1s;
-}
-.register .register_box input:hover,
-.register .register_box input:focus{
-  border-bottom:1px solid #03e9f4;
-}
-.register .code_box input{
-  /*清除input框自带的边框和轮廓*/
-  position: relative;
-  left:   0px;
-  outline: none;
-  border: none;
-  width: 60%;
-  padding: 10px 0;
-  margin-bottom: 30px;
-  color: #fff;
-  font-size: 16px;
-  border-bottom: 1px solid #fff;
-  /*背景颜色为透明色*/
-  background-color: transparent;
-  transition: border-bottom 1s;
-}
-.register .code_box input:hover,
-.register .code_box input:focus{
-  border-bottom:1px solid #03e9f4;
-}
-.register .register_box label{
-  position:absolute;
-  top: 0 ;
-  left: 0;
-  padding: 10px 0;
-  color: #fff;
-  /*这个属性的默认值是auto 默认是这个元素可以被点击
-  但是如果我们写了none  就是这个元素不能被点击，就好像它可见但是不能用
-  可望而不可及*/
-  /*这个就是两者的区别*/
-  pointer-events: none;
-  /*加个过度*/
-  transition: all 0.5s;
-}
-.register .code_box label{
-  position:absolute;
-  top: 0 ;
-  left: 0;
-  padding: 10px 0;
-  color: #fff;
-  /*这个属性的默认值是auto 默认是这个元素可以被点击
-  但是如果我们写了none  就是这个元素不能被点击，就好像它可见但是不能用
-  可望而不可及*/
-  /*这个就是两者的区别*/
-  pointer-events: none;
-  /*加个过度*/
-  transition: all 0.5s;
-}
-/*: focus 选择器是当input获得焦点是触发的样式 + 是相邻兄弟选择器
-  去找与input相邻的兄弟label*/
-/*：valid 选择器是判断input 框的内容是否合法，如果合法会执行下面的属性代码，
-  不合法就不会执行，我们刚开始写布局的时候给input框写了required 我们删掉看对比
-  当没有required的话   input框的值就会被认为一直合法，所以一直都是下方的样式，
-  但是密码不会，密码框的值为空，那么这句话就不合法，required不能为空
-  当我们给密码框写点东西的时候才会执行以下代码
+/* 让body元素占满整个浏览器可视区域高度，并使用flex布局使其内部子元素能方便地居中对齐 */
 
-*/
-.register .register_box input:focus + label,
-.register .register_box input:hover + label,
-.register  .register_box input:valid + label{
-  top: -20px;
-  color: #03e9f4;
-  font-size: 12px;
-}
-.register .code_box input:focus + label,
-.register .code_box input:hover + label,
-.register  .code_box input:valid + label{
-  top: -20px;
-  color: #03e9f4;
-  font-size: 12px;
+
+/* 登录表单整体样式，设置宽度并使其居中显示 */
+
+
+/* 表单内各表单项样式 */
+.a-form-item {
+  margin-bottom: 16px;
+  text-align: center; /* 表单项内文本等内容水平居中 */
 }
 
-.register a{
-  /*overflow: hidden;*/
-  position: relative;
-  padding: 10px 20px;
-  color: #03e9f4;
-  /*取消a表现原有的下划线*/
-  text-decoration: none;
-  /*同样加个过渡*/
-  transition: all 0.5s;
+/* 输入框样式 */
+.a-input,
+.a-input-password {
+  width: 100%;
 }
-.ant-btn{
-  margin-left: 15px;
+
+/* 按钮样式 */
+.a-button {
+  width: 100%;
+}
+
+/* 图标样式 */
+.site-form-item-icon {
+  margin-right: 8px;
+}
+
+/* 复选框样式 */
+.a-checkbox {
+  margin-top: 8px;
 }
 </style>

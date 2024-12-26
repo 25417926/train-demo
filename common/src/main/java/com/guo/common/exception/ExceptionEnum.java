@@ -18,7 +18,10 @@ public enum ExceptionEnum {
     MEMBER_LOGIN_ERROR(HttpStatus.UNAUTHORIZED, "用户未登录"),
     MEMBER_LOGIN_EXPIRED(HttpStatus.UNAUTHORIZED, "用户登录已过期"),
     MEMBER_MOBILE_EXIST(HttpStatus.CONFLICT, "手机号已注册"),
-    ;
+    MEMBER_MOBILE_NOT_EXIST(HttpStatus.BAD_REQUEST, "手机号未注册"),
+    MEMBER_CODE_ERROR(HttpStatus.CONFLICT, "验证码错误"),
+    MEMBER_CODE_NOT_ERROR(HttpStatus.BAD_REQUEST, "请先获取验证码"),
+    NOT_AUTHORIZATION (HttpStatus.UNAUTHORIZED, "未登录");
 
     @Getter
     @Setter

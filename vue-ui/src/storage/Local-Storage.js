@@ -1,4 +1,6 @@
-const LocalStorageUtil = {
+// Local-Storage.js文件内容
+
+export const LocalStorageUtil = {
     setItem: function (key, value) {
         try {
             if (typeof value === 'object') {
@@ -7,7 +9,7 @@ const LocalStorageUtil = {
             localStorage.setItem(key, value);
             return true;
         } catch (error) {
-            console.log('存储数据到 localStorage 失败:', error);
+            console.log('存储数据到localStorage失败:', error);
             return false;
         }
     },
@@ -26,4 +28,3 @@ const LocalStorageUtil = {
         localStorage.clear();
     }
 };
-
