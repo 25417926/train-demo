@@ -1,9 +1,9 @@
 import instance from "@/api/interceptor";
 import {message} from "ant-design-vue";
 
-export const getPassengerList = async (param) => {
+export const getStationList = async (param) => {
     try {
-        const res = await instance.get("/member/Passenger/Query-List",{
+        const res = await instance.get("/business/station/Query-List",{
             params:{
                 page:param.page,
                 size:param.size
@@ -19,17 +19,17 @@ export const getPassengerList = async (param) => {
         console.log(e);
     }
 }
-export const addPassenger = async (data) => {
+export const addStation = async (data) => {
     try {
-        const res = await instance.post("/member/Passenger/save",data);
+        const res = await instance.post("/business/station/save",data);
         return res.data
     } catch (e) {
         console.log(e);
     }
 }
-export const deletePassenger = async (data) => {
+export const deleteStation = async (data) => {
     try {
-        const res = await instance.delete("/member/Passenger/del/"+data);
+        const res = await instance.delete("/business/station/del/"+data);
         return res.data
     } catch (e) {
         console.log(e);

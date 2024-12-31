@@ -5,14 +5,20 @@ spring:
     gateway:
       routes:
         - id: member
+          uri: http://127.0.0.1:8080
           predicates:
             - Path=/member/**
-          uri: http://127.0.0.1:8080
+        - id: business
+          uri: http://127.0.0.1:8081
+          predicates:
+            - Path=/business/**
   # 配置CORS相关设置
       globalcors:
         cors-configurations:
           '[/**]':
-            allowedOrigins: "http://localhost:1001"
+            allowedOrigins:
+              - "http://localhost:1001"
+              - "http://localhost:1002"
             allowedMethods: "GET,POST,PUT,DELETE,OPTIONS"
             allowedHeaders: "*"
             allowCredentials: true

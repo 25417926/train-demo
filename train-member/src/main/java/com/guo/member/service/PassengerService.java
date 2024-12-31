@@ -33,15 +33,23 @@ public class PassengerService {
     Logger Log = LoggerFactory.getLogger(PassengerService.class);
     @Resource
     private PassengerMapper passengerMapper;
-    public void save(PassengerSaveReq req){
-        DateTime date=DateTime.now();
+
+    public void save(PassengerSaveReq req) {
+        DateTime date = DateTime.now();
         Passenger passenger = BeanUtil.copyProperties(req, Passenger.class);
-        passenger.setId(SnowUtil.getSnowflakeNextId());
-        passenger.setMemberId(LoginMemberContext.getId());
-        passenger.setCreateTime(date);
-        passenger.setUpdateTime(date);
-        passengerMapper.insert(passenger);
+        if(ObjectUtil.isNull(passenger.getId())) {
+            passenger.setId(SnowUtil.getSnowflakeNextId());
+            passenger.setMemberId(LoginMemberContext.getId());
+            passenger.setCreateTime(date);
+            passenger.setUpdateTime(date);
+            passengerMapper.insert(passenger);
+        }else{
+            passenger.setType(PassengerEnum.fromCode(null,passenger.getType()).getCode());
+            passenger.setUpdateTime(date);
+            passengerMapper.updateByPrimaryKeySelective(passenger);
+        }
     }
+
     /**
      * 查询乘客列表
      * 根据查询请求中的条件，从数据库中查询符合条件的乘客信息，并返回查询结果
@@ -49,40 +57,48 @@ public class PassengerService {
      * @param req 乘客查询请求对象，包含查询条件和分页信息
      * @return 返回一个分页响应对象，包含乘客信息列表和总记录数
      */
-    public PageResp<PassengerQueryResp> QueryList(PassengerQueryReq req){
+    public PageResp<PassengerQueryResp> QueryList(PassengerQueryReq req) {
         // 创建乘客示例对象，用于构建查询条件
-        PassengerExample example=new PassengerExample();
+        PassengerExample example = new PassengerExample();
+        // 设置排序规则，按照ID降序排序
+        example.setOrderByClause("id desc");
         // 获取查询条件对象
-        PassengerExample.Criteria criteria=example.createCriteria();
+        PassengerExample.Criteria criteria = example.createCriteria();
+
         // 如果请求对象中的成员ID不为空，则添加成员ID查询条件
-        if(ObjectUtil.isNotEmpty(req.getMemberId())) {
+        if (ObjectUtil.isNotEmpty(req.getMemberId())) {
             criteria.andMemberIdEqualTo(LoginMemberContext.getId());
         }
+
         // 启动分页查询
         PageHelper.startPage(req.getPage(), req.getSize());
+
         // 根据构建的查询条件，从数据库中查询符合条件的乘客列表
-        List<Passenger> passengerList = passengerMapper.selectByExample(example).stream().map(passenger -> {
-            // 创建新的乘客对象，用于存储查询结果
-            Passenger passenger1 = new Passenger();
-            passenger1.setName(passenger.getName());
-            passenger1.setIdCard(passenger.getIdCard());
-            // 将乘客类型代码转换为描述
-            passenger1.setType(PassengerEnum.fromCode(passenger.getType()).getDesc());
-            return passenger1;
-        }).collect(Collectors.toList());
+        List<Passenger> passengerList = passengerMapper.selectByExample(example);
 
         // 创建分页信息对象，用于存储查询结果的总记录数和每页记录数
-        PageInfo<Passenger> pageInfo =new PageInfo<>(passengerList);
+        PageInfo<Passenger> pageInfo = new PageInfo<>(passengerList);
+
         // 记录日志，输出总行数和总页数
         Log.info("总行数：{}", pageInfo.getTotal());
         Log.info("总页数：{}", pageInfo.getPages());
+
         // 将查询结果转换为乘客查询响应对象列表
-        List<PassengerQueryResp> resp = BeanUtil.copyToList(passengerList, PassengerQueryResp.class);
+        List<PassengerQueryResp> respList = BeanUtil.copyToList(passengerList, PassengerQueryResp.class).stream().map(
+            resp->{
+                resp.setType(PassengerEnum.fromCode(resp.getType(),null).getDesc());
+                return resp;
+            }
+        ).collect(Collectors.toList());
+
         // 创建分页响应对象，设置总记录数和乘客查询响应对象列表
-        PageResp<PassengerQueryResp> respList = new PageResp<>();
-        respList.setTotal(pageInfo.getTotal());
-        respList.setList(resp);
-        // 将查询到的乘客列表转换为乘客查询响应对象列表，并返回
-        return respList;
+        PageResp<PassengerQueryResp> pageResp = new PageResp<>();
+        pageResp.setTotal(pageInfo.getTotal());
+        pageResp.setList(respList);
+
+        return pageResp;
+    }
+    public void delete(Long id) {
+        passengerMapper.deleteByPrimaryKey(id);
     }
 }

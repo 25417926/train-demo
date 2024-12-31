@@ -25,7 +25,7 @@ public class MemberFilter implements GlobalFilter, Ordered {
         LOG.info("1");
         //写入日志，写所需过滤逻辑
         String path = exchange.getRequest().getURI().getPath();
-        if (path.contains("/member/SendCode")|| path.contains("/member/LoginCode")|| path.contains("/member/register")) {
+        if (path.contains("/business") || path.contains("/member/SendCode")|| path.contains("/member/LoginCode")|| path.contains("/member/register")) {
             LOG.info("放行路由："+path);
             return chain.filter(exchange);
         }else{

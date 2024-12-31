@@ -3,6 +3,8 @@ package com.guo.business.TypeEnum;
 
 import lombok.Getter;
 
+import java.math.BigDecimal;
+
 /**
  * @Description
  * @Author: 派
@@ -10,20 +12,24 @@ import lombok.Getter;
  */
 
 @Getter
-public enum PassengerEnum {
-        ADULT("1", "成人"),
-        STUDENT("2", "学生"),
-        CHILDREN("3", "儿童"),
-        INFANT("4", "残疾军人");
+public enum TarinTypeEnum {
+    G("G","高铁", new BigDecimal("1.2")),
+    D("D","动车", new BigDecimal("1")),
+    K("K","快速", new BigDecimal("0.8"));
         private  String code;
         private  String desc;
+    /**
+     * 票价比例 例如 1.2 则票价为 1.2 * 每公里票价 * 公里数
+     */
+    private  BigDecimal price;
 
-    PassengerEnum(String code, String desc) {
+
+    TarinTypeEnum(String code, String desc, BigDecimal price) {
         this.code = code;
         this.desc = desc;
     }
-    public static PassengerEnum fromCode(String code,String desc) {
-        for (PassengerEnum type : PassengerEnum.values()) {
+    public static TarinTypeEnum fromCode(String code, String desc) {
+        for (TarinTypeEnum type : TarinTypeEnum.values()) {
             if (type.getCode().equals(code)) {
                 return type;
             }else if(type.getDesc().equals(desc)){

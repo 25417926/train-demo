@@ -22,9 +22,11 @@ public enum PassengerEnum {
         this.code = code;
         this.desc = desc;
     }
-    public static PassengerEnum fromCode(String code) {
+    public static PassengerEnum fromCode(String code,String desc) {
         for (PassengerEnum type : PassengerEnum.values()) {
             if (type.getCode().equals(code)) {
+                return type;
+            }else if(type.getDesc().equals(desc)){
                 return type;
             }
         }
