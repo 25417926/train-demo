@@ -16,7 +16,8 @@ import java.util.*;
 public class ServerGenerator {
     // 表示是否为只读界面
     static boolean readOnly = false;
-    static String vuePath = "admin-ui/src/views/HomeView/";
+    static String vuePath = "admin-ui/src/views/HomeView";
+    static String PackPath = "admin-ui/src/api";
     static String serverPath = "[module]/src/main/java/com/guo/[module]/";
     static String pomPath = "builder/pom.xml";
     static String module = "";
@@ -94,6 +95,7 @@ public class ServerGenerator {
         gen(Domain, param, "resp", "queryResp");
 
         genVue(do_main, param);
+        genPack(Domain, param);
     }
 
     private static void gen(String Domain, Map<String, Object> param, String packageName, String target) throws IOException, TemplateException {
@@ -114,7 +116,13 @@ public class ServerGenerator {
         System.out.println("开始生成：" + fileName);
         FreemarkerUtil.generator(fileName, param);
     }
-
+    private static void genPack(String do_main, Map<String, Object> param) throws IOException, TemplateException {
+        FreemarkerUtil.initConfig("packager.ftl");
+        new File(PackPath ).mkdirs();
+        String fileName = PackPath + "/" + do_main + ".js";
+        System.out.println("开始生成：" + fileName);
+        FreemarkerUtil.generator(fileName, param);
+    }
     /**
      * 从配置文件中获取代码生成器的路径
      *

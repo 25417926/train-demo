@@ -13,7 +13,7 @@ import com.guo.${module}.mapper.${Domain}Mapper;
 import com.guo.${module}.req.${Domain}QueryReq;
 import com.guo.${module}.req.${Domain}SaveReq;
 import com.guo.${module}.resp.${Domain}QueryResp;
-import jakarta.annotation.Resource;
+import javax.annotation.Resource;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -42,7 +42,7 @@ ${domain}Mapper.updateByPrimaryKey(${domain});
 }
 }
 
-public PageResp<${Domain}QueryResp> queryList(${Domain}QueryReq req) {
+public PageResp<${Domain}QueryResp> QueryList(${Domain}QueryReq req) {
     ${Domain}Example ${domain}Example = new ${Domain}Example();
     ${domain}Example.setOrderByClause("id desc");
     ${Domain}Example.Criteria criteria = ${domain}Example.createCriteria();

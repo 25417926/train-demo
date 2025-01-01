@@ -60,7 +60,7 @@ return commonResp;
 @GetMapping("/Query-List")
 public CommonResp<PageResp<${Domain}QueryResp>> list(@Valid ${Domain}QueryReq req) {
     // 设置查询请求中的成员ID为当前登录成员的ID
-    req.setMemberId(LoginMemberContext.getId());
+    //req.setMemberId(LoginMemberContext.getId());
 
     // 调用乘客服务查询列表方法，获取乘客信息列表
     PageResp<${Domain}QueryResp> list = ${Domain}Service.QueryList(req);

@@ -17,8 +17,11 @@
       >
         <a-menu-item key="welcome"><router-link to="/welcome">欢迎</router-link></a-menu-item>
         <a-menu-item key="about" ><router-link to="/about">关于</router-link></a-menu-item>
-        <a-menu-item key="station" ><router-link to="/station">车站信息</router-link></a-menu-item>
-        <a-menu-item key="train" ><router-link to="/train">火车信息</router-link></a-menu-item>
+        <a-menu-item key="station" ><router-link to="/station">车站管理</router-link></a-menu-item>
+        <a-menu-item key="train" ><router-link to="/train">火车管理</router-link></a-menu-item>
+        <a-menu-item key="train-station" ><router-link to="/train-station">火车车站管理</router-link></a-menu-item>
+        <a-menu-item key="train-carriage" ><router-link to="/train-carriage">火车车厢管理</router-link></a-menu-item>
+        <a-menu-item key="train-seat" ><router-link to="/train-seat">火车座位管理</router-link></a-menu-item>
       </a-menu>
 
     </a-layout-header>
@@ -39,8 +42,11 @@
             </template>
             <a-menu-item key="welcome"><router-link to="/welcome">欢迎</router-link></a-menu-item>
             <a-menu-item key="about" ><router-link to="/about">关于</router-link></a-menu-item>
-            <a-menu-item key="station" ><router-link to="/station">车站信息</router-link></a-menu-item>
-            <a-menu-item key="train" ><router-link to="/train">火车信息</router-link></a-menu-item>
+            <a-menu-item key="station" ><router-link to="/station">车站管理</router-link></a-menu-item>
+            <a-menu-item key="train" ><router-link to="/train">火车管理</router-link></a-menu-item>
+            <a-menu-item key="train-station" ><router-link to="/train-station">火车车站管理</router-link></a-menu-item>
+            <a-menu-item key="train-carriage" ><router-link to="/train-carriage">火车车厢管理</router-link></a-menu-item>
+            <a-menu-item key="train-seat" ><router-link to="/train-seat">火车座位管理</router-link></a-menu-item>
 <!--            <a-menu-item key="3">option3</a-menu-item>-->
 <!--            <a-menu-item key="4">option4</a-menu-item>-->
           </a-sub-menu>

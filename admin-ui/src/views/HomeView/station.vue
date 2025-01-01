@@ -31,20 +31,21 @@
         <a-input v-model:value="station.name"/>
       </a-form-item>
       <a-form-item label="站名拼音">
-        <a-input v-model:value="station.namePinyin"/>
+        <a-input v-model:value="station.namePinyin" disabled/>
       </a-form-item>
       <a-form-item label="站名首字母" >
 
-        <a-input v-model:value="station.namePy"/>
+        <a-input v-model:value="station.namePy" disabled/>
       </a-form-item>
     </a-form>
   </a-modal>
 </template>
 
 <script>
-import {defineComponent, ref, onMounted} from 'vue';
+import {defineComponent, ref, onMounted, watch} from 'vue';
 import {message} from "ant-design-vue";
 import {addStation,  deleteStation, getStationList} from "@/api/station"
+import {pinyin} from "pinyin-pro";
 
 export default defineComponent({
   name: "station-view",
@@ -87,7 +88,18 @@ export default defineComponent({
         dataIndex: 'operation'
       }
     ];
-
+    // 监听 station.value.name 的变化
+    watch(()=> station.value.name ,()=>{
+      // 当 station.value.name 不为空时，更新其拼音表示
+      if(window.Tool.isNotEmpty(station.value.name)){
+        // 更新 station.value.namePinyin 为全拼，去除空格
+        station.value.namePinyin = pinyin(station.value.name, {toneType: 'none'}).replaceAll(" ","")
+        // 更新 station.value.namePy 为首字母拼音，转换为大写并去除空格
+        station.value.namePy = pinyin(station.value.name, {toneType: 'none', pattern: 'first'}).toUpperCase().replaceAll(" ","");
+      }else{
+        station.value={}
+      }
+    })
     const onAdd = () => {
       station.value = {};
       visible.value = true;

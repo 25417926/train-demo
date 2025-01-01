@@ -71,8 +71,8 @@
 
 <script>
 import { defineComponent, ref, onMounted } from 'vue';
-import {notification} from "ant-design-vue";
-import axios from "axios";
+import {message} from "ant-design-vue";
+import {add${Domain}, delete${Domain}, get${Domain}List} from "@/api/${Domain}"
 
 export default defineComponent({
   name: "${do_main}-view",
@@ -126,7 +126,7 @@ export default defineComponent({
     };
     const onDelete = async (id) => {
       try {
-        const res = await delete${domain}(id);
+        const res = await delete${Domain}(id);
         if (res.code === 200) {
           message.success(res.message);
           handleQuery(); // 刷新数据
@@ -152,7 +152,7 @@ export default defineComponent({
     const handleOk = async () => {
       loading.value = true;
       try {
-        const res = await add${domain}(${domain}.value);
+        const res = await add${Domain}(${domain}.value);
         if (res.code === 200) {
           visible.value = false;
           message.success(res.message);
@@ -184,9 +184,9 @@ export default defineComponent({
     </#if>
 
     const handleQuery = async (param = {page: 1, size: pagination.value.pageSize}) => {
-      const res = await get${domain}List(param);
+      const res = await get${Domain}List(param);
       if (res.code === 200) {
-        ${domain}.value = res.content.list;
+        ${domain}s.value = res.content.list;
         pagination.value.total = res.total;
       }
     };
