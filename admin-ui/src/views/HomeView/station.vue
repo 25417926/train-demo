@@ -128,11 +128,9 @@ export default defineComponent({
           visible.value = false;
           message.success(res.message);
           handleQuery(); // 刷新数据
-        } else {
-          message.error('添加失败');
         }
       } catch (error) {
-        message.error('添加失败');
+        message.error(error.message);
       } finally {
         loading.value = false;
       }
@@ -143,14 +141,14 @@ export default defineComponent({
       console.log(res)
       if (res.code === 200) {
         stations.value = res.content.list;
-        pagination.value.total = res.total;
+        pagination.value.total = res.content.total;
       }
     };
 
 
     const handleTableChange = (page) => {
       // console.log("看看自带的分页参数都有啥：" + JSON.stringify(page));
-      pagination.value.pageSize = page.pageSize;
+      pagination.value.current = page.current;
       handleQuery({
         page: page.current,
         size: page.pageSize

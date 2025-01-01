@@ -20,6 +20,12 @@
             <a style="color: red">删除</a>
           </a-popconfirm>
           <a @click="onEdit(record)">编辑</a>
+          <a-popconfirm
+              title="生成座位会清除已有记录，确认生成?"
+              @confirm="OnGenSeat(record.code)"
+              ok-text="确认" cancel-text="取消">
+            <a style="color: yellowgreen">生成</a>
+          </a-popconfirm>
         </a-space>
       </template>
 
@@ -29,17 +35,18 @@
            ok-text="确认" cancel-text="取消">
     <a-form :model="train" :label-col="{span: 4}" :wrapper-col="{ span: 20 }">
       <a-form-item label="车次编号">
-        <a-input v-model:value="train.code" />
+        <a-input v-model:value="train.code" :disabled="!!train.id"/>
       </a-form-item>
       <a-form-item label="车次类型">
         <a-select v-model:value="train.type">
           <a-select-option v-for="item in TRAIN_TYPE_ARRAY" :key="item.type" :value="item.type">
-            {{item.desc}}
+            {{item.type}}|{{item.desc}}
           </a-select-option>
         </a-select>
       </a-form-item>
       <a-form-item label="始发站">
-        <a-input v-model:value="train.start" />
+
+        <RailWayPlatFormDrop v-model="train.start"/>
       </a-form-item>
       <a-form-item label="始发站拼音">
         <a-input v-model:value="train.startPinyin" disabled/>
@@ -48,7 +55,7 @@
         <a-time-picker v-model:value="train.startTime" valueFormat="HH:mm:ss" placeholder="请选择时间" />
       </a-form-item>
       <a-form-item label="终点站">
-        <a-input v-model:value="train.end" />
+        <RailWayPlatFormDrop v-model="train.end"/>
       </a-form-item>
       <a-form-item label="终点站拼音">
         <a-input v-model:value="train.endPinyin" disabled/>
@@ -63,11 +70,13 @@
 <script>
 import {defineComponent, ref, onMounted, watch} from 'vue';
 import {message} from "ant-design-vue";
-import {addTrain, deleteTrain, getTrainList} from "@/api/train";
+import {addTrain, deleteTrain, getTrainList, OnTrainSeatList} from "@/api/train";
 import {pinyin} from "pinyin-pro";
+import RailWayPlatFormDrop from "@/components/HomeComp/RailWayPlatFormDrop.vue";
 
 export default defineComponent({
   name: "train-view",
+  components: {RailWayPlatFormDrop},
   setup() {
 
 
@@ -188,11 +197,9 @@ export default defineComponent({
           visible.value = false;
           message.success(res.message);
           handleQuery(); // 刷新数据
-        } else {
-          message.error('添加失败');
         }
       } catch (error) {
-        message.error('添加失败');
+        message.error(error.message);
       } finally {
         loading.value = false;
       }
@@ -203,19 +210,27 @@ export default defineComponent({
       if (res.code === 200) {
 
         trains.value = res.content.list;
-        pagination.value.total = res.total;
+        pagination.value.total = res.content.total;
       }
     };
 
     const handleTableChange = (page) => {
       // console.log("看看自带的分页参数都有啥：" + JSON.stringify(page));
-      pagination.value.pageSize = page.pageSize;
+      pagination.value.current = page.current;
       handleQuery({
         page: page.current,
         size: page.pageSize
       });
     };
-
+    const OnGenSeat = async (record) => {
+      console.log(record)
+      const res = await OnTrainSeatList({trainCode: record});
+      if (res.code === 200) {
+        message.success(res.message);
+      } else {
+        message.error('生成失败');
+      }
+    };
     onMounted(() => {
       handleQuery({
         page: 1,
@@ -236,7 +251,8 @@ export default defineComponent({
       onAdd,
       handleOk,
       onEdit,
-      onDelete
+      onDelete,
+      OnGenSeat
     };
   },
 });

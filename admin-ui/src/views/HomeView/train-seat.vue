@@ -1,78 +1,30 @@
 <template>
   <p>
     <a-space>
-      <a-button type="primary" @click="handleQuery()">刷新</a-button>
-      <a-button type="primary" @click="onAdd">新增</a-button>
+      <TrainDropBox v-model="params.trainCode" style="width: 200px"/>
+      <a-button type="primary" @click="handleQuery()">查找</a-button>
+
     </a-space>
   </p>
   <a-table :dataSource="train_seats"
            :columns="columns"
            :pagination="pagination"
-           @change="handleTableChange"
+           @change="handleChange"
            :loading="loading">
-    <template #bodyCell="{ column, record }">
-      <template v-if="column.dataIndex === 'operation'">
-        <a-space>
-          <a-popconfirm
-              title="删除后不可恢复，确认删除?"
-              @confirm="onDelete(record.id)"
-              ok-text="确认" cancel-text="取消">
-            <a style="color: red">删除</a>
-          </a-popconfirm>
-          <a @click="onEdit(record)">编辑</a>
-        </a-space>
-      </template>
-      <template v-else-if="column.dataIndex === 'col'">
-        <span v-for="item in SEAT_COL_ARRAY" :key="item.code">
-          <span v-if="item.code === record.col">
-            {{item.desc}}
-          </span>
-        </span>
-      </template>
-    </template>
   </a-table>
-  <a-modal v-model:visible="visible" title="座位" @ok="handleOk"
-           ok-text="确认" cancel-text="取消">
-    <a-form :model="train_seat" :label-col="{span: 4}" :wrapper-col="{ span: 20 }">
-      <a-form-item label="车次编号">
-        <a-input v-model:value="train_seat.trainCode" />
-      </a-form-item>
-      <a-form-item label="厢序">
-        <a-input v-model:value="train_seat.carriageIndex" />
-      </a-form-item>
-      <a-form-item label="排号">
-        <a-input v-model:value="train_seat.row" />
-      </a-form-item>
-      <a-form-item label="列号">
-        <a-select v-model:value="train_seat.col">
-          <a-select-option v-for="item in SEAT_COL_ARRAY" :key="item.type" :value="item.code">
-            {{item.desc}}
-          </a-select-option>
-        </a-select>
-      </a-form-item>
-      <a-form-item label="座位类型">
-        <a-select v-model:value="train_seat.seatType">
-          <a-select-option v-for="item in SEAT_TYPE_ARRAY" :key="item.code" :value="item.type">
-            {{item.desc}}
-          </a-select-option>
-        </a-select>
-      </a-form-item>
-      <a-form-item label="同车厢座序">
-        <a-input v-model:value="train_seat.carriageSeatIndex" />
-      </a-form-item>
-    </a-form>
-  </a-modal>
+
 </template>
 
 <script>
 import { defineComponent, ref, onMounted } from 'vue';
 import {message} from "ant-design-vue";
-import {addtrain_seat, deletetrain_seat, gettrain_seatList} from "@/api/train_seat"
+import { gettrain_seatList} from "@/api/train_seat"
+import TrainDropBox from "@/components/HomeComp/TrainDropBox.vue";
 
 export default defineComponent({
   name: "train-seat-view",
+  components: {TrainDropBox},
   setup() {
-
     const SEAT_COL_ARRAY = [
       { type: "1", desc: "A",code: "A"},
       { type: "1", desc: "C",code: "C"},
@@ -83,7 +35,6 @@ export default defineComponent({
       { type: "2", desc: "C",code: "C"},
       { type: "2", desc: "D",code: "D"},
       { type: "2", desc: "F",code: "F"},
-
     ];
     const SEAT_TYPE_ARRAY = [
       { type: "1", desc: "一等座"},
@@ -91,6 +42,9 @@ export default defineComponent({
       { type: "3", desc: "软卧" },
       { type: "4", desc: "硬卧" }
     ];
+    const params = ref({
+      trainCode:undefined
+    });
     const visible = ref(false);
     let train_seat = ref({
       id: undefined,
@@ -142,61 +96,22 @@ export default defineComponent({
       dataIndex: 'carriageSeatIndex',
       key: 'carriageSeatIndex',
     },
-    {
-      title: '操作',
-      dataIndex: 'operation'
-    }
     ];
 
-    const onAdd = () => {
-      train_seat.value = {};
-      visible.value = true;
-    };
-
-    const onEdit = (record) => {
-      train_seat.value = window.Tool.copy(record);
-      visible.value = true;
-    };
-    const onDelete = async (id) => {
-      try {
-        const res = await deletetrain_seat(id);
-        if (res.code === 200) {
-          message.success(res.message);
-          handleQuery(); // 刷新数据
-        }
-      } catch (error) {
-        message.error('删除失败');
-      }
-    };
-    const handleOk = async () => {
-      loading.value = true;
-      try {
-        const res = await addtrain_seat(train_seat.value);
-        if (res.code === 200) {
-          visible.value = false;
-          message.success(res.message);
-          handleQuery(); // 刷新数据
-        } else {
-          message.error('添加失败');
-        }
-      } catch (error) {
-        message.error('添加失败');
-      } finally {
-        loading.value = false;
-      }
-    };
-
-    const handleQuery = async (param = {page: 1, size: pagination.value.pageSize}) => {
+    const handleQuery = async (param = {page: 1, size: pagination.value.pageSize, trainCode: params.value.trainCode}) => {
       const res = await gettrain_seatList(param);
       if (res.code === 200) {
+        console.log(res);
         train_seats.value = res.content.list;
-        pagination.value.total = res.total;
+        pagination.value.total = res.content.total;
+        console.log(pagination.value)
+        message.success("查询成功");
       }
     };
 
-    const handleTableChange = (page) => {
+    const handleChange = (page) => {
       // console.log("看看自带的分页参数都有啥：" + JSON.stringify(page));
-      pagination.value.pageSize = page.pageSize;
+      pagination.value.current = page.current;
       handleQuery({
         page: page.current,
         size: page.pageSize
@@ -218,14 +133,16 @@ export default defineComponent({
       train_seats,
       pagination,
       columns,
-      handleTableChange,
+      handleChange,
       handleQuery,
       loading,
-      onAdd,
-      handleOk,
-      onEdit,
-      onDelete
+      params
     };
   },
 });
 </script>
+<style>
+.ant-pagination-options{
+  display: none;
+}
+</style>

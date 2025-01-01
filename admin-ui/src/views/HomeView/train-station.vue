@@ -1,7 +1,8 @@
 <template>
   <p>
     <a-space>
-      <a-button type="primary" @click="handleQuery()">刷新</a-button>
+      <TrainDropBox v-model="params.station_code" style="width: 200px"/>
+      <a-button type="primary" @click="handleQuery()">查找</a-button>
       <a-button type="primary" @click="onAdd">新增</a-button>
     </a-space>
   </p>
@@ -28,13 +29,13 @@
            ok-text="确认" cancel-text="取消">
     <a-form :model="train_Station" :label-col="{span: 4}" :wrapper-col="{ span: 20 }">
       <a-form-item label="车次编号">
-        <a-input v-model:value="train_Station.trainCode" />
+      <TrainDropBox v-model="train_Station.trainCode"/>
       </a-form-item>
       <a-form-item label="站序">
         <a-input v-model:value="train_Station.index" />
       </a-form-item>
       <a-form-item label="站名">
-        <a-input v-model:value="train_Station.name" />
+        <RailWayPlatFormDrop v-model="train_Station.name"/>
       </a-form-item>
       <a-form-item label="站名拼音">
         <a-input v-model:value="train_Station.namePinyin" disabled/>
@@ -46,7 +47,7 @@
         <a-time-picker v-model:value="train_Station.outTime" valueFormat="HH:mm:ss" placeholder="请选择时间" />
       </a-form-item>
       <a-form-item label="停站时长">
-        <a-time-picker v-model:value="train_Station.stopTime" valueFormat="HH:mm:ss" placeholder="请选择时间" />
+        <a-time-picker v-model:value="train_Station.stopTime" valueFormat="HH:mm:ss" placeholder="请选择时间" disabled/>
       </a-form-item>
       <a-form-item label="里程（公里）">
         <a-input v-model:value="train_Station.km" />
@@ -60,11 +61,19 @@ import {defineComponent, ref, onMounted, watch} from 'vue';
 import {message} from "ant-design-vue";
 import {addTrain_Station, deleteTrain_Station, getTrain_StationList} from "@/api/train_station"
 import {pinyin} from "pinyin-pro";
+import TrainDropBox from "@/components/HomeComp/TrainDropBox.vue";
+import RailWayPlatFormDrop from "@/components/HomeComp/RailWayPlatFormDrop.vue";
+import dayjs from 'dayjs';
 
 export default defineComponent({
   name: "train-station-view",
+  components: {TrainDropBox, RailWayPlatFormDrop},
   setup() {
+
     const visible = ref(false);
+    const params = ref({
+      station_code:undefined
+    });
     let train_Station = ref({
       id: undefined,
       trainCode: undefined,
@@ -79,6 +88,19 @@ export default defineComponent({
       updateTime: undefined,
     });
     const train_Stations = ref([]);
+    // 自动计算停车时长
+    watch(() => train_Station.value.inTime, () => {
+      let diff = dayjs(train_Station.value.outTime, 'HH:mm:ss').diff(dayjs(train_Station.value.inTime, 'HH:mm:ss'));
+      const send =Math.floor(diff / 1000)
+      train_Station.value.stopTime = dayjs('00:00:00', 'HH:mm:ss').second(send).format('HH:mm:ss');
+    });
+
+// 自动计算停车时长
+    watch(() => train_Station.value.outTime, () => {
+      let diff = dayjs(train_Station.value.outTime, 'HH:mm:ss').diff(dayjs(train_Station.value.inTime, 'HH:mm:ss'));
+      const send =Math.floor(diff / 1000)
+      train_Station.value.stopTime = dayjs('00:00:00', 'HH:mm:ss').second(send).format('HH:mm:ss');
+    });
     // 分页的三个属性名是固定的
     const pagination = ref({
       total: 0,
@@ -137,6 +159,7 @@ export default defineComponent({
         train_Station.value.namePinyin = pinyin(train_Station.value.name,{toneType: 'none'}).replaceAll(" ","")
       }else{
         train_Station.value.namePinyin = ""
+        train_Station.value.namePinyin = ""
       }
     })
     const onAdd = () => {
@@ -167,27 +190,26 @@ export default defineComponent({
           visible.value = false;
           message.success(res.message);
           handleQuery(); // 刷新数据
-        } else {
-          message.error('添加失败');
         }
       } catch (error) {
-        message.error('添加失败');
+        message.error(error.message);
       } finally {
         loading.value = false;
       }
     };
 
-    const handleQuery = async (param = {page: 1, size: pagination.value.pageSize}) => {
+    const handleQuery = async () => {
+      const param= {page: 1, size: pagination.value.pageSize,trainCode: params.value.station_code}
       const res = await getTrain_StationList(param);
       if (res.code === 200) {
         train_Stations.value = res.content.list;
-        pagination.value.total = res.total;
+        pagination.value.total = res.content.total;
       }
     };
 
     const handleTableChange = (page) => {
       // console.log("看看自带的分页参数都有啥：" + JSON.stringify(page));
-      pagination.value.pageSize = page.pageSize;
+      pagination.value.current = page.current;
       handleQuery({
         page: page.current,
         size: page.pageSize
@@ -199,6 +221,7 @@ export default defineComponent({
         page: 1,
         size: pagination.value.pageSize
       });
+
     });
 
     return {
@@ -213,7 +236,8 @@ export default defineComponent({
       onAdd,
       handleOk,
       onEdit,
-      onDelete
+      onDelete,
+      params
     };
   },
 });

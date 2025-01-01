@@ -21,7 +21,12 @@ public enum ExceptionEnum {
     MEMBER_MOBILE_NOT_EXIST(HttpStatus.BAD_REQUEST, "手机号未注册"),
     MEMBER_CODE_ERROR(HttpStatus.CONFLICT, "验证码错误"),
     MEMBER_CODE_NOT_ERROR(HttpStatus.BAD_REQUEST, "请先获取验证码"),
-    NOT_AUTHORIZATION (HttpStatus.UNAUTHORIZED, "未登录");
+    NOT_AUTHORIZATION (HttpStatus.UNAUTHORIZED, "未登录"),
+    STATION_EXIST(HttpStatus.WARN, "车站已存在"),
+    CARRIAGE_EXIST(HttpStatus.WARN, "同车次厢序已存在"),
+    TRAIN_NAME_EXIST(HttpStatus.WARN, "同车次站名已存在"),
+    TRAIN_INDEX_EXIST(HttpStatus.WARN, "同车次站序已存在"),
+    TRAIN_CODE_EXIST(HttpStatus.WARN, "车次编号已存在");
 
     @Getter
     @Setter

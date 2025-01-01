@@ -12,7 +12,7 @@ import java.math.BigDecimal;
  */
 
 @Getter
-public enum TarinCarriageTypeEnum {
+public enum TrainCarriageTypeEnum {
     YDZ("1","一等座", new BigDecimal("0.4")),
     EDZ("2","二等座", new BigDecimal("0.3")),
     RW("3","软卧", new BigDecimal("0.6")),
@@ -25,12 +25,12 @@ public enum TarinCarriageTypeEnum {
     private  BigDecimal price;
 
 
-    TarinCarriageTypeEnum(String code, String desc, BigDecimal price) {
+    TrainCarriageTypeEnum(String code, String desc, BigDecimal price) {
         this.code = code;
         this.desc = desc;
     }
-    public static TarinCarriageTypeEnum fromCode(String code, String desc) {
-        for (TarinCarriageTypeEnum type : TarinCarriageTypeEnum.values()) {
+    public static TrainCarriageTypeEnum fromCode(String code, String desc) {
+        for (TrainCarriageTypeEnum type : TrainCarriageTypeEnum.values()) {
             if (type.getCode().equals(code)) {
                 return type;
             }else if(type.getDesc().equals(desc)){

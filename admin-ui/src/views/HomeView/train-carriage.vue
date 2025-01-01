@@ -1,7 +1,8 @@
 <template>
   <p>
     <a-space>
-      <a-button type="primary" @click="handleQuery()">刷新</a-button>
+      <TrainDropBox v-model="params.trainCode" style="width: 200px"/>
+      <a-button type="primary" @click="handleQuery()">查找</a-button>
       <a-button type="primary" @click="onAdd">新增</a-button>
     </a-space>
   </p>
@@ -22,40 +23,33 @@
           <a @click="onEdit(record)">编辑</a>
         </a-space>
       </template>
-      <template v-else-if="column.dataIndex === 'seatType'">
-        <span v-for="item in SEAT_TYPE_ARRAY" :key="item.code">
-          <span v-if="item.code === record.seatType">
-            {{item.desc}}
-          </span>
-        </span>
-      </template>
     </template>
   </a-table>
   <a-modal v-model:visible="visible" title="火车车厢" @ok="handleOk"
            ok-text="确认" cancel-text="取消">
     <a-form :model="train_Carriage" :label-col="{span: 4}" :wrapper-col="{ span: 20 }">
       <a-form-item label="车次编号">
-        <a-input v-model:value="train_Carriage.trainCode" />
+        <TrainDropBox v-model="train_Carriage.trainCode"/>
       </a-form-item>
       <a-form-item label="厢号">
         <a-input v-model:value="train_Carriage.index" />
       </a-form-item>
       <a-form-item label="座位类型">
         <a-select v-model:value="train_Carriage.seatType">
-          <a-select-option v-for="item in SEAT_TYPE_ARRAY" :key="item.type" :value="item.type">
+          <a-select-option v-for="item in SEAT_TYPE_ARRAY" :key="item.code" :value="item.code">
             {{item.desc}}
           </a-select-option>
         </a-select>
       </a-form-item>
-      <a-form-item label="座位数">
-        <a-input v-model:value="train_Carriage.seatCount" />
-      </a-form-item>
+<!--      <a-form-item label="座位数">-->
+<!--        <a-input v-model:value="train_Carriage.seatCount" />-->
+<!--      </a-form-item>-->
       <a-form-item label="排数">
         <a-input v-model:value="train_Carriage.rowCount" />
       </a-form-item>
-      <a-form-item label="列数">
-        <a-input v-model:value="train_Carriage.colCount" />
-      </a-form-item>
+<!--      <a-form-item label="列数">-->
+<!--        <a-input v-model:value="train_Carriage.colCount" />-->
+<!--      </a-form-item>-->
     </a-form>
   </a-modal>
 </template>
@@ -64,16 +58,21 @@
 import { defineComponent, ref, onMounted } from 'vue';
 import {message} from "ant-design-vue";
 import {addTrain_Carriage, deleteTrain_Carriage, getTrain_CarriageList} from "@/api/Train_Carriage"
+import TrainDropBox from "@/components/HomeComp/TrainDropBox.vue";
 
 export default defineComponent({
   name: "train-carriage-view",
+  components: {TrainDropBox},
   setup() {
     const SEAT_TYPE_ARRAY = [
-      { type: "1", desc: "一等座"},
-      { type: "2", desc: "二等座" },
-      { type: "3", desc: "软卧" },
-      { type: "4", desc: "硬卧" }
+      { code: "1", desc: "一等座"},
+      { code: "2", desc: "二等座" },
+      { code: "3", desc: "软卧" },
+      { code: "4", desc: "硬卧" }
     ];
+    const params = ref({
+      trainCode: undefined,
+    });
     const visible = ref(false);
     let train_Carriage = ref({
       id: undefined,
@@ -159,27 +158,25 @@ export default defineComponent({
           visible.value = false;
           message.success(res.message);
           handleQuery(); // 刷新数据
-        } else {
-          message.error('添加失败');
         }
       } catch (error) {
-        message.error('添加失败');
+        message.error(error.message);
       } finally {
         loading.value = false;
       }
     };
 
-    const handleQuery = async (param = {page: 1, size: pagination.value.pageSize}) => {
+    const handleQuery = async (param = {page: 1, size: pagination.value.pageSize,trainCode: params.value.trainCode}) => {
       const res = await getTrain_CarriageList(param);
       if (res.code === 200) {
         train_Carriages.value = res.content.list;
-        pagination.value.total = res.total;
+        pagination.value.total = res.content.total;
       }
     };
 
     const handleTableChange = (page) => {
       // console.log("看看自带的分页参数都有啥：" + JSON.stringify(page));
-      pagination.value.pageSize = page.pageSize;
+      pagination.value.current = page.current;
       handleQuery({
         page: page.current,
         size: page.pageSize
@@ -206,7 +203,8 @@ export default defineComponent({
       onAdd,
       handleOk,
       onEdit,
-      onDelete
+      onDelete,
+      params
     };
   },
 });

@@ -35,3 +35,12 @@ export const deleteTrain = async (data) => {
         console.log(e);
     }
 }
+export const OnTrainSeatList = async (data) => {
+    try {
+        const res = await instance.get("/business/train/gen_seat/"+data.trainCode);
+        console.log(data)
+        return res.data
+    } catch (e) {
+        console.log(e);
+    }
+}
