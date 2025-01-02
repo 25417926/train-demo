@@ -28,7 +28,7 @@
             mode="inline"
             :style="{ height: '100%', borderRight: 0 }"
         >
-          <a-menu-item key="welcome"><router-link to="welcome">欢迎</router-link></a-menu-item>
+          <a-menu-item key="welcome"><router-link to="/welcome">欢迎</router-link></a-menu-item>
           <a-menu-item key="about" ><router-link to="/about">关于</router-link></a-menu-item>
           <a-sub-menu key="base">
             <template #title>
