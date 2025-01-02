@@ -12,6 +12,10 @@ spring:
           uri: http://127.0.0.1:8081
           predicates:
             - Path=/business/**
+        - id: batch
+          uri: http://127.0.0.1:8082
+          predicates:
+            - Path=/batch/**
   # 配置CORS相关设置
       globalcors:
         cors-configurations:
