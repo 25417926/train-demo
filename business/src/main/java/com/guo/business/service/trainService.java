@@ -36,6 +36,7 @@ public class trainService {
     public void save(trainSaveReq req) {
         DateTime now = DateTime.now();
         train train = BeanUtil.copyProperties(req, train.class);
+
         if (ObjectUtil.isNull(train.getId())) {
             train trainDB = selectByUnique(req.getType()+req.getCode());
             if(ObjectUtil.isNotEmpty(trainDB)){
@@ -47,7 +48,9 @@ public class trainService {
             train.setUpdateTime(now);
             trainMapper.insert(train);
         } else {
+            String type = TrainTypeEnum.fromCode(null,req.getType()).getCode();
             train.setUpdateTime(now);
+            train.setType(type);
             trainMapper.updateByPrimaryKey(train);
         }
     }

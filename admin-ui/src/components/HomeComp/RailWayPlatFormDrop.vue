@@ -16,7 +16,7 @@
 
 <script>
 import { defineComponent, onMounted, ref, watch } from "vue";
-import { getStationList } from "@/api/train_station";
+import { getStationList } from "@/api/base/train_station";
 
 export default defineComponent({
   name: "TrainDropBox",

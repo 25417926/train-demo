@@ -43,8 +43,16 @@
             <a-menu-item key="base/train-carriage" ><router-link to="/base/train-carriage">火车车厢管理</router-link></a-menu-item>
             <a-menu-item key="base/train-seat" ><router-link to="/base/train-seat">火车座位管理</router-link></a-menu-item>
 
-<!--            <a-menu-item key="3">option3</a-menu-item>-->
-<!--            <a-menu-item key="4">option4</a-menu-item>-->
+
+          </a-sub-menu>
+          <a-sub-menu key="business">
+            <template #title>
+              <span>
+                <user-outlined />
+                基础信息管理
+              </span>
+            </template>
+            <a-menu-item key="business/daily-train" ><router-link to="/business/daily-train">每日车次</router-link></a-menu-item>
           </a-sub-menu>
           <a-sub-menu key="batch">
             <template #title>

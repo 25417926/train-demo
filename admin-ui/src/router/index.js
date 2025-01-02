@@ -60,7 +60,31 @@ const routes = [
           },
         ]
       },
-
+      {
+        path: 'business/',
+        children:[
+          {
+            path: 'daily-train',
+            component: ()=> import('@/views/businessView/daily-train.vue'),
+          },
+          {
+            path: 'train',
+            component: ()=> import('@/views/ManageView/base/train.vue'),
+          },
+          {
+            path: 'train-station',
+            component: ()=> import('@/views/ManageView/base/train-station.vue'),
+          },
+          {
+            path: 'train-carriage',
+            component: ()=> import('@/views/ManageView/base/train-carriage.vue'),
+          },
+          {
+            path: 'train-seat',
+            component: ()=> import('@/views/ManageView/base/train-seat.vue'),
+          },
+        ]
+      },
     ]
   },
   {

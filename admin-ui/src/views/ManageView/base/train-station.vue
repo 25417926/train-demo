@@ -59,7 +59,7 @@
 <script>
 import {defineComponent, ref, onMounted, watch} from 'vue';
 import {message} from "ant-design-vue";
-import {addTrain_Station, deleteTrain_Station, getTrain_StationList} from "@/api/train_station"
+import {addTrain_Station, deleteTrain_Station, getTrain_StationList} from "@/api/base/train_station"
 import {pinyin} from "pinyin-pro";
 import TrainDropBox from "@/components/HomeComp/TrainDropBox.vue";
 import RailWayPlatFormDrop from "@/components/HomeComp/RailWayPlatFormDrop.vue";

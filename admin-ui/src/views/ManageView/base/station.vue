@@ -44,7 +44,7 @@
 <script>
 import {defineComponent, ref, onMounted, watch} from 'vue';
 import {message} from "ant-design-vue";
-import {addStation,  deleteStation, getStationList} from "@/api/station"
+import {addStation,  deleteStation, getStationList} from "@/api/base/station"
 import {pinyin} from "pinyin-pro";
 
 export default defineComponent({

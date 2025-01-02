@@ -18,7 +18,7 @@
 <script>
 import { defineComponent, ref, onMounted } from 'vue';
 import {message} from "ant-design-vue";
-import { gettrain_seatList} from "@/api/train_seat"
+import { gettrain_seatList} from "@/api/base/train_seat"
 import TrainDropBox from "@/components/HomeComp/TrainDropBox.vue";
 
 export default defineComponent({

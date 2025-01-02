@@ -16,8 +16,8 @@ import java.util.*;
 public class ServerGenerator {
     // 表示是否为只读界面
     static boolean readOnly = false;
-    static String vuePath = "admin-ui/src/views/HomeView";
-    static String PackPath = "admin-ui/src/api";
+    static String vuePath = "admin-ui/src/views/businessView";
+    static String PackPath = "admin-ui/src/api/business";
     static String serverPath = "[module]/src/main/java/com/guo/[module]/";
     static String pomPath = "builder/pom.xml";
     static String module = "";

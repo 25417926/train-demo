@@ -57,7 +57,7 @@
 <script>
 import { defineComponent, ref, onMounted } from 'vue';
 import {message} from "ant-design-vue";
-import {addTrain_Carriage, deleteTrain_Carriage, getTrain_CarriageList} from "@/api/Train_Carriage"
+import {addTrain_Carriage, deleteTrain_Carriage, getTrain_CarriageList} from "@/api/base/Train_Carriage"
 import TrainDropBox from "@/components/HomeComp/TrainDropBox.vue";
 
 export default defineComponent({

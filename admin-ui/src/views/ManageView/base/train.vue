@@ -38,8 +38,8 @@
         <a-input v-model:value="train.code" :disabled="!!train.id"/>
       </a-form-item>
       <a-form-item label="车次类型">
-        <a-select v-model:value="train.type">
-          <a-select-option v-for="item in TRAIN_TYPE_ARRAY" :key="item.type" :value="item.type">
+        <a-select v-model:value="train.type" :disabled="!!train.id">
+          <a-select-option v-for="item in TRAIN_TYPE_ARRAY" :key="item.type" :value="item.type" >
             {{item.type}}|{{item.desc}}
           </a-select-option>
         </a-select>
@@ -70,7 +70,7 @@
 <script>
 import {defineComponent, ref, onMounted, watch} from 'vue';
 import {message} from "ant-design-vue";
-import {addTrain, deleteTrain, getTrainList, OnTrainSeatList} from "@/api/train";
+import {addTrain, deleteTrain, getTrainList, OnTrainSeatList} from "@/api/base/train";
 import {pinyin} from "pinyin-pro";
 import RailWayPlatFormDrop from "@/components/HomeComp/RailWayPlatFormDrop.vue";
 
