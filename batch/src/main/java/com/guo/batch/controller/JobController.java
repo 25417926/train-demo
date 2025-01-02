@@ -22,7 +22,7 @@ import java.util.List;
  * 定时任务控制器，用于管理定时任务的创建和执行
  */
 @RestController
-@RequestMapping(value = "/admin/job")
+@RequestMapping(value = "/job")
 public class JobController {
 
     // 日志对象，用于记录日志信息
