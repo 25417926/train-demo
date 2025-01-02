@@ -49,7 +49,7 @@
             <template #title>
               <span>
                 <user-outlined />
-                基础信息管理
+                业务管理
               </span>
             </template>
             <a-menu-item key="business/daily-train" ><router-link to="/business/daily-train">每日车次</router-link></a-menu-item>
@@ -136,7 +136,7 @@ export default defineComponent({
       selectedKeys1: ref(['2']),
       selectedKeys2: ref(['1']),
       collapsed: ref(false),
-      openKeys: ref(['base','batch']),
+      openKeys: ref([]),
       layout,
       mobile,
       SelectKey

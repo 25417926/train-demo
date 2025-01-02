@@ -93,7 +93,7 @@
 
 <script>
 import { defineComponent, onMounted, ref } from 'vue';
-import {addJob, deleteJob, getJobList, PauseJob, ResumeJob, RunJob} from '@/api/job'
+import {addJob, deleteJob, getJobList, PauseJob, ResumeJob, RunJob} from '@/api/job/job'
 import { notification } from 'ant-design-vue';
 
 export default defineComponent({

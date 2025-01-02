@@ -1,7 +1,9 @@
 <template>
   <p>
     <a-space>
-      <a-button type="primary" @click="handleQuery()">刷新</a-button>
+      <a-date-picker v-model:value="params.date" valueFormat="YYYY-MM-DD" placeholder="请选择日期" />
+      <TrainDropBox v-model="params.code" style="width: 200px"/>
+      <a-button type="primary" @click="handleQuery()">查找</a-button>
       <a-button type="primary" @click="onAdd">新增</a-button>
     </a-space>
   </p>
@@ -11,6 +13,9 @@
            @change="handleTableChange"
            :loading="loading">
     <template #bodyCell="{ column, record }">
+      <template v-if="column.dataIndex === 'type'">
+        {{record.type}}
+      </template>
       <template v-if="column.dataIndex === 'operation'">
         <a-space>
           <a-popconfirm
@@ -38,7 +43,7 @@
         <a-date-picker v-model:value="daily_Train.date" valueFormat="YYYY-MM-DD" placeholder="请选择日期" />
       </a-form-item>
       <a-form-item label="车次编号">
-        <a-input v-model:value="daily_Train.code" />
+        <TrainDropBox v-model="daily_Train.trainCode" @change="OnChangCode"/>
       </a-form-item>
       <a-form-item label="车次类型">
         <a-select v-model:value="daily_Train.type">
@@ -51,7 +56,7 @@
         <a-input v-model:value="daily_Train.start" />
       </a-form-item>
       <a-form-item label="始发站拼音">
-        <a-input v-model:value="daily_Train.startPinyin" />
+        <a-input v-model:value="daily_Train.startPinyin" disabled/>
       </a-form-item>
       <a-form-item label="出发时间">
         <a-time-picker v-model:value="daily_Train.startTime" valueFormat="HH:mm:ss" placeholder="请选择时间" />
@@ -60,7 +65,7 @@
         <a-input v-model:value="daily_Train.end" />
       </a-form-item>
       <a-form-item label="终点站拼音">
-        <a-input v-model:value="daily_Train.endPinyin" />
+        <a-input v-model:value="daily_Train.endPinyin" disabled/>
       </a-form-item>
       <a-form-item label="到站时间">
         <a-time-picker v-model:value="daily_Train.endTime" valueFormat="HH:mm:ss" placeholder="请选择时间" />
@@ -73,11 +78,17 @@
 import { defineComponent, ref, onMounted } from 'vue';
 import {message} from "ant-design-vue";
 import {addDaily_Train, deleteDaily_Train, getDaily_TrainList} from "@/api/business/Daily_Train"
+import TrainDropBox from "@/components/HomeComp/TrainDropBox.vue";
 
 export default defineComponent({
   name: "daily-train-view",
+  components: {TrainDropBox},
   setup() {
-    const TRAIN_TYPE_ARRAY = window.TRAIN_TYPE_ARRAY;
+    const TRAIN_TYPE_ARRAY = [
+      { type: "G", desc: "高铁"},
+      { type: "D", desc: "动车" },
+      { type: "K", desc: "快速" }
+    ];
     const visible = ref(false);
     let daily_Train = ref({
       id: undefined,
@@ -101,6 +112,10 @@ export default defineComponent({
       pageSize: 10,
     });
     let loading = ref(false);
+    const params= ref({
+      code: null,
+      date:null
+    })
     const columns = [
     {
       title: '日期',
@@ -191,10 +206,12 @@ export default defineComponent({
       }
     };
 
-    const handleQuery = async (param = {page: 1, size: pagination.value.pageSize}) => {
+    const handleQuery = async (param = {page: 1, size: pagination.value.pageSize,code: params.value.code,date:params.value.date}) => {
       const res = await getDaily_TrainList(param);
+      console.log(res);
       if (res.code === 200) {
         daily_Trains.value = res.content.list;
+        console.log(daily_Trains.value)
         pagination.value.total = res.total;
       }
     };
@@ -207,7 +224,15 @@ export default defineComponent({
         size: page.pageSize
       });
     };
-
+    const OnChangCode =  (train) => {
+      try {
+       let t =window.Tool.copy(train);
+       delete t.id
+        daily_Train.value =Object.assign(daily_Train.value,t)
+      } catch (error) {
+        message.error('删除失败');
+      }
+    };
     onMounted(() => {
       handleQuery({
         page: 1,
@@ -228,7 +253,9 @@ export default defineComponent({
       onAdd,
       handleOk,
       onEdit,
-      onDelete
+      onDelete,
+      OnChangCode,
+      params
     };
   },
 });

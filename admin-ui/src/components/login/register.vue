@@ -1,7 +1,7 @@
 <script>
 
 import {reactive, ref} from "vue";
-import {SendCodes,LoginCode} from "@/api/login"
+import {SendCodes,LoginCode} from "@/api/login/login"
 import { useRouter } from 'vue-router';
 import { UserOutlined, LockOutlined } from '@ant-design/icons-vue';
 

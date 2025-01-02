@@ -38,12 +38,13 @@ public class trainService {
         train train = BeanUtil.copyProperties(req, train.class);
 
         if (ObjectUtil.isNull(train.getId())) {
-            train trainDB = selectByUnique(req.getType()+req.getCode());
+            String CodeType =req.getType()+req.getCode();
+            train trainDB = selectByUnique(CodeType);
             if(ObjectUtil.isNotEmpty(trainDB)){
                 throw new ExceptionConsole(ExceptionEnum.TRAIN_CODE_EXIST);
             }
             train.setId(SnowUtil.getSnowflakeNextId());
-            train.setCode(req.getType()+req.getCode());
+            train.setCode(CodeType);
             train.setCreateTime(now);
             train.setUpdateTime(now);
             trainMapper.insert(train);
@@ -57,7 +58,7 @@ public class trainService {
 
     public PageResp<trainQueryResp> queryList(trainQueryReq req) {
         trainExample trainExample = new trainExample();
-        trainExample.setOrderByClause("id desc");
+        trainExample.setOrderByClause("code asc ");
         trainExample.Criteria criteria = trainExample.createCriteria();
 
         LOG.info("查询页码：{}", req.getPage());
