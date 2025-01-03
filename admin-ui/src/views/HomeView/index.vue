@@ -3,7 +3,7 @@
     <a-layout-header class="header" id="components-layout-demo-top-side-2">
       <div class="logo" >
         <div style="margin-top:-17px">
-        <router-link to="/admin-ui/src/views/ManageView/home/welcome">12306</router-link>
+        <router-link to="/welcome">12306</router-link>
         </div>
       </div>
       <div style="float: right;color: white">您好：{{mobile}}
@@ -55,6 +55,7 @@
             <a-menu-item key="business/daily-train" ><router-link to="/business/daily-train">每日车次</router-link></a-menu-item>
             <a-menu-item key="business/daily-train-station" ><router-link to="/business/daily-train-station">每日车站</router-link></a-menu-item>
             <a-menu-item key="business/daily-train-carriage" ><router-link to="/business/daily-train-carriage">每日车厢</router-link></a-menu-item>
+            <a-menu-item key="business/daily-train-seat" ><router-link to="/business/daily-train-seat">每日座位</router-link></a-menu-item>
 
           </a-sub-menu>
           <a-sub-menu key="batch">
