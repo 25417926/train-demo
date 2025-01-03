@@ -33,7 +33,7 @@
         <a-date-picker v-model:value="daily_Train_Station.date" valueFormat="YYYY-MM-DD" placeholder="请选择日期" />
       </a-form-item>
       <a-form-item label="车次编号">
-        <TrainDropBox v-model="daily_Train_Station.trainCode" @change="OnChangCode"/>
+        <TrainDropBox v-model="daily_Train_Station.trainCode" />
       </a-form-item>
       <a-form-item label="站序">
         <a-input v-model:value="daily_Train_Station.index" />

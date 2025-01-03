@@ -54,6 +54,8 @@
             </template>
             <a-menu-item key="business/daily-train" ><router-link to="/business/daily-train">每日车次</router-link></a-menu-item>
             <a-menu-item key="business/daily-train-station" ><router-link to="/business/daily-train-station">每日车站</router-link></a-menu-item>
+            <a-menu-item key="business/daily-train-carriage" ><router-link to="/business/daily-train-carriage">每日车厢</router-link></a-menu-item>
+
           </a-sub-menu>
           <a-sub-menu key="batch">
             <template #title>
