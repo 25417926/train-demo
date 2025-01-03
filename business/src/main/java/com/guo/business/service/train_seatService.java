@@ -142,4 +142,18 @@ public class train_seatService {
     public void delete(Long id) {
         train_seatMapper.deleteByPrimaryKey(id);
     }
+
+    public List<train_seat> selectByTrainCode(String trainCode ){
+        train_seatExample train_seatExample = new train_seatExample();
+        train_seatExample.setOrderByClause("`id` asc");
+        train_seatExample.Criteria criteria = train_seatExample.createCriteria();
+        criteria.andTrainCodeEqualTo(trainCode);
+
+//        if (CollUtil.isEmpty(list)) {
+//            return null;
+//        }else{
+//            return list.get(0);
+//        }
+        return train_seatMapper.selectByExample(train_seatExample);
+    }
 }

@@ -37,7 +37,7 @@
 <script>
 import {defineComponent, ref, onMounted} from 'vue';
 import {message} from "ant-design-vue";
-import { getDaily_Train_SeatList} from "@/api/business/Daily_Train_Seat"
+import {getDaily_Train_SeatList} from "@/api/business/Daily_Train_Seat"
 import TrainDropBox from "@/components/HomeComp/TrainDropBox.vue";
 
 export default defineComponent({
@@ -133,20 +133,23 @@ export default defineComponent({
     const handleQuery = async (param = {page: 1, size: pagination.value.pageSize, code: params.value.trainCode,}) => {
       try {
         const res = await getDaily_Train_SeatList(param);
-        if (res.code === 200 ) {
+        if (res.code === 200) {
+          console.log(res)
           daily_Train_Seats.value = res.content.list;
-          pagination.value.total = res.total;
+          pagination.value.total = res.content.total;
+          console.log(pagination.value)
           message.success("查询" + res.message)
         }
 
-      }catch (e){
+      } catch (e) {
         message.error("查询失败")
       }
     };
 
     const handleTableChange = (page) => {
+
       // console.log("看看自带的分页参数都有啥：" + JSON.stringify(page));
-      pagination.value.pageSize = page.pageSize;
+      pagination.value.current = page.current;
       handleQuery({
         page: page.current,
         size: page.pageSize
