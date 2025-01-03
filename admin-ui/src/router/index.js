@@ -68,8 +68,8 @@ const routes = [
             component: ()=> import('@/views/businessView/daily-train.vue'),
           },
           {
-            path: 'train',
-            component: ()=> import('@/views/ManageView/base/train.vue'),
+            path: 'daily-train-station',
+            component: ()=> import('@/views/businessView/daily-train-station.vue'),
           },
           {
             path: 'train-station',

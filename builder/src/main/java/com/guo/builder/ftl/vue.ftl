@@ -72,7 +72,7 @@
 <script>
 import { defineComponent, ref, onMounted } from 'vue';
 import {message} from "ant-design-vue";
-import {add${Domain}, delete${Domain}, get${Domain}List} from "@/api/${Domain}"
+import {add${Domain}, delete${Domain}, get${Domain}List} from "@/api/${module}/${Domain}"
 
 export default defineComponent({
   name: "${do_main}-view",
