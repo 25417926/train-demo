@@ -1,7 +1,9 @@
 <template>
   <p>
     <a-space>
-      <a-button type="primary" @click="handleQuery()">刷新</a-button>
+      <a-date-picker v-model:value="params.date" valueFormat="YYYY-MM-DD" placeholder="请选择日期" />
+      <TrainDropBox v-model="params.code" style="width: 200px"/>
+      <a-button type="primary" @click="handleQuery()">查找</a-button>
       <a-button type="primary" @click="onAdd">新增</a-button>
     </a-space>
   </p>
@@ -31,7 +33,7 @@
         <a-date-picker v-model:value="daily_Train_Station.date" valueFormat="YYYY-MM-DD" placeholder="请选择日期" />
       </a-form-item>
       <a-form-item label="车次编号">
-        <a-input v-model:value="daily_Train_Station.trainCode" />
+        <TrainDropBox v-model="daily_Train_Station.trainCode" @change="OnChangCode"/>
       </a-form-item>
       <a-form-item label="站序">
         <a-input v-model:value="daily_Train_Station.index" />
@@ -40,7 +42,7 @@
         <a-input v-model:value="daily_Train_Station.name" />
       </a-form-item>
       <a-form-item label="站名拼音">
-        <a-input v-model:value="daily_Train_Station.namePinyin" />
+        <a-input v-model:value="daily_Train_Station.namePinyin" disabled/>
       </a-form-item>
       <a-form-item label="进站时间">
         <a-time-picker v-model:value="daily_Train_Station.inTime" valueFormat="HH:mm:ss" placeholder="请选择时间" />
@@ -49,7 +51,7 @@
         <a-time-picker v-model:value="daily_Train_Station.outTime" valueFormat="HH:mm:ss" placeholder="请选择时间" />
       </a-form-item>
       <a-form-item label="停站时长">
-        <a-time-picker v-model:value="daily_Train_Station.stopTime" valueFormat="HH:mm:ss" placeholder="请选择时间" />
+        <a-time-picker v-model:value="daily_Train_Station.stopTime" valueFormat="HH:mm:ss" placeholder="请选择时间" disabled/>
       </a-form-item>
       <a-form-item label="里程（公里）">
         <a-input v-model:value="daily_Train_Station.km" />
@@ -59,12 +61,16 @@
 </template>
 
 <script>
-import { defineComponent, ref, onMounted } from 'vue';
+import {defineComponent, ref, onMounted, watch} from 'vue';
 import {message} from "ant-design-vue";
 import {addDaily_Train_Station, deleteDaily_Train_Station, getDaily_Train_StationList} from "@/api/business/Daily_Train_Station"
+import TrainDropBox from "@/components/HomeComp/TrainDropBox.vue";
+import dayjs from "dayjs";
+import {pinyin} from "pinyin-pro";
 
 export default defineComponent({
   name: "daily-train-station-view",
+  components: {TrainDropBox},
   setup() {
     const visible = ref(false);
     let daily_Train_Station = ref({
@@ -81,6 +87,10 @@ export default defineComponent({
       createTime: undefined,
       updateTime: undefined,
     });
+    const params = ref({
+      trainCode:undefined,
+      date:undefined
+    })
     const daily_Train_Stations = ref([]);
     // 分页的三个属性名是固定的
     const pagination = ref({
@@ -140,7 +150,28 @@ export default defineComponent({
       dataIndex: 'operation'
     }
     ];
+// 自动计算停车时长
+    watch(() => daily_Train_Station.value.inTime, () => {
+      let diff = dayjs(daily_Train_Station.value.outTime, 'HH:mm:ss').diff(dayjs(daily_Train_Station.value.inTime, 'HH:mm:ss'));
+      const send =Math.floor(diff / 1000)
+      daily_Train_Station.value.stopTime = dayjs('00:00:00', 'HH:mm:ss').second(send).format('HH:mm:ss');
+    });
 
+// 自动计算停车时长
+    watch(() => daily_Train_Station.value.outTime, () => {
+      let diff = dayjs(daily_Train_Station.value.outTime, 'HH:mm:ss').diff(dayjs(daily_Train_Station.value.inTime, 'HH:mm:ss'));
+      const send =Math.floor(diff / 1000)
+      daily_Train_Station.value.stopTime = dayjs('00:00:00', 'HH:mm:ss').second(send).format('HH:mm:ss');
+    });
+    // 自动计算拼音
+    watch(() => daily_Train_Station.value.name, ()=>{
+      if(window.Tool.isNotEmpty(daily_Train_Station.value.name)){
+        daily_Train_Station.value.namePinyin = pinyin(daily_Train_Station.value.name,{toneType: 'none'}).replaceAll(" ","")
+      }else{
+        daily_Train_Station.value.namePinyin = ""
+        daily_Train_Station.value.namePinyin = ""
+      }
+    })
     const onAdd = () => {
       daily_Train_Station.value = {};
       visible.value = true;
@@ -179,7 +210,7 @@ export default defineComponent({
       }
     };
 
-    const handleQuery = async (param = {page: 1, size: pagination.value.pageSize}) => {
+    const handleQuery = async (param = {page: 1, size: pagination.value.pageSize,code: params.value.trainCode,date:params.value.date}) => {
       const res = await getDaily_Train_StationList(param);
       if (res.code === 200) {
         daily_Train_Stations.value = res.content.list;
@@ -215,7 +246,9 @@ export default defineComponent({
       onAdd,
       handleOk,
       onEdit,
-      onDelete
+      onDelete,
+
+      params
     };
   },
 });

@@ -101,6 +101,14 @@ export default defineComponent({
       const send =Math.floor(diff / 1000)
       train_Station.value.stopTime = dayjs('00:00:00', 'HH:mm:ss').second(send).format('HH:mm:ss');
     });
+    watch(() => train_Station.value.name, ()=>{
+      if(window.Tool.isNotEmpty(train_Station.value.name)){
+        train_Station.value.namePinyin = pinyin(train_Station.value.name,{toneType: 'none'}).replaceAll(" ","")
+      }else{
+        train_Station.value.namePinyin = ""
+        train_Station.value.namePinyin = ""
+      }
+    })
     // 分页的三个属性名是固定的
     const pagination = ref({
       total: 0,
@@ -154,14 +162,7 @@ export default defineComponent({
       dataIndex: 'operation'
     }
     ];
-    watch(() => train_Station.value.name, ()=>{
-      if(window.Tool.isNotEmpty(train_Station.value.name)){
-        train_Station.value.namePinyin = pinyin(train_Station.value.name,{toneType: 'none'}).replaceAll(" ","")
-      }else{
-        train_Station.value.namePinyin = ""
-        train_Station.value.namePinyin = ""
-      }
-    })
+
     const onAdd = () => {
       train_Station.value = {};
       visible.value = true;
