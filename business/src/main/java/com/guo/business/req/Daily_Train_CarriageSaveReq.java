@@ -1,10 +1,10 @@
 package com.guo.business.req;
 
-import java.util.Date;
 import com.fasterxml.jackson.annotation.JsonFormat;
 
 import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.NotNull;
+import java.util.Date;
 
 public class Daily_Train_CarriageSaveReq {
 
@@ -41,7 +41,7 @@ public class Daily_Train_CarriageSaveReq {
     /**
      * 座位数
      */
-    @NotNull(message = "【座位数】不能为空")
+
     private Integer seatCount;
 
     /**
@@ -53,7 +53,7 @@ public class Daily_Train_CarriageSaveReq {
     /**
      * 列数
      */
-    @NotNull(message = "【列数】不能为空")
+
     private Integer colCount;
 
     /**

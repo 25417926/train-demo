@@ -2,7 +2,7 @@
   <p>
     <a-space>
       <a-date-picker v-model:value="params.date" valueFormat="YYYY-MM-DD" placeholder="请选择日期" />
-      <TrainDropBox v-model="params.code" style="width: 200px"/>
+      <TrainDropBox v-model="params.trainCode" style="width: 200px"/>
       <a-button type="primary" @click="handleQuery()">查找</a-button>
       <a-button type="primary" @click="onAdd">新增</a-button>
     </a-space>

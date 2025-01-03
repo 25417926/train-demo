@@ -1,7 +1,9 @@
 <template>
   <p>
     <a-space>
-      <a-button type="primary" @click="handleQuery()">刷新</a-button>
+      <a-date-picker v-model:value="params.date" valueFormat="YYYY-MM-DD" placeholder="请选择日期"/>
+      <TrainDropBox v-model="params.trainCode" style="width: 200px"/>
+      <a-button type="primary" @click="handleQuery()">查找</a-button>
       <a-button type="primary" @click="onAdd">新增</a-button>
     </a-space>
   </p>
@@ -25,7 +27,7 @@
       <template v-else-if="column.dataIndex === 'seatType'">
         <span v-for="item in SEAT_TYPE_ARRAY" :key="item.code">
           <span v-if="item.code === record.seatType">
-            {{item.desc}}
+            {{ item.desc }}
           </span>
         </span>
       </template>
@@ -35,32 +37,36 @@
            ok-text="确认" cancel-text="取消">
     <a-form :model="daily_Train_Carriage" :label-col="{span: 4}" :wrapper-col="{ span: 20 }">
       <a-form-item label="日期">
-        <a-date-picker v-model:value="daily_Train_Carriage.date" valueFormat="YYYY-MM-DD" placeholder="请选择日期" />
+        <a-date-picker v-model:value="daily_Train_Carriage.date" valueFormat="YYYY-MM-DD" placeholder="请选择日期"/>
       </a-form-item>
       <a-form-item label="车次编号">
-        <TrainDropBox v-model="daily_Train_Carriage.trainCode" />
+        <TrainDropBox v-model="daily_Train_Carriage.trainCode"/>
       </a-form-item>
       <a-form-item label="箱序">
-        <a-input v-model:value="daily_Train_Carriage.index" />
+        <a-input v-model:value="daily_Train_Carriage.index"/>
       </a-form-item>
       <a-form-item label="座位类型">
         <a-select v-model:value="daily_Train_Carriage.seatType">
           <a-select-option v-for="item in SEAT_TYPE_ARRAY" :key="item.code" :value="item.code">
-            {{item.desc}}
+            {{ item.desc }}
           </a-select-option>
         </a-select>
       </a-form-item>
       <a-form-item label="排数">
-        <a-input v-model:value="daily_Train_Carriage.rowCount" />
+        <a-input v-model:value="daily_Train_Carriage.rowCount"/>
       </a-form-item>
     </a-form>
   </a-modal>
 </template>
 
 <script>
-import { defineComponent, ref, onMounted } from 'vue';
+import {defineComponent, ref, onMounted} from 'vue';
 import {message} from "ant-design-vue";
-import {addDaily_Train_Carriage, deleteDaily_Train_Carriage, getDaily_Train_CarriageList} from "@/api/business/Daily_Train_Carriage"
+import {
+  addDaily_Train_Carriage,
+  deleteDaily_Train_Carriage,
+  getDaily_Train_CarriageList
+} from "@/api/business/Daily_Train_Carriage"
 import TrainDropBox from "@/components/HomeComp/TrainDropBox.vue";
 
 export default defineComponent({
@@ -68,10 +74,10 @@ export default defineComponent({
   components: {TrainDropBox},
   setup() {
     const SEAT_TYPE_ARRAY = [
-      { code: "1", desc: "一等座"},
-      { code: "2", desc: "二等座" },
-      { code: "3", desc: "软卧" },
-      { code: "4", desc: "硬卧" }
+      {code: "1", desc: "一等座"},
+      {code: "2", desc: "二等座"},
+      {code: "3", desc: "软卧"},
+      {code: "4", desc: "硬卧"}
     ];
     const visible = ref(false);
     let daily_Train_Carriage = ref({
@@ -95,47 +101,50 @@ export default defineComponent({
     });
     let loading = ref(false);
     const columns = [
-    {
-      title: '日期',
-      dataIndex: 'date',
-      key: 'date',
-    },
-    {
-      title: '车次编号',
-      dataIndex: 'trainCode',
-      key: 'trainCode',
-    },
-    {
-      title: '箱序',
-      dataIndex: 'index',
-      key: 'index',
-    },
-    {
-      title: '座位类型',
-      dataIndex: 'seatType',
-      key: 'seatType',
-    },
-    {
-      title: '座位数',
-      dataIndex: 'seatCount',
-      key: 'seatCount',
-    },
-    {
-      title: '排数',
-      dataIndex: 'rowCount',
-      key: 'rowCount',
-    },
-    {
-      title: '列数',
-      dataIndex: 'colCount',
-      key: 'colCount',
-    },
-    {
-      title: '操作',
-      dataIndex: 'operation'
-    }
+      {
+        title: '日期',
+        dataIndex: 'date',
+        key: 'date',
+      },
+      {
+        title: '车次编号',
+        dataIndex: 'trainCode',
+        key: 'trainCode',
+      },
+      {
+        title: '箱序',
+        dataIndex: 'index',
+        key: 'index',
+      },
+      {
+        title: '座位类型',
+        dataIndex: 'seatType',
+        key: 'seatType',
+      },
+      {
+        title: '座位数',
+        dataIndex: 'seatCount',
+        key: 'seatCount',
+      },
+      {
+        title: '排数',
+        dataIndex: 'rowCount',
+        key: 'rowCount',
+      },
+      {
+        title: '列数',
+        dataIndex: 'colCount',
+        key: 'colCount',
+      },
+      {
+        title: '操作',
+        dataIndex: 'operation'
+      }
     ];
-
+    const params = ref({
+      date: undefined,
+      trainCode: undefined,
+    });
     const onAdd = () => {
       daily_Train_Carriage.value = {};
       visible.value = true;
@@ -174,7 +183,13 @@ export default defineComponent({
       }
     };
 
-    const handleQuery = async (param = {page: 1, size: pagination.value.pageSize}) => {
+    const handleQuery = async (param = {
+      page: 1,
+      size: pagination.value.pageSize,
+      code: params.value.trainCode,
+      date: params.value.date
+    }) => {
+
       const res = await getDaily_Train_CarriageList(param);
       if (res.code === 200) {
         daily_Train_Carriages.value = res.content.list;
@@ -211,7 +226,8 @@ export default defineComponent({
       onAdd,
       handleOk,
       onEdit,
-      onDelete
+      onDelete,
+      params
     };
   },
 });

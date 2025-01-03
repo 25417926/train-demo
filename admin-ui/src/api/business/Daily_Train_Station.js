@@ -7,10 +7,11 @@ export const getDaily_Train_StationList = async (param) => {
             params: {
                 page: param.page,
                 size: param.size,
-                code: param.code,
+                trainCode: param.code,
                 date: param.date
             }
         });
+        console.log(param)
         if (res.data.code === 200) {
             return res.data
 
