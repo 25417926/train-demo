@@ -141,8 +141,6 @@ export default defineComponent({
 
       }catch (e){
         message.error("查询失败")
-      }finally {
-
       }
     };
 

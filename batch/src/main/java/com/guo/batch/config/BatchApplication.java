@@ -8,6 +8,7 @@ package com.guo.batch.config;
 import org.mybatis.spring.annotation.MapperScan;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.cloud.openfeign.EnableFeignClients;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.core.env.Environment;
 
@@ -16,6 +17,7 @@ import java.util.logging.Logger;
 @SpringBootApplication
 @ComponentScan("com.guo")
 @MapperScan("com.guo.*.mapper")
+@EnableFeignClients("com.guo.*.feign")
 public class BatchApplication {
     private static final Logger LOG = Logger.getLogger(BatchApplication.class.getName());
     public static void main(String[] args) {
