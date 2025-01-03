@@ -145,4 +145,18 @@ public class Train_CarriageService {
     public void delete(Long id) {
         train_CarriageMapper.deleteByPrimaryKey(id);
     }
+
+    public List<Train_Carriage> selectByTrainCode(String trainCode ){
+        Train_CarriageExample Train_CarriageExample = new Train_CarriageExample();
+        Train_CarriageExample.setOrderByClause("`index` asc");
+        Train_CarriageExample.Criteria criteria = Train_CarriageExample.createCriteria();
+        criteria.andTrainCodeEqualTo(trainCode);
+
+//        if (CollUtil.isEmpty(list)) {
+//            return null;
+//        }else{
+//            return list.get(0);
+//        }
+        return train_CarriageMapper.selectByExample(Train_CarriageExample);
+    }
 }

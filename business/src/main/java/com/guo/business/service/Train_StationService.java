@@ -104,4 +104,17 @@ public class Train_StationService {
     public void delete(Long id) {
         train_StationMapper.deleteByPrimaryKey(id);
     }
+    public List<Train_Station> selectByTrainCode(String trainCode ){
+        Train_StationExample Train_StationExample = new Train_StationExample();
+        Train_StationExample.setOrderByClause("`index` asc");
+        Train_StationExample.Criteria criteria = Train_StationExample.createCriteria();
+        criteria.andTrainCodeEqualTo(trainCode);
+
+//        if (CollUtil.isEmpty(list)) {
+//            return null;
+//        }else{
+//            return list.get(0);
+//        }
+        return train_StationMapper.selectByExample(Train_StationExample);
+    }
 }
