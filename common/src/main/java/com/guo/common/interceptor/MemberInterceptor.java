@@ -1,11 +1,13 @@
 package com.guo.common.interceptor;
 
+import cn.hutool.core.util.RandomUtil;
 import cn.hutool.core.util.StrUtil;
 import cn.hutool.json.JSONObject;
 import cn.hutool.json.JSONUtil;
 import com.guo.common.context.LoginMemberContext;
 import com.guo.common.resp.MemberLoginResp;
 import com.guo.common.util.JWTUtil;
+import org.slf4j.MDC;
 import org.springframework.stereotype.Component;
 import org.springframework.web.servlet.HandlerInterceptor;
 
@@ -22,6 +24,7 @@ public class MemberInterceptor implements HandlerInterceptor {
 
     @Override
     public boolean preHandle(javax.servlet.http.HttpServletRequest request, javax.servlet.http.HttpServletResponse response, Object handler) throws Exception {
+        MDC.put("LOG_ID",System.currentTimeMillis()+ RandomUtil.randomString(3));
         String token = request.getHeader("authorization");
         // 验证token
         if (StrUtil.isNotBlank(token)) {

@@ -26,6 +26,7 @@ export const deleteJob = async (name, group) => {
 export const addJob = async (url,job) => {
     try {
         const res = await instance.post("/batch/job/"+ url, job);
+        console.log(url)
         return res.data
     } catch (e) {
         console.log(e);
