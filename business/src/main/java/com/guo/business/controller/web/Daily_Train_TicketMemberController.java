@@ -1,4 +1,4 @@
-package com.guo.business.controller.web;
+package com.guo.business.controller;
 
 import com.guo.business.req.Daily_Train_TicketQueryReq;
 import com.guo.business.resp.Daily_Train_TicketQueryResp;
@@ -18,7 +18,7 @@ import javax.validation.Valid;
 */
 
 @RestController
-@RequestMapping("web/ticket")
+@RequestMapping("/ticket")
 public class Daily_Train_TicketMemberController {
 @Resource
 private Daily_Train_TicketService Daily_Train_TicketService;
