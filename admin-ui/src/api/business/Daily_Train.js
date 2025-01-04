@@ -37,3 +37,11 @@ export const deleteDaily_Train = async (data) => {
         console.log(e);
     }
 }
+export const addGenDaily = async (data) => {
+    try {
+        const res = await instance.get("/business/daily-train/gen-daily/"+data);
+        return res.data
+    } catch (e) {
+        console.log(e);
+    }
+}

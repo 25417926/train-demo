@@ -19,6 +19,7 @@ import com.guo.common.util.SnowUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import javax.annotation.Resource;
 import java.util.Date;
@@ -40,6 +41,8 @@ public class Daily_TrainService {
     private Daily_Train_CarriageService Daily_Train_CarriageService;
     @Resource
     private Daily_Train_SeatService Daily_Train_SeatService;
+    @Resource
+    private Daily_Train_TicketService Daily_Train_TicketService;
     public void save(Daily_TrainSaveReq req) {
         DateTime now = DateTime.now();
         Daily_Train daily_Train = BeanUtil.copyProperties(req, Daily_Train.class);
@@ -111,6 +114,7 @@ public class Daily_TrainService {
         }
 
     }
+    @Transactional
     public void gen_dailyTrain(Date date,train train) {
         DateTime now = DateTime.now();
         Daily_TrainExample daily_TrainExample = new Daily_TrainExample();
@@ -133,5 +137,7 @@ public class Daily_TrainService {
         Daily_Train_CarriageService.genDaily(date,train.getCode());
         //生成该车次座位的数据
         Daily_Train_SeatService.genDaily(date,train.getCode());
+        //生成该车次余票的数据
+        Daily_Train_TicketService.genDaily(date,train.getCode());
     }
 }

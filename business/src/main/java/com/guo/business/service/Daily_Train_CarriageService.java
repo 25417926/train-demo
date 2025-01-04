@@ -18,6 +18,7 @@ import com.guo.common.util.SnowUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import javax.annotation.Resource;
 import java.util.Date;
@@ -79,7 +80,7 @@ public class Daily_Train_CarriageService {
     public void delete(Long id) {
         daily_Train_CarriageMapper.deleteByPrimaryKey(id);
     }
-
+    @Transactional
     public void genDaily(Date date, String trainCode) {
         LOG.info("生成日期【{}】车次【{}】的车厢信息开始", DateUtil.formatDate(date), trainCode);
         DateTime now = DateTime.now();

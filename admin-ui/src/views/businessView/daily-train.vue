@@ -5,6 +5,7 @@
       <TrainDropBox v-model="params.code" style="width: 200px"/>
       <a-button type="primary" @click="handleQuery()">查找</a-button>
       <a-button type="primary" @click="onAdd">新增</a-button>
+      <a-button type="primary" @click="onClickDaily" style="background-color: red">手动生成车次</a-button>
     </a-space>
   </p>
   <a-table :dataSource="daily_Trains"
@@ -72,12 +73,20 @@
       </a-form-item>
     </a-form>
   </a-modal>
+  <a-modal v-model:visible="GenDailyVisible" title="手动生成车次" @ok="GenDailyHandleOk"
+           ok-text="确认" cancel-text="取消">
+    <a-form :model="daily_Train" :label-col="{span: 4}" :wrapper-col="{ span: 20 }">
+      <a-form-item label="日期">
+        <a-date-picker v-model:value="GenDaily.date" valueFormat="YYYY-MM-DD" placeholder="请选择日期" />
+      </a-form-item>
+    </a-form>
+  </a-modal>
 </template>
 
 <script>
 import { defineComponent, ref, onMounted } from 'vue';
 import {message} from "ant-design-vue";
-import {addDaily_Train, deleteDaily_Train, getDaily_TrainList} from "@/api/business/Daily_Train"
+import {addDaily_Train, addGenDaily, deleteDaily_Train, getDaily_TrainList} from "@/api/business/Daily_Train"
 import TrainDropBox from "@/components/HomeComp/TrainDropBox.vue";
 
 export default defineComponent({
@@ -90,6 +99,10 @@ export default defineComponent({
       { type: "K", desc: "快速" }
     ];
     const visible = ref(false);
+    const GenDailyVisible = ref(false);
+    const GenDaily = ref({
+      date:undefined
+    })
     let daily_Train = ref({
       id: undefined,
       date: undefined,
@@ -167,12 +180,27 @@ export default defineComponent({
       dataIndex: 'operation'
     }
     ];
-
+    const onClickDaily = () => {
+      GenDailyVisible.value =true;
+    };
     const onAdd = () => {
       daily_Train.value = {};
       visible.value = true;
     };
-
+    const GenDailyHandleOk = async () => {
+      try {
+        const res = await addGenDaily(GenDaily.value.date);
+        if (res.code === 200) {
+          GenDailyVisible.value = false;
+          message.success(res.message);
+          handleQuery(); // 刷新数据
+        } else {
+          message.error('添加失败');
+        }
+      }catch (e){
+        message.error('添加失败');
+      }
+    };
     const onEdit = (record) => {
       daily_Train.value = window.Tool.copy(record);
       visible.value = true;
@@ -255,7 +283,11 @@ export default defineComponent({
       onEdit,
       onDelete,
       OnChangCode,
-      params
+      params,
+      onClickDaily,
+      GenDailyVisible,
+      GenDaily,
+      GenDailyHandleOk
     };
   },
 });

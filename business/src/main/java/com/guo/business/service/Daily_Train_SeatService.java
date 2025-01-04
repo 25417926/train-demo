@@ -18,6 +18,7 @@ import com.guo.common.util.SnowUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import javax.annotation.Resource;
 import java.util.Date;
@@ -51,7 +52,7 @@ public class Daily_Train_SeatService {
 
     public PageResp<Daily_Train_SeatQueryResp> QueryList(Daily_Train_SeatQueryReq req) {
         Daily_Train_SeatExample daily_Train_SeatExample = new Daily_Train_SeatExample();
-        daily_Train_SeatExample.setOrderByClause("train_code asc,`carriage_index` asc,`carriage_seat_index` asc");
+        daily_Train_SeatExample.setOrderByClause("date desc,train_code asc,`carriage_index` asc,`carriage_seat_index` asc");
         Daily_Train_SeatExample.Criteria criteria = daily_Train_SeatExample.createCriteria();
         if(ObjectUtil.isNotNull(req.getTrainCode())) {
             criteria.andTrainCodeEqualTo(req.getTrainCode());
@@ -76,7 +77,7 @@ public class Daily_Train_SeatService {
     public void delete(Long id) {
         daily_Train_SeatMapper.deleteByPrimaryKey(id);
     }
-
+    @Transactional
     public void genDaily(Date date, String trainCode) {
         LOG.info("生成日期【{}】车次【{}】的座位信息开始", DateUtil.formatDate(date), trainCode);
         DateTime now = DateTime.now();
@@ -87,6 +88,7 @@ public class Daily_Train_SeatService {
                 .andTrainCodeEqualTo(trainCode);
         //删某日除该车次座位数据
         daily_Train_SeatMapper.deleteByExample(Daily_Train_SeatExample);
+        //查出某日该车次的车站数据
         List<Train_Station> train_stations = Train_StationService.selectByTrainCode(trainCode);
         //查出某日该车次的座位数据
         List<train_seat> trainStations = train_seatService.selectByTrainCode(trainCode);

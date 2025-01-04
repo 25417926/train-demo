@@ -10,7 +10,11 @@
              :pagination="pagination"
              @change="handleTableChange"
              :loading="loading">
+      <#if !readOnly>
       <template #bodyCell="{ column, record }">
+      <#else>
+      <template #bodyCell="{ column}">
+      </#if>
         <template v-if="column.dataIndex === 'operation'">
           <#if !readOnly>
           <a-space>
@@ -72,8 +76,11 @@
   <script>
   import { defineComponent, ref, onMounted } from 'vue';
   import {message} from "ant-design-vue";
+  <#if !readOnly>
   import {add${Domain}, delete${Domain}, get${Domain}List} from "@/api/${module}/${Domain}"
-
+  <#else >
+  import {get${Domain}List} from "@/api/${module}/${Domain}"
+  </#if>
   export default defineComponent({
     name: "${do_main}-view",
     setup() {

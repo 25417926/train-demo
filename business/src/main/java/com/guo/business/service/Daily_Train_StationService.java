@@ -7,7 +7,9 @@ import cn.hutool.core.date.DateUtil;
 import cn.hutool.core.util.ObjectUtil;
 import com.github.pagehelper.PageHelper;
 import com.github.pagehelper.PageInfo;
-import com.guo.business.domain.*;
+import com.guo.business.domain.Daily_Train_Station;
+import com.guo.business.domain.Daily_Train_StationExample;
+import com.guo.business.domain.Train_Station;
 import com.guo.business.mapper.Daily_Train_StationMapper;
 import com.guo.business.req.Daily_Train_StationQueryReq;
 import com.guo.business.req.Daily_Train_StationSaveReq;
@@ -17,6 +19,7 @@ import com.guo.common.util.SnowUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import javax.annotation.Resource;
 import java.util.Date;
@@ -76,7 +79,7 @@ public class Daily_Train_StationService {
     public void delete(Long id) {
         daily_Train_StationMapper.deleteByPrimaryKey(id);
     }
-
+    @Transactional
     public void genDaily(Date date, String trainCode) {
         LOG.info("生成日期【{}】车次【{}】的站点信息开始", DateUtil.formatDate(date), trainCode);
         DateTime now = DateTime.now();

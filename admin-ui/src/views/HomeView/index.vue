@@ -43,7 +43,6 @@
             <a-menu-item key="base/train-carriage" ><router-link to="/base/train-carriage">火车车厢管理</router-link></a-menu-item>
             <a-menu-item key="base/train-seat" ><router-link to="/base/train-seat">火车座位管理</router-link></a-menu-item>
 
-
           </a-sub-menu>
           <a-sub-menu key="business">
             <template #title>
@@ -56,7 +55,7 @@
             <a-menu-item key="business/daily-train-station" ><router-link to="/business/daily-train-station">每日车站</router-link></a-menu-item>
             <a-menu-item key="business/daily-train-carriage" ><router-link to="/business/daily-train-carriage">每日车厢</router-link></a-menu-item>
             <a-menu-item key="business/daily-train-seat" ><router-link to="/business/daily-train-seat">每日座位</router-link></a-menu-item>
-
+            <a-menu-item key="business/daily-train-ticket" ><router-link to="/business/daily-train-ticket">余票信息</router-link></a-menu-item>
           </a-sub-menu>
           <a-sub-menu key="batch">
             <template #title>
