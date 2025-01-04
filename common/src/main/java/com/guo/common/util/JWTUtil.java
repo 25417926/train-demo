@@ -21,10 +21,11 @@ public class JWTUtil {
      */
     private static final String SECRET_KEY_STRING = "guo"; // 秘钥字符串
     private static final DateTime now = DateTime.now();
-    private static final DateTime EXPIRATION_TIME = now.offsetNew(DateField.MINUTE, 10); // 过期时间，单位分钟，这里设置为10分钟，可根据实际需求调整
+    private static final DateTime EXPIRATION_TIME = now.offsetNew(DateField.MINUTE, 100); // 过期时间，单位小时，这里设置为1小时，可根据实际需求调整
     private static final String CLAIM_KEY_USERNAME = "sub"; // 存储用户名的键名
     private static final String CLAIM_KEY_CREATED = "created"; // 存储令牌创建时间的键名
     private static final String TOKEN_PREFIX = "Bearer"; // 令牌前缀
+
 
     public static String createToken(UserDetailsReq req) {
         LOG.info("开始生成JWT token，mobile：{}，password：{}", req.getPassword(), req.getMobile());
@@ -66,6 +67,5 @@ public class JWTUtil {
         LOG.info("根据token获取原始内容：{}", payloads);
         return payloads;
     }
-
 
 }

@@ -92,7 +92,7 @@ export default defineComponent({
     const store = useStore()
     const router = useRouter()
     // 获取手机号
-    const mobile =store.state.Mobile.mobile
+    const mobile =store.state.MemberToken.mobile
     //获取选中
     const SelectKey = ref([])
     //观察路由是否变化，然后传给SelectKey来保证数据一致然后实现同步
@@ -103,8 +103,8 @@ export default defineComponent({
     },{immediate:true})
     // 退出登录
     const layout = async ()=>{
-      store.commit('Mobile/set_token',null)
-      store.commit('Mobile/set_mobile',null)
+      store.commit('set_token',null)
+      store.commit('set_mobile',null)
       router.push('/view')
     }
     return {

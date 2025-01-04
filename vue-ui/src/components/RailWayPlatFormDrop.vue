@@ -53,13 +53,10 @@ export default defineComponent({
         const res = await getStationList();
         if (res.code === 200) {
           names.value = res.content;
-
           nameMap.value = res.content.reduce((acc, item) => {
-
-            acc[item.id] = item;
+            acc[item.code] = item;
             return acc;
           }, {});
-
         }
       } catch (error) {
         console.error("Failed to fetch name list:", error);
@@ -73,11 +70,9 @@ export default defineComponent({
     const onChange = (value) => {
       emit("update:modelValue", value);
       const name = nameMap.value[value] || {};
-      // console.log("Change", value);
-      // console.log("nameMap",nameMap.value);
-      // if (!Object.keys(name).length) {
-      //   console.warn("No matching name found for code:", value);
-      // }
+      if (!Object.keys(name).length) {
+        console.warn("No matching name found for code:", value);
+      }
       emit("Change", name);
     };
 

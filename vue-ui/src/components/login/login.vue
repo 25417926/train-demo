@@ -3,6 +3,7 @@
 import {reactive, ref} from "vue";
 import {SendCodes,LoginCode} from "@/api/login"
 import { useRouter } from 'vue-router';
+
 import { UserOutlined, LockOutlined } from '@ant-design/icons-vue';
 import {message} from "ant-design-vue";
 import { useStore } from 'vuex';
@@ -42,12 +43,10 @@ export default {
         const data = {mobile: mobile, code: code, password: password}
         const res = await LoginCode(data);
         if (res.code === 200) {
-
           message.success(res.message)
           router.push('/')
-
-          store.commit('Mobile/set_token', res.content.token)
-          store.commit('Mobile/set_mobile', res.content.mobile)
+          store.commit('set_token', res.content.token)
+          store.commit('set_mobile', res.content.mobile)
         }
       }catch (e){
         console.log(e);
