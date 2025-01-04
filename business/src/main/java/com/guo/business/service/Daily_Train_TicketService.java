@@ -15,7 +15,6 @@ import com.guo.business.domain.Daily_Train_TicketExample;
 import com.guo.business.domain.Train_Station;
 import com.guo.business.mapper.Daily_Train_TicketMapper;
 import com.guo.business.req.Daily_Train_TicketQueryReq;
-import com.guo.business.req.Daily_Train_TicketSaveReq;
 import com.guo.business.resp.Daily_Train_TicketQueryResp;
 import com.guo.common.resp.PageResp;
 import com.guo.common.util.SnowUtil;
@@ -42,25 +41,23 @@ public class Daily_Train_TicketService {
     @Resource
     private Daily_Train_SeatService Daily_Train_SeatService;
 
-    public void save(Daily_Train_TicketSaveReq req) {
-        DateTime now = DateTime.now();
-        Daily_Train_Ticket daily_Train_Ticket = BeanUtil.copyProperties(req, Daily_Train_Ticket.class);
-        if (ObjectUtil.isNull(daily_Train_Ticket.getId())) {
-            daily_Train_Ticket.setId(SnowUtil.getSnowflakeNextId());
-            daily_Train_Ticket.setCreateTime(now);
-            daily_Train_Ticket.setUpdateTime(now);
-            daily_Train_TicketMapper.insert(daily_Train_Ticket);
-        } else {
-            daily_Train_Ticket.setUpdateTime(now);
-            daily_Train_TicketMapper.updateByPrimaryKey(daily_Train_Ticket);
-        }
-    }
 
     public PageResp<Daily_Train_TicketQueryResp> QueryList(Daily_Train_TicketQueryReq req) {
         Daily_Train_TicketExample daily_Train_TicketExample = new Daily_Train_TicketExample();
         daily_Train_TicketExample.setOrderByClause("id desc");
         Daily_Train_TicketExample.Criteria criteria = daily_Train_TicketExample.createCriteria();
-
+        if(ObjectUtil.isNotNull(req.getDate())){
+            criteria.andDateEqualTo(req.getDate());
+        }
+        if (ObjectUtil.isNotEmpty(req.getTrainCode())) {
+            criteria.andTrainCodeEqualTo(req.getTrainCode());
+        }
+        if(ObjectUtil.isNotEmpty(req.getStart())){
+            criteria.andStartEqualTo(req.getStart());
+        }
+        if(ObjectUtil.isNotEmpty(req.getEnd())){
+            criteria.andEndEqualTo(req.getEnd());
+        }
         LOG.info("查询页码：{}", req.getPage());
         LOG.info("每页条数：{}", req.getSize());
         PageHelper.startPage(req.getPage(), req.getSize());

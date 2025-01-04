@@ -1,13 +1,11 @@
 package com.guo.business.controller;
 
-import com.guo.common.context.LoginMemberContext;
+import com.guo.business.req.Daily_Train_TicketQueryReq;
+import com.guo.business.resp.Daily_Train_TicketQueryResp;
+import com.guo.business.service.Daily_Train_TicketService;
 import com.guo.common.resp.CommonResp;
 import com.guo.common.resp.PageResp;
 import com.guo.common.util.HttpStatus;
-import com.guo.business.req.Daily_Train_TicketQueryReq;
-import com.guo.business.req.Daily_Train_TicketSaveReq;
-import com.guo.business.resp.Daily_Train_TicketQueryResp;
-import com.guo.business.service.Daily_Train_TicketService;
 import org.springframework.web.bind.annotation.*;
 
 import javax.annotation.Resource;
@@ -35,18 +33,18 @@ private Daily_Train_TicketService Daily_Train_TicketService;
 * @return 返回一个CommonResp对象，表示保存操作的结果
 * 包含操作是否成功、提示信息以及HTTP状态码
 */
-@PostMapping("/save")
-public CommonResp save(@Valid @RequestBody Daily_Train_TicketSaveReq req) {
-// 调用Daily_Train_TicketService的save方法来保存乘客信息
-Daily_Train_TicketService.save(req);
+//@PostMapping("/save")
+//public CommonResp save(@Valid @RequestBody Daily_Train_TicketSaveReq req) {
+//// 调用Daily_Train_TicketService的save方法来保存乘客信息
+//Daily_Train_TicketService.save(req);
 
-// 创建一个CommonResp对象，表示成功的响应
-// 参数分别为：操作成功（true）、提示信息（"成功"）和HTTP状态码（HttpStatus.SUCCESS）
-CommonResp commonResp = new CommonResp(true, "成功", HttpStatus.SUCCESS);
-
-// 返回创建的CommonResp对象
-return commonResp;
-}
+//// 创建一个CommonResp对象，表示成功的响应
+//// 参数分别为：操作成功（true）、提示信息（"成功"）和HTTP状态码（HttpStatus.SUCCESS）
+//CommonResp commonResp = new CommonResp(true, "成功", HttpStatus.SUCCESS);
+//
+//// 返回创建的CommonResp对象
+//return commonResp;
+//}
 
 /**
 * 查询乘客列表
