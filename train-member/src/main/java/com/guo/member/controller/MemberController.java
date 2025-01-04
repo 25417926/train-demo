@@ -47,6 +47,7 @@ public class MemberController {
     public CommonResp<MemberLoginReq> LoginCode(@Valid @RequestBody MemberLoginReq req) {
         String token =memberService.Login(req);
         req.setToken(token);
+
         CommonResp commonResp = new CommonResp<>(HttpStatus.SUCCESS,req,"登录成功");
         return commonResp;
     }
