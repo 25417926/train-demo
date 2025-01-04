@@ -40,11 +40,13 @@ public enum TrainSeatTypeEnum {
         this.type = type;
     }
 
-    public static TrainSeatTypeEnum fromCode(String code, String desc) {
+    public static TrainSeatTypeEnum fromCode(String code, String desc, String type1) {
         for (TrainSeatTypeEnum type : TrainSeatTypeEnum.values()) {
             if (type.getCode().equals(code)) {
                 return type;
             }else if(type.getDesc().equals(desc)){
+                return type;
+            }else if(type.getType().equals(type1)){
                 return type;
             }
         }

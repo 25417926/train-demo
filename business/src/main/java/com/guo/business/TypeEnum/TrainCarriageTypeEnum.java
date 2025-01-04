@@ -28,6 +28,7 @@ public enum TrainCarriageTypeEnum {
     TrainCarriageTypeEnum(String code, String desc, BigDecimal price) {
         this.code = code;
         this.desc = desc;
+        this.price = price;
     }
     public static TrainCarriageTypeEnum fromCode(String code, String desc) {
         for (TrainCarriageTypeEnum type : TrainCarriageTypeEnum.values()) {

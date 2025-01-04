@@ -27,6 +27,7 @@ public enum TrainTypeEnum {
     TrainTypeEnum(String code, String desc, BigDecimal price) {
         this.code = code;
         this.desc = desc;
+        this.price = price;
     }
     public static TrainTypeEnum fromCode(String code, String desc) {
         for (TrainTypeEnum type : TrainTypeEnum.values()) {

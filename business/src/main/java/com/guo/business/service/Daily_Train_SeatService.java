@@ -111,4 +111,18 @@ public class Daily_Train_SeatService {
         }
 
     }
+
+    public int CountSeats(Date date, String trainCode,String seatType) {
+        Daily_Train_SeatExample Daily_Train_SeatExample = new Daily_Train_SeatExample();
+        Daily_Train_SeatExample.Criteria criteria = Daily_Train_SeatExample.createCriteria();
+        criteria
+                .andDateEqualTo(date)
+                .andTrainCodeEqualTo(trainCode)
+                .andSeatTypeEqualTo(seatType);
+        long l = daily_Train_SeatMapper.countByExample(Daily_Train_SeatExample);
+        if(l==0L){
+            return -1;
+        }
+        return (int)l;
+    }
 }

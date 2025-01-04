@@ -138,6 +138,10 @@ public class Daily_TrainService {
         //生成该车次座位的数据
         Daily_Train_SeatService.genDaily(date,train.getCode());
         //生成该车次余票的数据
-        Daily_Train_TicketService.genDaily(date,train.getCode());
+        Daily_Train_TicketService.genDaily(daily_Train,date,train.getCode());
+
     }
+
+
+
 }
