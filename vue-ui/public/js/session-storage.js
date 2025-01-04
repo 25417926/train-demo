@@ -1,3 +1,5 @@
+//避免多个功能使用一个key，所以将所有session key 统一存放在sessionStorage中
+
 SessionStorage ={
     set:function(key,value){
         // JSON.stringify()可以将json对象转化为字符串，可以更好的存储数据而不限制数据类型

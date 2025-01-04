@@ -1,7 +1,6 @@
 <template>
   <p>
     <a-space>
-      <TrainDropBox v-model="params.trainCode" style="width: 200px"/>
       <a-date-picker v-model:value="params.date" valueFormat="YYYY-MM-DD" placeholder="请选择日期"/>
       <RailWayPlatFormDrop v-model="params.start" style="width: 200px"/>
       <RailWayPlatFormDrop v-model="params.end" style="width: 200px"/>
@@ -60,7 +59,9 @@
         <span v-if="record.yw <= 0 ">
         --
           </span>
-
+      </template>
+      <template v-if="column.dataIndex === 'operation'">
+        <a-button type="primary" @click="onOrder(record)">预定</a-button>
       </template>
     </template>
   </a-table>
@@ -71,14 +72,16 @@ import {defineComponent, ref, onMounted} from 'vue';
 
 // import {message} from "ant-design-vue";
 import {getDaily_Train_TicketList} from "@/api/Daily_Train_Ticket"
-import TrainDropBox from "@/components/TrainDropBox.vue";
 import RailWayPlatFormDrop from "@/components/RailWayPlatFormDrop.vue";
 import dayjs from "dayjs";
-
+import {message} from "ant-design-vue";
+import {useRouter} from "vue-router";
+import { useStore } from 'vuex';
 export default defineComponent({
   name: "daily-train-ticket-view",
-  components: {TrainDropBox, RailWayPlatFormDrop},
+  components: {RailWayPlatFormDrop},
   setup() {
+    const store =useStore()
     const visible = ref(false);
     let daily_Train_Ticket = ref({
       id: undefined,
@@ -183,7 +186,16 @@ export default defineComponent({
       //   dataIndex: 'ywPrice',
       //   key: 'ywPrice',
       // },
+      {
+        title: '操作',
+        dataIndex: 'operation',
+        key: 'operation',
+      },
+
     ];
+    const DailyTicker = ref({})
+    const router = useRouter();
+
     const calDuration = (startTime, endTime) => {
       let diff = dayjs(endTime, 'HH:mm:ss').diff(dayjs(startTime, 'HH:mm:ss'));
       const send = Math.floor(diff / 1000)
@@ -197,8 +209,22 @@ export default defineComponent({
       start: params.value.start,
       end: params.value.end
     }) => {
+      if (window.Tool.isEmpty(param.date)) {
+        message.error("日期不能为空")
+        return;
+      }
+      if (window.Tool.isEmpty(param.start)) {
+        message.error("初始站不能为空")
+        return;
+      }
+      if (window.Tool.isEmpty(param.end)) {
+        message.error("终点站不能为空")
+        return;
+      }
+
       const res = await getDaily_Train_TicketList(param);
       if (res.code === 200) {
+        store.commit('Session_params/set_params', param )
         daily_Train_Tickets.value = res.content.list;
         pagination.value.total = res.content.total;
       }
@@ -212,12 +238,28 @@ export default defineComponent({
         size: page.pageSize
       });
     };
+    const onOrder = (record) => {
+      DailyTicker.value = window.Tool.copy(record)
+      store.commit('Session_params/set_order', DailyTicker.value )
+      console.log("开始预定：" + JSON.stringify(record));
+      console.log(router)
 
+      router.push('/Order')
+
+    }
     onMounted(() => {
-      handleQuery({
-        page: 1,
-        size: pagination.value.pageSize
-      });
+      params.value =store.state.Session_params.params || {}
+      if(window.Tool.isNotEmpty(params.value)){
+        handleQuery({
+          page: 1,
+          size: pagination.value.pageSize,
+          code: params.value.trainCode,
+          date: params.value.date,
+          start: params.value.start,
+          end: params.value.end
+        });
+      }
+
     });
 
     return {
@@ -230,7 +272,9 @@ export default defineComponent({
       handleQuery,
       loading,
       params,
-      calDuration
+      calDuration,
+      onOrder,
+      DailyTicker
     };
   },
 });
