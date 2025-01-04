@@ -35,7 +35,7 @@
             </template>
             <a-menu-item key="welcome"><router-link to="/welcome">欢迎</router-link></a-menu-item>
             <a-menu-item key="passenger" ><router-link to="/passenger">乘车人管理</router-link></a-menu-item>
-            <a-menu-item key="3">option3</a-menu-item>
+            <a-menu-item key="ticket"><router-link to="/ticket">余票查询</router-link></a-menu-item>
             <a-menu-item key="4">option4</a-menu-item>
           </a-sub-menu>
           <a-sub-menu key="sub2">

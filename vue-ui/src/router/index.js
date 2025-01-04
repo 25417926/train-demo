@@ -28,6 +28,15 @@ const routes = [
         meta:{
           requireAuth:true
         },
+
+      },
+      {
+        path: 'ticket',
+        component: ()=> import('@/views/HomeView/daily-train-ticket.vue'),
+        meta:{
+          requireAuth:true
+        },
+
       }
     ]
   },
