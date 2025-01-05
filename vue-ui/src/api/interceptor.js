@@ -14,7 +14,7 @@ const instance = axios.create({
 // 2. 请求拦截器（请求拦截器作用就是用于发送接口请求前需要做的操作）
 instance.interceptors.request.use((config) => {
     // 发请求前做的一些处理，数据转化，配置请求头，设置token，设置loading等，根据需求去添加
-    const token =store.state.MemberToken.token
+    const token =store.state.Mobile.token
     if (token) { // 判断是否存在token，如果存在的话，则每个http header都加上token
         config.headers.authorization = `${token}`; // 请求头加上token
     }
@@ -41,8 +41,8 @@ instance.interceptors.response.use((res) => {
     //处理登录权限问题
     if(res.status === 401) {
         message.error("登录状态异常")
-        store.commit("set_token", null)
-        store.commit("set_mobile", null)
+        store.commit("Mobile/set_token", null)
+        store.commit("Mobile/set_mobile", null)
         setTimeout(() => {
             router.push("/view")
         }, 1000)

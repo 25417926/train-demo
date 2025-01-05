@@ -9,10 +9,7 @@ import com.github.pagehelper.PageHelper;
 import com.github.pagehelper.PageInfo;
 import com.guo.business.TypeEnum.TrainCarriageTypeEnum;
 import com.guo.business.TypeEnum.TrainTypeEnum;
-import com.guo.business.domain.Daily_Train;
-import com.guo.business.domain.Daily_Train_Ticket;
-import com.guo.business.domain.Daily_Train_TicketExample;
-import com.guo.business.domain.Train_Station;
+import com.guo.business.domain.*;
 import com.guo.business.mapper.Daily_Train_TicketMapper;
 import com.guo.business.req.Daily_Train_TicketQueryReq;
 import com.guo.business.resp.Daily_Train_TicketQueryResp;
@@ -143,8 +140,23 @@ public class Daily_Train_TicketService {
             }
         }
         LOG.info("生成日期【{}】车次【{}】的站点信息完成", DateUtil.formatDate(date), trainCode);
-        //查出某日该车次的余票数据
 
 
+    }
+    public Daily_Train_Ticket selectByUnique(Date date ,String trainCode ,String start , String end) {
+        Daily_Train_TicketExample Daily_Train_TicketExample = new Daily_Train_TicketExample();
+        Daily_Train_TicketExample.Criteria criteria = Daily_Train_TicketExample.createCriteria();
+        criteria
+                .andDateEqualTo(date)
+                .andTrainCodeEqualTo(trainCode)
+                .andStartEqualTo(start)
+                .andEndEqualTo(end);
+
+        List<Daily_Train_Ticket> list = daily_Train_TicketMapper.selectByExample(Daily_Train_TicketExample);
+        if (CollUtil.isEmpty(list)) {
+            return null;
+        }else{
+            return list.get(0);
+        }
     }
 }

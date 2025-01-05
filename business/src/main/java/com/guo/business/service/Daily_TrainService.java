@@ -131,6 +131,7 @@ public class Daily_TrainService {
         daily_Train.setUpdateTime(now);
         daily_Train.setDate(date);
         daily_TrainMapper.insert(daily_Train);
+
         //生成该车次车站的数据
         DailyTrainStationService.genDaily(date,train.getCode());
         //生成该车次车厢的数据

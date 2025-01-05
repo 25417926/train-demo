@@ -31,6 +31,14 @@ const routes = [
 
       },
       {
+        path: 'Order',
+        component: ()=> import('@/views/HomeView/order.vue'),
+        meta:{
+          requireAuth:true
+        },
+
+      },
+      {
         path: 'ticket',
         component: ()=> import('@/views/HomeView/daily-train-ticket.vue'),
         meta:{
@@ -42,7 +50,10 @@ const routes = [
   },
   {
     path: '',
-    redirect: '/welcome'
+    redirect: '/welcome',
+    meta:{
+      requireAuth:true
+    },
   }
 
   // {
@@ -68,7 +79,7 @@ router.beforeEach((to,from,next)=> {
     return item.meta.requireAuth;
   })) {
     // 获取token
-    const _member = store.state.MemberToken;
+    const _member = store.state.Mobile;
     console.log("页面登录校验开始：", _member);
     // 判断是否已经登录
     if (!_member.token) {

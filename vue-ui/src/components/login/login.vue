@@ -45,8 +45,8 @@ export default {
         if (res.code === 200) {
           message.success(res.message)
           router.push('/')
-          store.commit('set_token', res.content.token)
-          store.commit('set_mobile', res.content.mobile)
+          store.commit('Mobile/set_token', res.content.token)
+          store.commit('Mobile/set_mobile', res.content.mobile)
         }
       }catch (e){
         console.log(e);

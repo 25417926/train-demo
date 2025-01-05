@@ -10,6 +10,7 @@ import com.guo.common.req.UserDetailsReq;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -20,23 +21,23 @@ public class JWTUtil {
      * 盐值很重要，不能泄漏，且每个项目都应该不一样，可以放到配置文件中
      */
     private static final String SECRET_KEY_STRING = "guo"; // 秘钥字符串
-    private static final DateTime now = DateTime.now();
-    private static final DateTime EXPIRATION_TIME = now.offsetNew(DateField.MINUTE, 100); // 过期时间，单位小时，这里设置为1小时，可根据实际需求调整
+    private static DateTime EXPIRATION_TIME = null; // 过期时间，单位分钟，这里设置为10分钟，可根据实际需求调整
     private static final String CLAIM_KEY_USERNAME = "sub"; // 存储用户名的键名
     private static final String CLAIM_KEY_CREATED = "created"; // 存储令牌创建时间的键名
     private static final String TOKEN_PREFIX = "Bearer"; // 令牌前缀
 
-
     public static String createToken(UserDetailsReq req) {
+        Date date=DateTime.now();
+        EXPIRATION_TIME = ((DateTime) date).offsetNew(DateField.MINUTE, 10);
         LOG.info("开始生成JWT token，mobile：{}，password：{}", req.getPassword(), req.getMobile());
         GlobalBouncyCastleProvider.setUseBouncyCastle(false);
         Map<String, Object> payload = new HashMap<>();
         // 签发时间
-        payload.put(JWTPayload.ISSUED_AT, now);
+        payload.put(JWTPayload.ISSUED_AT, date);
         // 过期时间
         payload.put(JWTPayload.EXPIRES_AT, EXPIRATION_TIME);
         // 生效时间
-        payload.put(JWTPayload.NOT_BEFORE, now);
+        payload.put(JWTPayload.NOT_BEFORE, date);
         // 内容
         payload.put("id", req.getId());
         payload.put("mobile", req.getMobile());
@@ -67,5 +68,6 @@ public class JWTUtil {
         LOG.info("根据token获取原始内容：{}", payloads);
         return payloads;
     }
+
 
 }

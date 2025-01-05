@@ -101,4 +101,17 @@ public class PassengerService {
     public void delete(Long id) {
         passengerMapper.deleteByPrimaryKey(id);
     }
+
+    public List<PassengerQueryResp> queryMine() {
+        PassengerExample example = new PassengerExample();
+        example.setOrderByClause("name asc");
+        example.createCriteria().andMemberIdEqualTo(LoginMemberContext.getId());
+        List<Passenger> passengerList = passengerMapper.selectByExample(example);
+        return BeanUtil.copyToList(passengerList, PassengerQueryResp.class).stream().map(
+                resp->{
+                    resp.setType(PassengerEnum.fromCode(resp.getType(),null).getDesc());
+                    return resp;
+                }
+        ).collect(Collectors.toList());
+    }
 }

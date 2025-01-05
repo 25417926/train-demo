@@ -106,23 +106,37 @@ public class Daily_Train_SeatService {
             Daily_Train_Seat.setSell(sell);
             Daily_Train_Seat.setDate(date);
             daily_Train_SeatMapper.insert(Daily_Train_Seat);
-
+            LOG.info("生成车次【{}】厢序列=【{}】的座位信息完成",  trainCode,Daily_Train_Seat.getCarriageIndex());
             LOG.info("生成日期【{}】车次【{}】的座位信息完成", DateUtil.formatDate(date), trainCode);
         }
 
     }
 
+    /**
+     * 根据日期、车次和席别统计座位数量
+     *
+     * @param date 日期，用于筛选特定日期的列车座位信息
+     * @param trainCode 车次，用于筛选特定车次的列车座位信息
+     * @param seatType 席别，用于筛选特定席别的列车座位信息
+     * @return 座位数量，如果找不到匹配的座位信息则返回-1
+     */
     public int CountSeats(Date date, String trainCode,String seatType) {
+        // 创建一个Daily_Train_SeatExample对象，用于设置查询条件
         Daily_Train_SeatExample Daily_Train_SeatExample = new Daily_Train_SeatExample();
+        // 创建一个Criteria对象，用于定义查询的条件
         Daily_Train_SeatExample.Criteria criteria = Daily_Train_SeatExample.createCriteria();
+        // 设置查询条件：日期、车次和类别
         criteria
                 .andDateEqualTo(date)
                 .andTrainCodeEqualTo(trainCode)
                 .andSeatTypeEqualTo(seatType);
+        // 使用daily_Train_SeatMapper的countByExample方法，根据设置的条件统计符合条件的座位数量
         long l = daily_Train_SeatMapper.countByExample(Daily_Train_SeatExample);
+        // 如果统计结果为0，表示没有找到符合条件的座位信息，返回-1
         if(l==0L){
             return -1;
         }
+        // 将统计结果转换为int类型并返回
         return (int)l;
     }
 }
