@@ -36,6 +36,7 @@ public class Daily_Train_SeatService {
     @Resource
     private Train_StationService Train_StationService;
 
+
     public void save(Daily_Train_SeatSaveReq req) {
         DateTime now = DateTime.now();
         Daily_Train_Seat daily_Train_Seat = BeanUtil.copyProperties(req, Daily_Train_Seat.class);
@@ -151,5 +152,14 @@ public class Daily_Train_SeatService {
                 .andTrainCodeEqualTo(trainCode)
                 .andCarriageIndexEqualTo(carriageIndex);
         return daily_Train_SeatMapper.selectByExample(daily_Train_SeatExample);
+    }
+    @Transactional
+    public int SeatForUpdate(Daily_Train_Seat daily_Train_Seat) {
+        Daily_Train_Seat seat =new Daily_Train_Seat();
+        seat.setId(daily_Train_Seat.getId());
+        seat.setSell(daily_Train_Seat.getSell());
+        seat.setUpdateTime(new Date());
+        daily_Train_SeatMapper.updateByPrimaryKeySelective(seat);
+        return daily_Train_SeatMapper.updateByPrimaryKeySelective(seat);
     }
 }
