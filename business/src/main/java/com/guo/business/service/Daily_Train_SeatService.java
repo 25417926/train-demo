@@ -143,6 +143,8 @@ public class Daily_Train_SeatService {
 
     public List<Daily_Train_Seat> selectByCarriage(Date date, String trainCode, Integer carriageIndex) {
         Daily_Train_SeatExample daily_Train_SeatExample = new Daily_Train_SeatExample();
+        // 设置排序规则,按照座位索引排序
+        daily_Train_SeatExample.setOrderByClause("`carriage_seat_index` asc");
         Daily_Train_SeatExample.Criteria criteria = daily_Train_SeatExample.createCriteria();
         criteria
                 .andDateEqualTo(date)
