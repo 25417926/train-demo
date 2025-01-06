@@ -10,6 +10,7 @@ export const addOrderList = async (param) => {
             start: param.start,
             end: param.end,
             tickets: param.tickets,
+            seat: param.seat,
             // imageCodeToken: param.value,
             // imageCode: param.value,
             // lineNumber: param.value

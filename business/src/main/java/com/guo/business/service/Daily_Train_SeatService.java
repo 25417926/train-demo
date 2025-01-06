@@ -54,7 +54,7 @@ public class Daily_Train_SeatService {
         Daily_Train_SeatExample daily_Train_SeatExample = new Daily_Train_SeatExample();
         daily_Train_SeatExample.setOrderByClause("date desc,train_code asc,`carriage_index` asc,`carriage_seat_index` asc");
         Daily_Train_SeatExample.Criteria criteria = daily_Train_SeatExample.createCriteria();
-        if(ObjectUtil.isNotNull(req.getTrainCode())) {
+        if (ObjectUtil.isNotNull(req.getTrainCode())) {
             criteria.andTrainCodeEqualTo(req.getTrainCode());
         }
         LOG.info("查询页码：{}", req.getPage());
@@ -77,6 +77,7 @@ public class Daily_Train_SeatService {
     public void delete(Long id) {
         daily_Train_SeatMapper.deleteByPrimaryKey(id);
     }
+
     @Transactional
     public void genDaily(Date date, String trainCode) {
         LOG.info("生成日期【{}】车次【{}】的座位信息开始", DateUtil.formatDate(date), trainCode);
@@ -92,13 +93,13 @@ public class Daily_Train_SeatService {
         List<Train_Station> train_stations = Train_StationService.selectByTrainCode(trainCode);
         //查出某日该车次的座位数据
         List<train_seat> trainStations = train_seatService.selectByTrainCode(trainCode);
-        String sell = StrUtil.fillBefore("",'0',train_stations.size()-1);
-        if(CollUtil.isEmpty(trainStations)){
-            LOG.info("该车次没有车站数据，日期【{}】车次【{}】的座位信息生成完毕", DateUtil.formatDate(date) , trainCode);
+        String sell = StrUtil.fillBefore("", '0', train_stations.size() - 1);
+        if (CollUtil.isEmpty(trainStations)) {
+            LOG.info("该车次没有车站数据，日期【{}】车次【{}】的座位信息生成完毕", DateUtil.formatDate(date), trainCode);
             return;
         }
         //生成该车次座位的数据
-        for(train_seat train :trainStations ){
+        for (train_seat train : trainStations) {
             Daily_Train_Seat Daily_Train_Seat = BeanUtil.copyProperties(train, Daily_Train_Seat.class);
             Daily_Train_Seat.setId(SnowUtil.getSnowflakeNextId());
             Daily_Train_Seat.setCreateTime(now);
@@ -106,7 +107,7 @@ public class Daily_Train_SeatService {
             Daily_Train_Seat.setSell(sell);
             Daily_Train_Seat.setDate(date);
             daily_Train_SeatMapper.insert(Daily_Train_Seat);
-            LOG.info("生成车次【{}】厢序列=【{}】的座位信息完成",  trainCode,Daily_Train_Seat.getCarriageIndex());
+            LOG.info("生成车次【{}】厢序列=【{}】的座位信息完成", trainCode, Daily_Train_Seat.getCarriageIndex());
             LOG.info("生成日期【{}】车次【{}】的座位信息完成", DateUtil.formatDate(date), trainCode);
         }
 
@@ -115,12 +116,12 @@ public class Daily_Train_SeatService {
     /**
      * 根据日期、车次和席别统计座位数量
      *
-     * @param date 日期，用于筛选特定日期的列车座位信息
+     * @param date      日期，用于筛选特定日期的列车座位信息
      * @param trainCode 车次，用于筛选特定车次的列车座位信息
-     * @param seatType 席别，用于筛选特定席别的列车座位信息
+     * @param seatType  席别，用于筛选特定席别的列车座位信息
      * @return 座位数量，如果找不到匹配的座位信息则返回-1
      */
-    public int CountSeats(Date date, String trainCode,String seatType) {
+    public int CountSeats(Date date, String trainCode, String seatType) {
         // 创建一个Daily_Train_SeatExample对象，用于设置查询条件
         Daily_Train_SeatExample Daily_Train_SeatExample = new Daily_Train_SeatExample();
         // 创建一个Criteria对象，用于定义查询的条件
@@ -133,10 +134,20 @@ public class Daily_Train_SeatService {
         // 使用daily_Train_SeatMapper的countByExample方法，根据设置的条件统计符合条件的座位数量
         long l = daily_Train_SeatMapper.countByExample(Daily_Train_SeatExample);
         // 如果统计结果为0，表示没有找到符合条件的座位信息，返回-1
-        if(l==0L){
+        if (l == 0L) {
             return -1;
         }
         // 将统计结果转换为int类型并返回
-        return (int)l;
+        return (int) l;
+    }
+
+    public List<Daily_Train_Seat> selectByCarriage(Date date, String trainCode, Integer carriageIndex) {
+        Daily_Train_SeatExample daily_Train_SeatExample = new Daily_Train_SeatExample();
+        Daily_Train_SeatExample.Criteria criteria = daily_Train_SeatExample.createCriteria();
+        criteria
+                .andDateEqualTo(date)
+                .andTrainCodeEqualTo(trainCode)
+                .andCarriageIndexEqualTo(carriageIndex);
+        return daily_Train_SeatMapper.selectByExample(daily_Train_SeatExample);
     }
 }

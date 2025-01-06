@@ -217,6 +217,7 @@ export default {
         start: GetDailyTicker.start,
         end: GetDailyTicker.end,
         tickets: tickets.value,
+        seat: chooseSeatType.value
       }
       const res = await addOrderList(param)
       console.log("res", res)
