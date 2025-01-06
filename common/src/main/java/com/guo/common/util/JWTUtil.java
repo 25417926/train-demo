@@ -28,7 +28,7 @@ public class JWTUtil {
 
     public static String createToken(UserDetailsReq req) {
         Date date=DateTime.now();
-        EXPIRATION_TIME = ((DateTime) date).offsetNew(DateField.MINUTE, 10);
+        EXPIRATION_TIME = ((DateTime) date).offsetNew(DateField.MINUTE, 100);
         LOG.info("开始生成JWT token，mobile：{}，password：{}", req.getPassword(), req.getMobile());
         GlobalBouncyCastleProvider.setUseBouncyCastle(false);
         Map<String, Object> payload = new HashMap<>();
