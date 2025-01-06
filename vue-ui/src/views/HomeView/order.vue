@@ -179,7 +179,7 @@ export default {
       //弹出确认界面
       visible.value = true
     }
-    const handleOk = () => {
+    const handleOk = async () => {
       // if (Tool.isEmpty(imageCode.value)) {
       //   notification.error({description: '验证码不能为空'});
       //   return;
@@ -198,19 +198,19 @@ export default {
         if (chooseSeatObj.value[key]) {
           i++;
           if (i > tickets.value.length - 1) {
-            message.error( '所选座位数大于购票数');
+            message.error('所选座位数大于购票数');
             return;
           }
           tickets.value[i].seat = key;
         }
       }
       if (i > -1 && i < (tickets.value.length - 1)) {
-        message.error( '所选座位数小于购票数');
+        message.error('所选座位数小于购票数');
         return;
       }
 
       console.log("最终购票：", tickets.value);
-      const param ={
+      const param = {
         dailyTrainTicketId: GetDailyTicker.id,
         date: GetDailyTicker.date,
         trainCode: GetDailyTicker.trainCode,
@@ -218,9 +218,11 @@ export default {
         end: GetDailyTicker.end,
         tickets: tickets.value,
       }
-      const res =addOrderList(param)
-      if(res.code === 200){
+      const res = await addOrderList(param)
+      console.log("res", res)
+      if (res.code === 200) {
         message.success('购票成功');
+        visible.value = false
       }
     }
     const OnQueryMine = async () => {

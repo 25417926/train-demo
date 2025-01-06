@@ -2,11 +2,13 @@ package com.guo.business.service;
 
 import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.date.DateTime;
+import cn.hutool.core.util.EnumUtil;
 import cn.hutool.core.util.ObjectUtil;
 import com.alibaba.fastjson.JSON;
 import com.github.pagehelper.PageHelper;
 import com.github.pagehelper.PageInfo;
 import com.guo.business.TypeEnum.ConfirmOrderStatusEnum;
+import com.guo.business.TypeEnum.TrainCarriageTypeEnum;
 import com.guo.business.domain.Confirm_Order;
 import com.guo.business.domain.Confirm_OrderExample;
 import com.guo.business.domain.Daily_Train_Ticket;
@@ -14,8 +16,11 @@ import com.guo.business.mapper.Confirm_OrderMapper;
 import com.guo.business.req.Confirm_OrderDoReq;
 import com.guo.business.req.Confirm_OrderQueryReq;
 import com.guo.business.req.Confirm_OrderSaveReq;
+import com.guo.business.req.Confirm_OrderTicketReq;
 import com.guo.business.resp.Confirm_OrderQueryResp;
 import com.guo.common.context.LoginMemberContext;
+import com.guo.common.exception.ExceptionConsole;
+import com.guo.common.exception.ExceptionEnum;
 import com.guo.common.resp.PageResp;
 import com.guo.common.util.SnowUtil;
 import org.slf4j.Logger;
@@ -35,6 +40,7 @@ public class Confirm_OrderService {
     private Confirm_OrderMapper confirm_OrderMapper;
     @Resource
     private Daily_Train_TicketService daily_Train_TicketService;
+
     public void save(Confirm_OrderSaveReq req) {
         DateTime now = DateTime.now();
         Confirm_Order confirm_Order = BeanUtil.copyProperties(req, Confirm_Order.class);
@@ -83,7 +89,7 @@ public class Confirm_OrderService {
         Confirm_Order confirm_Order = new Confirm_Order();
         confirm_Order.setId(SnowUtil.getSnowflakeNextId());
         confirm_Order.setMemberId(LoginMemberContext.getId());
-        Date date =req.getDate();
+        Date date = req.getDate();
         String trainCode = req.getTrainCode();
         String start = req.getStart();
         String end = req.getEnd();
@@ -100,7 +106,47 @@ public class Confirm_OrderService {
         //查出余票数据，需要得到真实库存
         Daily_Train_Ticket dailyTrainTicket = daily_Train_TicketService.selectByUnique(date, trainCode, start, end);
         LOG.info("查出余票信息记录：{}", dailyTrainTicket);
-        //
+        //预扣库存，并判断是否余票足够
+        reduceTickets(req, dailyTrainTicket);
+    }
+
+    private static void reduceTickets(Confirm_OrderDoReq req, Daily_Train_Ticket dailyTrainTicket) {
+        for (Confirm_OrderTicketReq ticket : req.getTickets()) {
+            String seatTypeCode = ticket.getSeatTypeCode();
+            //获取枚举
+            TrainCarriageTypeEnum seatTypeEnum = EnumUtil.getBy(TrainCarriageTypeEnum::getCode, seatTypeCode);
+            //根据枚举类型，判断余票
+            switch (seatTypeEnum) {
+                case YDZ:
+                    int CountLeft = dailyTrainTicket.getYdz() - 1;
+                    if (CountLeft < 0) {
+                        throw new ExceptionConsole(ExceptionEnum.TICKET_NOT_ENOUGH);
+                    }
+                    dailyTrainTicket.setYdz(CountLeft);
+                    break;
+                case EDZ:
+                    int CountLeft1 = dailyTrainTicket.getEdz() - 1;
+                    if (CountLeft1 < 0) {
+                        throw new ExceptionConsole(ExceptionEnum.TICKET_NOT_ENOUGH);
+                    }
+                    dailyTrainTicket.setEdz(CountLeft1);
+                    break;
+                case RW:
+                    int CountLeft2 = dailyTrainTicket.getRw() - 1;
+                    if (CountLeft2 < 0) {
+                        throw new ExceptionConsole(ExceptionEnum.TICKET_NOT_ENOUGH);
+                    }
+                    dailyTrainTicket.setRw(CountLeft2);
+                    break;
+                case YW:
+                    int CountLeft3 = dailyTrainTicket.getYw() - 1;
+                    if (CountLeft3 < 0) {
+                        throw new ExceptionConsole(ExceptionEnum.TICKET_NOT_ENOUGH);
+                    }
+                    dailyTrainTicket.setYw(CountLeft3);
+                    break;
+            }
+        }
     }
 
 }

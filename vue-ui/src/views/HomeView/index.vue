@@ -103,8 +103,7 @@ export default defineComponent({
     },{immediate:true})
     // 退出登录
     const layout = async ()=>{
-      store.commit('Mobile/set_token',null)
-      store.commit('Mobile/set_mobile',null)
+      store.commit("Mobile/clean")
       router.push('/view')
     }
     return {

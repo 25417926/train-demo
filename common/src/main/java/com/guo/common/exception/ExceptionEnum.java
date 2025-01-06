@@ -26,7 +26,8 @@ public enum ExceptionEnum {
     CARRIAGE_EXIST(HttpStatus.WARN, "同车次厢序已存在"),
     TRAIN_NAME_EXIST(HttpStatus.WARN, "同车次站名已存在"),
     TRAIN_INDEX_EXIST(HttpStatus.WARN, "同车次站序已存在"),
-    TRAIN_CODE_EXIST(HttpStatus.WARN, "车次编号已存在");
+    TRAIN_CODE_EXIST(HttpStatus.WARN, "车次编号已存在"),
+    TICKET_NOT_ENOUGH(HttpStatus.CONFLICT, "余票不足");
 
     @Getter
     @Setter

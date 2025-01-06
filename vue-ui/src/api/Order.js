@@ -3,7 +3,7 @@ import {message} from "ant-design-vue";
 
 export const addOrderList = async (param) => {
     try{
-        const res =instance.post("/business/web/confirm-order/do-storage",{
+        const res =await instance.post("/business/web/confirm-order/do-storage", {
             dailyTrainTicketId: param.dailyTrainTicketId,
             date: param.date,
             trainCode: param.trainCode,
@@ -14,7 +14,6 @@ export const addOrderList = async (param) => {
             // imageCode: param.value,
             // lineNumber: param.value
         })
-
         return res.data
     }catch (e){
         message.error(e.message)

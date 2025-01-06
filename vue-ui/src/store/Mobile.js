@@ -16,7 +16,9 @@ export const Mobile = {
             state.token = token
             LocalStorageUtil.setItem(Token, token)
         },
-        clear(state) {
+        clean(){
+            LocalStorageUtil.removeItem(mobile)
+            LocalStorageUtil.removeItem(Token)
         }
     }
 }

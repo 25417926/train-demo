@@ -41,8 +41,7 @@ instance.interceptors.response.use((res) => {
     //处理登录权限问题
     if(res.status === 401) {
         message.error("登录状态异常")
-        store.commit("Mobile/set_token", null)
-        store.commit("Mobile/set_mobile", null)
+        store.commit("Mobile/clean")
         setTimeout(() => {
             router.push("/view")
         }, 1000)
