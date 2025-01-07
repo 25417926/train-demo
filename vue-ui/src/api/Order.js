@@ -15,6 +15,7 @@ export const addOrderList = async (param) => {
             // imageCode: param.value,
             // lineNumber: param.value
         })
+        console.log(param.tickets)
         return res.data
     }catch (e){
         message.error(e.message)

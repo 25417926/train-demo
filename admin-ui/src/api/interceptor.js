@@ -1,7 +1,7 @@
 import axios from 'axios';
 import { message } from 'ant-design-vue';
 import store from "@/store";
-import router from "@/router";
+//import router from "@/router";
 // 1. 创建新的axios实例
 const instance = axios.create({
     // 设置接口域名
@@ -41,21 +41,21 @@ instance.interceptors.response.use((res) => {
     return res;
 }, (error) => {
     // 处理响应出错的情况，比如网络错误等，可以在这里统一提示用户或者进行其他错误处理逻辑
-    console.log(error);
-    const res = error.response;
+    // console.log(error);
+    // const res = error.response;
     //处理登录权限问题
-    if(res.status === 401) {
-        message.error("登录状态异常")
-        store.commit("set_token", null)
-        store.commit("set_mobile", null)
-        setTimeout(() => {
-            router.push("/view")
-        }, 1000)
-    }else {
+    // if(res.status === 401) {
+    //     message.error("登录状态异常")
+    //     store.commit("set_token", null)
+    //     store.commit("set_mobile", null)
+    //     setTimeout(() => {
+    //         router.push("/view")
+    //     }, 1000)
+    // }else {
         // 这里可以统一提示错误信息
         message.error('接口请求出现错误，请稍后重试');
         return Promise.reject(error);
-    }
+    // }
 });
 
 export default instance;

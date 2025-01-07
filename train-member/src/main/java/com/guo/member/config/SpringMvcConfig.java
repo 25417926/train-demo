@@ -20,7 +20,7 @@ public class SpringMvcConfig implements WebMvcConfigurer {
     public void addInterceptors(InterceptorRegistry registry) {
         registry.addInterceptor(memberInterceptor)
                 .addPathPatterns("/**")
-                .excludePathPatterns("/member/SendCode","/member/LoginCode","/member/register")
+                .excludePathPatterns("/member/SendCode","/member/LoginCode","/member/register","member/ticket")
                 .order(1);
 
     }

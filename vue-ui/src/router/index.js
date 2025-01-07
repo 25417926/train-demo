@@ -40,7 +40,14 @@ const routes = [
       },
       {
         path: 'ticket',
-        component: ()=> import('@/views/HomeView/daily-train-ticket.vue'),
+        component: () => import('@/views/HomeView/daily-train-ticket.vue'),
+        meta: {
+          requireAuth: true
+        },
+      },
+      {
+        path: 'my-ticket',
+        component: ()=> import('@/views/HomeView/my-ticket.vue'),
         meta:{
           requireAuth:true
         },

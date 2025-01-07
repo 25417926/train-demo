@@ -66,8 +66,8 @@
                 <artifactId>mybatis-generator-maven-plugin</artifactId>
                 <version>1.4.0</version>
                 <configuration>
-<!--                    <configurationFile>src/main/resources/generatorConfig.xml</configurationFile>-->
-                    <configurationFile>src/main/resources/generatorConfig-business.xml</configurationFile>
+                    <configurationFile>src/main/resources/generatorConfig-train-member.xml</configurationFile>
+<!--                    <configurationFile>src/main/resources/generatorConfig-business.xml</configurationFile>-->
 <!--                    <configurationFile>src/main/resources/generatorConfig-batch.xml</configurationFile>-->
                     <verbose>true</verbose>
                     <overwrite>true</overwrite>

@@ -143,20 +143,20 @@ public class Daily_Train_TicketService {
 
 
     }
-    public Daily_Train_Ticket selectByUnique(Date date ,String trainCode ,String start , String end) {
-        Daily_Train_TicketExample Daily_Train_TicketExample = new Daily_Train_TicketExample();
-        Daily_Train_TicketExample.Criteria criteria = Daily_Train_TicketExample.createCriteria();
-        criteria
-                .andDateEqualTo(date)
-                .andTrainCodeEqualTo(trainCode)
-                .andStartEqualTo(start)
-                .andEndEqualTo(end);
+        public Daily_Train_Ticket selectByUnique(Date date ,String trainCode ,String start , String end) {
+            Daily_Train_TicketExample Daily_Train_TicketExample = new Daily_Train_TicketExample();
+            Daily_Train_TicketExample.Criteria criteria = Daily_Train_TicketExample.createCriteria();
+            criteria
+                    .andDateEqualTo(date)
+                    .andTrainCodeEqualTo(trainCode)
+                    .andStartEqualTo(start)
+                    .andEndEqualTo(end);
 
-        List<Daily_Train_Ticket> list = daily_Train_TicketMapper.selectByExample(Daily_Train_TicketExample);
-        if (CollUtil.isEmpty(list)) {
-            return null;
-        }else{
-            return list.get(0);
+            List<Daily_Train_Ticket> list = daily_Train_TicketMapper.selectByExample(Daily_Train_TicketExample);
+            if (CollUtil.isEmpty(list)) {
+                return null;
+            }else{
+                return list.get(0);
+            }
         }
-    }
 }
