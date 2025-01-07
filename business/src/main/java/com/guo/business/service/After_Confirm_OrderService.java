@@ -1,9 +1,12 @@
 package com.guo.business.service;
 
 
+import com.guo.business.TypeEnum.ConfirmOrderStatusEnum;
+import com.guo.business.domain.Confirm_Order;
 import com.guo.business.domain.Daily_Train_Seat;
 import com.guo.business.domain.Daily_Train_Ticket;
 import com.guo.business.feign.MemberFeign;
+import com.guo.business.mapper.Confirm_OrderMapper;
 import com.guo.business.mapper.cust.CUST_Daily_Train_TicketMapper;
 import com.guo.business.req.Confirm_OrderTicketReq;
 import com.guo.common.context.LoginMemberContext;
@@ -15,6 +18,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import javax.annotation.Resource;
+import java.util.Date;
 import java.util.List;
 
 /**
@@ -31,7 +35,8 @@ public class After_Confirm_OrderService {
     private CUST_Daily_Train_TicketMapper cust_Daily_Train_TicketMapper;
     @Resource
     private MemberFeign memberFeign;
-
+    @Resource
+    private Confirm_OrderMapper confirm_OrderMapper;
     /**
      * 选中座位后事务处理：
      * 座位表修改售卖情况sell；
@@ -41,7 +46,7 @@ public class After_Confirm_OrderService {
      */
 
     @Transactional
-    public void afterDoConfirm(Daily_Train_Ticket daily_Train_Ticket, List<Daily_Train_Seat> seatList, List<Confirm_OrderTicketReq> tickets) {
+    public void afterDoConfirm(Daily_Train_Ticket daily_Train_Ticket, List<Daily_Train_Seat> seatList, List<Confirm_OrderTicketReq> tickets, Confirm_Order confirm_Order ) {
         for (int j = 0; j < seatList.size(); j++ ) {
             LOG.info("第{}个座位", j);
             LOG.info("车票数据{}", tickets.get(j));
@@ -144,6 +149,13 @@ public class After_Confirm_OrderService {
                     daily_Train_Ticket.getStartTime(),
                     daily_Train_Ticket.getEnd(),daily_Train_Ticket.getEndTime());
             CommonResp<Object> memberTicketResp = memberFeign.save(memberTicketReq);
+
+            //更新订单状态为成功
+            Confirm_Order confirm_OrderForUpdate = new Confirm_Order();
+            confirm_OrderForUpdate.setId(confirm_Order.getId());
+            confirm_OrderForUpdate.setUpdateTime(new Date());
+            confirm_OrderForUpdate.setStatus(ConfirmOrderStatusEnum.SUCCESS.getCode());
+            confirm_OrderMapper.updateByPrimaryKeySelective(confirm_OrderForUpdate);
         }
 
     }

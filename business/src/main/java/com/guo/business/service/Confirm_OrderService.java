@@ -33,6 +33,7 @@ import javax.annotation.Resource;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * 确认订单服务类
@@ -92,7 +93,12 @@ public class Confirm_OrderService {
         LOG.info("总行数：{}", pageInfo.getTotal());
         LOG.info("总页数：{}", pageInfo.getPages());
 
-        List<Confirm_OrderQueryResp> list = BeanUtil.copyToList(confirm_OrderList, Confirm_OrderQueryResp.class);
+        List<Confirm_OrderQueryResp> list = BeanUtil.copyToList(confirm_OrderList, Confirm_OrderQueryResp.class)
+                .stream().peek(
+                        resp -> {
+                            resp.setStatus(ConfirmOrderStatusEnum.fromCode(resp.getStatus(), null).getDesc());
+                        }
+                ).collect(Collectors.toList());
 
         PageResp<Confirm_OrderQueryResp> pageResp = new PageResp<>();
         pageResp.setTotal(pageInfo.getTotal());
@@ -207,7 +213,7 @@ public class Confirm_OrderService {
         }
         LOG.info("最终选座结果：{}", finalSeatList);
         // 执行存储确认订单操作
-        After_Confirm_OrderService.afterDoConfirm(dailyTrainTicket,finalSeatList,tickets);
+        After_Confirm_OrderService.afterDoConfirm(dailyTrainTicket,finalSeatList,tickets,confirm_Order);
     }
 
     /**

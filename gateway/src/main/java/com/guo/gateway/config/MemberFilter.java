@@ -30,7 +30,7 @@ public class MemberFilter implements GlobalFilter, Ordered {
                 path.contains("/member/SendCode")||
                 path.contains("/member/LoginCode")||
                 path.contains("/member/register") ||
-                path.contains("/member/ticket") ||
+                path.contains("/member/admin/ticket/Query-List") ||
                 path.contains("/member/feign/save")) {
             LOG.info("放行路由："+path);
             return chain.filter(exchange);
