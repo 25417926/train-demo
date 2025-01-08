@@ -13,7 +13,7 @@ import javax.validation.Valid;
  * @Author: 派
  * @Date: 2025/1/7
  */
-@FeignClient(value = "train-member", url = "http://localhost:80")
+@FeignClient(value = "train-member")
 public interface MemberFeign {
     @PostMapping("member/feign/save")
     public CommonResp save(@Valid @RequestBody MemberTicketReq req);
