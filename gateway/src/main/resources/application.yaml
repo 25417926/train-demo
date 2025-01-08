@@ -9,11 +9,11 @@ spring:
           predicates:
             - Path=/member/**
         - id: business
-          uri: http://127.0.0.1:8081
+          uri: lb://business
           predicates:
             - Path=/business/**
         - id: batch
-          uri: http://127.0.0.1:8082
+          uri: lb://batch
           predicates:
             - Path=/batch/**
   # 配置CORS相关设置
