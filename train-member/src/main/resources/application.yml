@@ -1,0 +1,29 @@
+server:
+  port: 8080
+  servlet:
+    context-path: /member
+
+spring:
+  datasource:
+    url: jdbc:mysql://localhost:3306/train?useUnicode=true&characterEncoding=UTF-8&useSSL=false&serverTimezone=Asia/Shanghai
+    username: train-member
+    password: 123456
+  cloud:
+    nacos:
+      # 以下为注释掉的配置项，可以根据需要取消注释并进行修改
+      # namespace: member
+      # group: DEFAULT_GROUP
+      # data-id: your-app-config
+      # username: nacos
+      # password: nacos123
+      # config-retry-time: 3000
+      # config-long-poll-timeout: 60000
+
+test.nacos: member
+
+mybatis:
+  mapper-locations: classpath:mapper/**/*.xml
+
+#logging:
+#  level:
+#    root: DEBUG

@@ -5,7 +5,7 @@ spring:
     gateway:
       routes:
         - id: member
-          uri: http://127.0.0.1:8080
+          uri: lb://member
           predicates:
             - Path=/member/**
         - id: business
@@ -27,3 +27,13 @@ spring:
             allowedHeaders: "*"
             allowCredentials: true
             maxAge: 3600
+#test:
+#  nacos:
+#    server-addr: 127.0.0.1:8848  # Nacos服务器地址，根据实际情况修改
+#    namespace: gateway  # 配置的命名空间，这里假设是开发环境，可按需调整
+#    group: DEFAULT_GROUP  # 配置组，一般默认是这个，也可根据项目需求改
+#    data-id: your-app-config  # 配置文件在Nacos中的数据ID，要和实际上传到Nacos的配置对应
+#    username: nacos  # Nacos登录用户名，如果有开启认证的话
+#    password: nacos123  # Nacos登录密码，对应上面用户名的密码，如果有开启认证
+#    config-retry-time: 3000  # 配置获取失败后的重试时间间隔（毫秒），示例值
+#    config-long-poll-timeout: 60000  # 长轮询超时时间（毫秒），用于获取动态配置更新

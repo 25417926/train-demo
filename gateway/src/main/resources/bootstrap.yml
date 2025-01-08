@@ -1,0 +1,9 @@
+# 注册中心名字
+spring:
+  application:
+    name: gateway
+  # 启动环境，nacos会根据不同的配置dataid：gateway-dev.properties
+  cloud:
+    nacos:
+      discovery:
+        server-addr: localhost:8848

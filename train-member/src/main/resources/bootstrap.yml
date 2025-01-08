@@ -1,0 +1,21 @@
+# 注册中心名字
+spring:
+  application:
+    name: member
+  # 启动环境，nacos会根据不同的配置dataid：member-dev.properties
+  cloud:
+    nacos:
+      discovery:
+        server-addr: localhost:8848
+      config:
+        server-addr: localhost:8848  # nacos server地址
+        file-extension: properties  # 配置中心文件后缀
+        data-id: member-dev.properties
+        import:
+        - "nacos:"
+        #这里为命名空间，设置的值是id不是name
+        #namespace: train
+  # 配置中心文件
+  profiles:
+    active: dev
+
