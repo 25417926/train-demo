@@ -9,6 +9,7 @@ package com.guo.business.config;
 import org.mybatis.spring.annotation.MapperScan;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.cache.annotation.EnableCaching;
 import org.springframework.cloud.openfeign.EnableFeignClients;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.core.env.Environment;
@@ -19,6 +20,7 @@ import java.util.logging.Logger;
 @ComponentScan("com.guo")
 @MapperScan("com.guo.*.mapper")
 @EnableFeignClients("com.guo.business.feign")
+@EnableCaching
 public class BusinessApplication {
     private static final Logger LOG = Logger.getLogger(BusinessApplication.class.getName());
     public static void main(String[] args) {

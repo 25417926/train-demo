@@ -213,7 +213,13 @@ public class Confirm_OrderService {
         }
         LOG.info("最终选座结果：{}", finalSeatList);
         // 执行存储确认订单操作
-        After_Confirm_OrderService.afterDoConfirm(dailyTrainTicket,finalSeatList,tickets,confirm_Order);
+        try{
+            After_Confirm_OrderService.afterDoConfirm(dailyTrainTicket,finalSeatList,tickets,confirm_Order);
+        }catch (Exception e){
+            LOG.error("执行存储确认订单操作失败，原因：{}", e.getMessage());
+            throw new ExceptionConsole(ExceptionEnum.FAILURE_TO_SAVE_TICKET);
+        }
+
     }
 
     /**
@@ -285,7 +291,7 @@ public class Confirm_OrderService {
                     for (int j = 1; j < offsetList.size(); j++) {
                         Integer offset = offsetList.get(j);
                         // 座位在库的索引是从1开始
-//                        int nextIndex = seatIndex + offset - 1;
+                        //int nextIndex = seatIndex + offset - 1;
                         int nextIndex = i + offset;
                         LOG.info("座位{}的偏移值：{}，索引：{}", seatIndex, offset, nextIndex);
                         // 有选座时，一定是在同一个车箱

@@ -12,10 +12,11 @@ import com.guo.business.req.Confirm_OrderTicketReq;
 import com.guo.common.context.LoginMemberContext;
 import com.guo.common.req.MemberTicketReq;
 import com.guo.common.resp.CommonResp;
+import io.seata.core.context.RootContext;
+import io.seata.spring.annotation.GlobalTransactional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 import javax.annotation.Resource;
 import java.util.Date;
@@ -45,8 +46,10 @@ public class After_Confirm_OrderService {
      * 更新确认订单为成功
      */
 
-    @Transactional
+//    @Transactional
+    @GlobalTransactional
     public void afterDoConfirm(Daily_Train_Ticket daily_Train_Ticket, List<Daily_Train_Seat> seatList, List<Confirm_OrderTicketReq> tickets, Confirm_Order confirm_Order ) {
+       LOG.info("开始执行,seata全局事务id：{}", RootContext.getXID());
         for (int j = 0; j < seatList.size(); j++ ) {
             LOG.info("第{}个座位", j);
             LOG.info("车票数据{}", tickets.get(j));

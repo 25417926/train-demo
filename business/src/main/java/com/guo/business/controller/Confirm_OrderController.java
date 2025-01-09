@@ -1,13 +1,13 @@
 package com.guo.business.controller;
 
-import com.guo.common.context.LoginMemberContext;
-import com.guo.common.resp.CommonResp;
-import com.guo.common.resp.PageResp;
-import com.guo.common.util.HttpStatus;
 import com.guo.business.req.Confirm_OrderQueryReq;
 import com.guo.business.req.Confirm_OrderSaveReq;
 import com.guo.business.resp.Confirm_OrderQueryResp;
 import com.guo.business.service.Confirm_OrderService;
+import com.guo.common.resp.CommonResp;
+import com.guo.common.resp.PageResp;
+import com.guo.common.util.HttpStatus;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.web.bind.annotation.*;
 
 import javax.annotation.Resource;
@@ -57,6 +57,7 @@ return commonResp;
 * @param req 经过验证的乘客查询请求对象，包含查询所需的各种参数
 * @return 返回一个通用响应对象，其中包含查询结果列表
 */
+
 @GetMapping("/Query-List")
 public CommonResp<PageResp<Confirm_OrderQueryResp>> list(@Valid Confirm_OrderQueryReq req) {
     // 设置查询请求中的成员ID为当前登录成员的ID
