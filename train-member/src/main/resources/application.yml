@@ -8,8 +8,7 @@ spring:
     url: jdbc:mysql://localhost:3306/train?useUnicode=true&characterEncoding=UTF-8&useSSL=false&serverTimezone=Asia/Shanghai
     username: train-member
     password: 123456
-  cloud:
-    nacos:
+
       # 以下为注释掉的配置项，可以根据需要取消注释并进行修改
       # namespace: member
       # group: DEFAULT_GROUP
