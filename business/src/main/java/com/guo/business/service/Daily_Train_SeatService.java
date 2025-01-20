@@ -122,6 +122,9 @@ public class Daily_Train_SeatService {
      * @param seatType  席别，用于筛选特定席别的列车座位信息
      * @return 座位数量，如果找不到匹配的座位信息则返回-1
      */
+    public int CountSeats(Date date, String trainCode) {
+        return CountSeats(date, trainCode, null);
+    }
     public int CountSeats(Date date, String trainCode, String seatType) {
         // 创建一个Daily_Train_SeatExample对象，用于设置查询条件
         Daily_Train_SeatExample Daily_Train_SeatExample = new Daily_Train_SeatExample();
@@ -130,8 +133,10 @@ public class Daily_Train_SeatService {
         // 设置查询条件：日期、车次和类别
         criteria
                 .andDateEqualTo(date)
-                .andTrainCodeEqualTo(trainCode)
-                .andSeatTypeEqualTo(seatType);
+                .andTrainCodeEqualTo(trainCode);
+               if(StrUtil.isNotBlank(seatType)){
+                   criteria.andSeatTypeEqualTo(seatType);
+               }
         // 使用daily_Train_SeatMapper的countByExample方法，根据设置的条件统计符合条件的座位数量
         long l = daily_Train_SeatMapper.countByExample(Daily_Train_SeatExample);
         // 如果统计结果为0，表示没有找到符合条件的座位信息，返回-1

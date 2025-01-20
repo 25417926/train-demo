@@ -7,3 +7,4 @@ spring:
     nacos:
       discovery:
         server-addr: localhost:8848
+        namespace: train

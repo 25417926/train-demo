@@ -1,22 +1,23 @@
 <script>
-import { useStore } from "vuex";
-import { ref, onMounted, watch, computed } from "vue";
-import { queryMinePassenger } from '@/api/passenger';
-import { message } from "ant-design-vue";
-import { addOrderList } from "@/api/Order";
+import {useStore} from "vuex";
+import {ref, onMounted, watch, computed, h} from "vue";
+import {queryMinePassenger} from '@/api/passenger';
+import {message} from "ant-design-vue";
+import {addOrderList, getSendCode, queryOrderList} from "@/api/Order";
+import {LoadingOutlined} from '@ant-design/icons-vue';
 
 const SEAT_TYPE_ARRAY = [
-  { type: "YDZ", code: "1", desc: "一等座", price: "0.4" },
-  { type: "EDZ", code: "2", desc: "二等座", price: "0.3" },
-  { type: "RW", code: "3", desc: "软卧", price: "0.6" },
-  { type: "YW", code: "4", desc: "硬卧", price: "0.5" }
+  {type: "YDZ", code: "1", desc: "一等座", price: "0.4"},
+  {type: "EDZ", code: "2", desc: "二等座", price: "0.3"},
+  {type: "RW", code: "3", desc: "软卧", price: "0.6"},
+  {type: "YW", code: "4", desc: "硬卧", price: "0.5"}
 ];
 
 const PASSENGER_TYPE_ARRAY = [
-  { code: "1", desc: "成人" },
-  { code: "2", desc: "学生" },
-  { code: "3", desc: "儿童" },
-  { code: "4", desc: "残疾军人" }
+  {code: "1", desc: "成人"},
+  {code: "2", desc: "学生"},
+  {code: "3", desc: "儿童"},
+  {code: "4", desc: "残疾军人"}
 ];
 
 export default {
@@ -29,17 +30,25 @@ export default {
     const PassengerChecks = ref([]);
     const tickets = ref([]);
     const visible = ref(false);
+    const spinning = ref(false);
+    const memberId = ref();
+    const indicator = h(LoadingOutlined, {
+      style: {
+        fontSize: '24px',
+      },
+      spin: true,
+    });
     const chooseSeatType = ref(0);
     const SEAT_COL_ARRAY = [
-      { type: "1", desc: "A", code: "A" },
-      { type: "1", desc: "C", code: "C" },
-      { type: "1", desc: "D", code: "D" },
-      { type: "1", desc: "F", code: "F" },
-      { type: "2", desc: "A", code: "A" },
-      { type: "2", desc: "B", code: "B" },
-      { type: "2", desc: "C", code: "C" },
-      { type: "2", desc: "D", code: "D" },
-      { type: "2", desc: "F", code: "F" },
+      {type: "1", desc: "A", code: "A"},
+      {type: "1", desc: "C", code: "C"},
+      {type: "1", desc: "D", code: "D"},
+      {type: "1", desc: "F", code: "F"},
+      {type: "2", desc: "A", code: "A"},
+      {type: "2", desc: "B", code: "B"},
+      {type: "2", desc: "C", code: "C"},
+      {type: "2", desc: "D", code: "D"},
+      {type: "2", desc: "F", code: "F"},
     ];
 
     const COL_ARRAY = computed(() => {
@@ -54,7 +63,7 @@ export default {
           chooseSeatObj.value[item.code + i] = false;
         });
       }
-    }, { immediate: true });
+    }, {immediate: true});
 
     const seatType = SEAT_TYPE_ARRAY.reduce((acc, seat) => {
       const key = seat.type.toLowerCase();
@@ -88,7 +97,7 @@ export default {
 // 校验余票是否充足，购票列表中的每个座位类型，都去车次座位余票信息中，看余票是否充足
       // 前端校验不一定准，但前端校验可以减轻后端很多压力
       // 注意：这段只是校验，必须copy出seatTypesTemp变量来扣减，用原始的seatType去扣减，会影响真实的库存
-      let seatTypesTemp =window.Tool.copy(seatType);
+      let seatTypesTemp = window.Tool.copy(seatType);
       for (let i = 0; i < tickets.value.length; i++) {
         let ticket = tickets.value[i];
         for (let j = 0; j < seatTypesTemp.length; j++) {
@@ -103,7 +112,7 @@ export default {
           }
         }
       }
-      console.log("前端余票校验通过");
+
 
       // 判断是否支持选座，只有纯一等座和纯二等座支持选座
       // 先筛选出购票列表中的所有座位类型，比如四张表：[1, 1, 2, 2]
@@ -114,9 +123,9 @@ export default {
       }
       // 为购票列表中的所有座位类型去重：[1, 2]
       const ticketSeatTypeCodesSet = Array.from(new Set(ticketSeatTypeCodes));
-      console.log("选好的座位类型：", ticketSeatTypeCodesSet);
+
       if (ticketSeatTypeCodesSet.length !== 1) {
-        console.log("选了多种座位，不支持选座");
+
         chooseSeatType.value = 0;
       } else {
         const SEAT_TYPE = {
@@ -131,13 +140,13 @@ export default {
         };
         // ticketSeatTypeCodesSet.length === 1，即只选择了一种座位（不是一个座位，是一种座位）
         if (ticketSeatTypeCodesSet[0] === SEAT_TYPE.YDZ.code) {
-          console.log("一等座选座");
+
           chooseSeatType.value = SEAT_TYPE.YDZ.code;
         } else if (ticketSeatTypeCodesSet[0] === SEAT_TYPE.EDZ.code) {
-          console.log("二等座选座");
+
           chooseSeatType.value = SEAT_TYPE.EDZ.code;
         } else {
-          console.log("不是一等座或二等座，不支持选座");
+
           chooseSeatType.value = 0;
         }
 
@@ -149,7 +158,7 @@ export default {
             if (ticketSeatTypeCodesSet[0] === seatTypes.code) {
               // 判断余票，小于20张就不支持选座
               if (seatTypes.count < 20) {
-                console.log("余票小于20张就不支持选座")
+
                 chooseSeatType.value = 0;
                 break;
               }
@@ -160,14 +169,12 @@ export default {
 
       // 弹出确认界面
       visible.value = true;
-
+      SendCode()
     };
 
 
     const handleOk = async () => {
 
-
-     console.log("选好的座位：", chooseSeatObj.value);
 
       // 设置每张票的座位
       // 先清空购票列表的座位，有可能之前选了并设置座位了，但选座数不对被拦截了，又重新选一遍
@@ -180,18 +187,17 @@ export default {
         if (chooseSeatObj.value[key]) {
           i++;
           if (i > tickets.value.length - 1) {
-            message.error( '所选座位数大于购票数');
+            message.error('所选座位数大于购票数');
             return;
           }
           tickets.value[i].seat = key;
         }
       }
       if (i > -1 && i < (tickets.value.length - 1)) {
-        message.error( '所选座位数小于购票数');
+        message.error('所选座位数小于购票数');
         return;
       }
 
-      console.log("最终购票：", tickets.value);
 
       const param = {
         dailyTrainTicketId: GetDailyTicker.id,
@@ -200,13 +206,19 @@ export default {
         start: GetDailyTicker.start,
         end: GetDailyTicker.end,
         tickets: tickets.value,
-        seat: chooseSeatType.value
+        seat: chooseSeatType.value,
+        CodeToken: imageCodeToken.value,
+        code: imageCode.value,
       };
 
       const res = await addOrderList(param);
       if (res.code === 200) {
-        message.success('购票成功');
+        memberId.value = res.content
+        spinning.value = true;
         visible.value = false;
+        queryLineCount()
+      } else {
+        message.error(res.message);
       }
     };
 
@@ -221,11 +233,65 @@ export default {
       }
     };
 
+    // ------------------验证码----------------------------
+    const imageCode = ref();
+    const imageCodeToken = ref();
+    const imageCodeSrc = ref();
+    const SendCode = async () => {
+      imageCodeToken.value = window.Tool.uuid(8);
+      const res = await getSendCode(imageCodeToken.value)
+      if (res.code === 200) {
+        //构建一个图像数据
+        imageCodeSrc.value = "data:image/gif;base64," + res.content;
+      }
+    };
+    //-------------------- 查询是否购票成功---------------------------------
+    /* ------------------- 定时查询订单状态 --------------------- */
+    // 确认订单后定时查询
+    let queryLineCountInterval;
+    const memberCount = ref()
+    // 定时查询订单结果/排队数量
+    const queryLineCount = () => {
+      memberCount.value = -1;
+
+      queryLineCountInterval = setInterval(async () =>{
+        const res =await  queryOrderList(memberId.value)
+        console.log(res)
+          if (res.code === 200) {
+            let result = res.content;
+            console.log(result)
+            switch (result) {
+              case -3 :
+                message.success( "购票成功！");
+                spinning.value = false;
+                clearInterval(queryLineCountInterval);
+                break;
+              case -4:
+                message.error( "购票失败！");
+                spinning.value = false;
+                clearInterval(queryLineCountInterval);
+                break;
+              case -5:
+                message.error( "抱歉，没票了！");
+                spinning.value = false;
+                clearInterval(queryLineCountInterval);
+                break;
+              default:
+                memberCount.value = result;
+            }
+          } else {
+            message.error( res.message);
+          }
+        },1000);
+    };
+      
     onMounted(() => {
       OnQueryMine();
     });
 
     return {
+      spinning,
+      indicator,
       GetDailyTicker,
       seatType,
       Passenger,
@@ -240,7 +306,13 @@ export default {
       SEAT_COL_ARRAY,
       COL_ARRAY,
       chooseSeatType,
-      handleOk
+      handleOk,
+      SendCode,
+      imageCodeToken,
+      imageCodeSrc,
+      imageCode,
+      memberId,
+      memberCount
     };
   },
 };
@@ -255,7 +327,6 @@ export default {
     <span class="order-train-main">——</span>&nbsp;
     <span class="order-train-main">{{ GetDailyTicker.end }}</span>&nbsp;
     <span class="order-train-main">{{ GetDailyTicker.endTime }}</span>&nbsp;
-
     <div class="order-train-tickets">
       <div v-for="(item, index) in seatType" :key="index">
         <span>{{ item.desc }}</span>&nbsp;
@@ -342,9 +413,23 @@ export default {
             <div>{{ tickets }}</div>
             <div style="color: #999999">提示：您可以选择{{ tickets.length }}个座位</div>
           </div>
-          最终购票：{{ tickets }}
-          最终选座：{{ chooseSeatObj }}
+          <!-- 验证码-->
+          <a-input v-model:value="imageCode" placeholder="请输入验证码" style="width: 500px">
+            <template #suffix>
+              <img v-show="!!imageCodeSrc" :src="imageCodeSrc" @click="SendCode()"/>
+            </template>
+          </a-input>
         </div>
+      </a-modal>
+      <a-modal v-model:visible="spinning" title="正在加载..." :footer="null" :mask="null">
+        <template v-if="memberCount<=0">
+          <a-spin :indicator="indicator"/>
+          正在排队出票
+        </template>
+        <template v-else-if="memberCount>0">
+          <a-spin :indicator="indicator"/>
+          目前还有{{ memberCount }}人
+        </template>
       </a-modal>
     </div>
   </div>

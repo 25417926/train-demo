@@ -9,11 +9,8 @@ import com.guo.business.feign.MemberFeign;
 import com.guo.business.mapper.Confirm_OrderMapper;
 import com.guo.business.mapper.cust.CUST_Daily_Train_TicketMapper;
 import com.guo.business.req.Confirm_OrderTicketReq;
-import com.guo.common.context.LoginMemberContext;
 import com.guo.common.req.MemberTicketReq;
 import com.guo.common.resp.CommonResp;
-import io.seata.core.context.RootContext;
-import io.seata.spring.annotation.GlobalTransactional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -47,9 +44,9 @@ public class After_Confirm_OrderService {
      */
 
 //    @Transactional
-    @GlobalTransactional
+//    @GlobalTransactional
     public void afterDoConfirm(Daily_Train_Ticket daily_Train_Ticket, List<Daily_Train_Seat> seatList, List<Confirm_OrderTicketReq> tickets, Confirm_Order confirm_Order ) {
-       LOG.info("开始执行,seata全局事务id：{}", RootContext.getXID());
+//       LOG.info("开始执行,seata全局事务id：{}", RootContext.getXID());
         for (int j = 0; j < seatList.size(); j++ ) {
             LOG.info("第{}个座位", j);
             LOG.info("车票数据{}", tickets.get(j));
@@ -131,7 +128,7 @@ public class After_Confirm_OrderService {
             //调用会员服务接口，为会员增加一张车票
             LOG.info("会员服务接口调用");
             MemberTicketReq memberTicketReq = new MemberTicketReq();
-            memberTicketReq.setMemberId(LoginMemberContext.getId());
+            memberTicketReq.setMemberId(confirm_Order.getMemberId());
             memberTicketReq.setPassengerId(tickets.get(j).getPassengerId());
             memberTicketReq.setPassengerName(tickets.get(j).getPassengerName());
             memberTicketReq.setTrainDate(daily_Train_Ticket.getDate());

@@ -1,9 +1,13 @@
 package com.guo.business.controller.web;
 
+import com.guo.business.feign.MemberFeign;
 import com.guo.business.req.Confirm_OrderDoReq;
-import com.guo.business.service.Confirm_OrderService;
+import com.guo.business.service.Before_Confirm_OrderService;
+import com.guo.common.req.ValidReq;
 import com.guo.common.resp.CommonResp;
 import com.guo.common.util.HttpStatus;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -22,10 +26,12 @@ import javax.validation.Valid;
 @RestController
 @RequestMapping("web/confirm-order")
 public class Confirm_OrderMemberController {
-    // 注入Confirm_OrderService接口的实现，用于处理订单相关的业务逻辑
+    Logger LOG = LoggerFactory.getLogger(Confirm_OrderMemberController.class);
+    // 注入BeforeConfirm_OrderService接口的实现
     @Resource
-    private Confirm_OrderService Confirm_OrderService;
-
+    private Before_Confirm_OrderService beforeConfirmOrderService;
+    @Resource
+    private MemberFeign memberFeign;
     /**
      * 处理乘客信息保存请求
      * 该方法使用HTTP POST请求来接收乘客信息，并将其保存到系统中
@@ -39,12 +45,26 @@ public class Confirm_OrderMemberController {
     @PostMapping("/do-storage")
     public CommonResp save(@Valid @RequestBody Confirm_OrderDoReq req) {
         // 调用Confirm_OrderService的save方法来保存乘客信息
-        Confirm_OrderService.DoStorage(req);
+
+        ValidReq valid = new ValidReq();
+        valid.setCode(req.getCode());
+        valid.setToken(req.getCodeToken());
+
+//        ValidReq isCodeExpired =memberFeign.isCodeExpired(valid);
+//        if(!isCodeExpired.isSuccess()){
+//            CommonResp commonResp = new CommonResp(false, "验证码过期", HttpStatus.BAD_REQUEST);
+//            return commonResp;
+//        }
+//        ValidReq isValid=memberFeign.vaild(valid);
+//        if (!isValid.isSuccess()) {
+//            CommonResp commonResp = new CommonResp(false, "验证码错误", HttpStatus.BAD_REQUEST);
+//            return commonResp;
+//        }
+        Long l = beforeConfirmOrderService.BeforeDoConfirm(req);
 
         // 创建一个CommonResp对象，表示成功的响应
         // 参数分别为：操作成功（true）、提示信息（"成功"）和HTTP状态码（HttpStatus.SUCCESS）
-        CommonResp commonResp = new CommonResp(true, "成功", HttpStatus.SUCCESS);
-
+        CommonResp commonResp = new CommonResp(true, "成功",String.valueOf(l), HttpStatus.SUCCESS);
         // 返回创建的CommonResp对象
         return commonResp;
     }

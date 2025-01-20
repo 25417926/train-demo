@@ -106,6 +106,13 @@ public class Daily_Train_StationService {
             daily_Train_StationMapper.insert(daily_Train);
             LOG.info("生成日期【{}】车次【{}】的站点信息完成", DateUtil.formatDate(date), trainCode);
         }
-
+    }
+    public long countByTrainCode(Date date,String trainCode){
+        Daily_Train_StationExample daily_Train_StationExample = new Daily_Train_StationExample();
+        daily_Train_StationExample.createCriteria()
+                .andDateEqualTo(date)
+                .andTrainCodeEqualTo(trainCode);
+        long count = daily_Train_StationMapper.countByExample(daily_Train_StationExample);
+        return count;
     }
 }

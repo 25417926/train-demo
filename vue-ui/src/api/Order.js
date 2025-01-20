@@ -11,36 +11,29 @@ export const addOrderList = async (param) => {
             end: param.end,
             tickets: param.tickets,
             seat: param.seat,
-            // imageCodeToken: param.value,
-            // imageCode: param.value,
+            codeToken: param.CodeToken,
+            code: param.code,
             // lineNumber: param.value
         })
-        console.log(param.tickets)
+        console.log(param)
         return res.data
     }catch (e){
         message.error(e.message)
     }
 }
-// axios.post("/business/confirm-order/do", {
-//     dailyTrainTicketId: dailyTrainTicket.id,
-//     date: dailyTrainTicket.date,
-//     trainCode: dailyTrainTicket.trainCode,
-//     start: dailyTrainTicket.start,
-//     end: dailyTrainTicket.end,
-//     tickets: tickets.value,
-//     imageCodeToken: imageCodeToken.value,
-//     imageCode: imageCode.value,
-//     lineNumber: lineNumber.value
-// }).then((response) => {
-//     let data = response.data;
-//     if (data.success) {
-//         // notification.success({description: "下单成功！"});
-//         visible.value = false;
-//         imageCodeModalVisible.value = false;
-//         lineModalVisible.value = true;
-//         confirmOrderId.value = data.content;
-//         queryLineCount();
-//     } else {
-//         notification.error({description: data.message});
-//     }
-// });
+export const getSendCode = async (imageCodeToken)=>{
+    try{
+        const res = await instance.get("/business/kaptcha/image-code/"+imageCodeToken)
+        return res.data
+    }catch (e){
+        message.error(e.message)
+    }
+}
+export const queryOrderList =async (id) =>{
+    try{
+        const res = await instance.get("/business/confirm-order/Query-Line-count/"+id)
+        return res.data
+    }catch (e){
+        message.error(e.message)
+    }
+}

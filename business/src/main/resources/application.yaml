@@ -32,6 +32,11 @@ spring:
       time-to-live: 60s
 mybatis:
   mapper-locations: classpath:mapper/**/*.xml
+  configuration:
+    local-cache-scope: statement
 #  configuration:
 #    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
-
+rocketmq:
+  name-server: 192.168.89.128:9876
+  producer:
+    group: default

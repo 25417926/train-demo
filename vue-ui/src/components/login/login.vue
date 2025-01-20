@@ -1,7 +1,8 @@
 <script>
 
 import {reactive, ref} from "vue";
-import {SendCodes,LoginCode} from "@/api/login"
+import {LoginCode} from "@/api/login"
+import {getSendCode} from "@/api/Order"
 import { useRouter } from 'vue-router';
 
 import { UserOutlined, LockOutlined } from '@ant-design/icons-vue';
@@ -24,23 +25,38 @@ export default {
       codes:null,
       flesh: false,
     });
-    const SendCode = ref('1234');
+    const SendCode = ref();
     const router = useRouter();
+    const LoginToken = ref();
+    let count = 0
     // 使用箭头函数，这里的 this 会正确指向 Vue 实例
     const SendsCodes = async () => {
       try {
-        const res = await SendCodes();
+        count = count + 1
+        console.log(count)
+        if(count > 5){
+          message.error("验证码获取过快，请稍后再试")
+          return
+        }else {
+          setTimeout(()=>{
+            count = 0
+          }, 10000)
+        }
+        LoginToken.value =window.Tool.uuid(8)
+        const res = await getSendCode(LoginToken.value);
+
         // 通过.value 属性来更新 ref 类型的响应式数据的值
-        SendCode.value = res.content;
-        formState.codes=res.content;
-        console.log(formState.codes);
+        if(res.code === 200) {
+          SendCode.value = "data:image/gif;base64," + res.content || null;
+        }
       } catch (e) {
         console.log(e);
       }
     };
     const login = async (mobile,password, code) => {
       try {
-        const data = {mobile: mobile, code: code, password: password}
+        const data = {mobile: mobile, password: password, code: code, TokenCode: LoginToken.value}
+
         const res = await LoginCode(data);
         if (res.code === 200) {
           message.success(res.message)
@@ -56,7 +72,9 @@ export default {
       SendsCodes,
       login,
       SendCode,
-      formState
+      formState,
+      count,
+      LoginToken
     };
   },
   mounted() {
@@ -99,8 +117,11 @@ export default {
     </a-form-item>
     <a-form-item  name="code" >
       <span style="margin-right: 8px">验证码:</span>
-      <a-input v-model:value="formState.code" style="width: calc(100% - 220px)" />
-      <a-button type="primary" @click="SendsCodes">{{ formState.codes }}</a-button>
+      <a-input v-model:value="formState.code" style="width: calc(65% )" >
+        <template #suffix>
+          <img :src="SendCode" @click="SendsCodes">
+        </template>
+      </a-input>
     </a-form-item>
     <a-form-item>
       <a-form-item name="remember" no-style>

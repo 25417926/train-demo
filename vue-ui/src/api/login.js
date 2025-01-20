@@ -1,18 +1,18 @@
 import instance from "@/api/interceptor";
 
-// 发送验证码
-export const SendCodes= async ()=>{
-    try {
-        const res = await instance.get("/member/SendCode");
-        return res.data
-    } catch (e) {
-        console.log(e);
-    }
-}
+
 // 登录
-export const LoginCode= async (data)=>{
+export const LoginCode = async (data) => {
     try {
-        const res = await instance.post("/member/LoginCode",data);
+        const res = await instance.post("/member/LoginCode",
+            {
+                mobile: data.mobile,
+                code: data.code,
+                password: data.password,
+                tokenCode: data.TokenCode
+            }
+        );
+        console.log(data)
         return res.data
     } catch (e) {
         console.log(e);

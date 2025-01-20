@@ -89,6 +89,10 @@ const routes = [
                         component: () => import('@/views/businessView/confirm-order.vue'),
                     },
                     {
+                        path: 'sk-token',
+                        component: () => import('@/views/businessView/sk-token.vue'),
+                    },
+                    {
                         path: 'business/',
                         children: [
 

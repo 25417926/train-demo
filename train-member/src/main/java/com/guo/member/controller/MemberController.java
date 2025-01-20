@@ -24,7 +24,7 @@ public class MemberController {
 
     @GetMapping("/count")
     public CommonResp<Integer> count() {
-        int count = memberService.count();
+        String count = memberService.count();
         CommonResp<Integer> commonResp = new CommonResp(true, "成功", count, HttpStatus.SUCCESS);
         return commonResp;
     }
@@ -36,15 +36,11 @@ public class MemberController {
         return commonResp;
     }
 
-    @GetMapping("/SendCode")
-    public CommonResp<Long> SendCode() {
-        String s = memberService.SendCode();
-        CommonResp<Long> commonResp = new CommonResp(HttpStatus.SUCCESS,s,"发送成功");
-        return commonResp;
-    }
+
 
     @PostMapping("/LoginCode")
     public CommonResp<MemberLoginReq> LoginCode(@Valid @RequestBody MemberLoginReq req) {
+
         String token =memberService.Login(req);
         req.setToken(token);
         CommonResp commonResp = new CommonResp<>(HttpStatus.SUCCESS,req,"登录成功");

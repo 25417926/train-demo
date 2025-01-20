@@ -60,7 +60,15 @@ public class Confirm_OrderDoReq {
     @NotEmpty(message = "【车票参数】不能为空")
     private List<Confirm_OrderTicketReq> tickets;
 
-
-
+    /**
+     * 验证码
+     */
+    @NotBlank(message = "【验证码】不能为空")
+    private String code;
+    /**
+     * 验证码token
+     */
+    @NotBlank(message = "【验证码token】不能为空")
+    private String codeToken;
 
 }

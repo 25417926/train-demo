@@ -51,6 +51,6 @@
 <!--        <table tableName="daily_train_station" domainObjectName="Daily_Train_Station"/>-->
 <!--        <table tableName="daily_train_carriage" domainObjectName="Daily_Train_Carriage"/>-->
 <!--        <table tableName="daily_train_ticket" domainObjectName="Daily_Train_Ticket"/>-->
-        <table tableName="confirm_order" domainObjectName="Confirm_Order"/>
+        <table tableName="sk_token" domainObjectName="Sk_Token"/>
     </context>
 </generatorConfiguration>

@@ -1,13 +1,12 @@
 package com.guo.member.controller.feign;
 
 import com.guo.common.req.MemberTicketReq;
+import com.guo.common.req.ValidReq;
 import com.guo.common.resp.CommonResp;
 import com.guo.common.util.HttpStatus;
 import com.guo.member.service.TicketService;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import com.guo.member.service.ValidCodeService;
+import org.springframework.web.bind.annotation.*;
 
 import javax.annotation.Resource;
 import javax.validation.Valid;
@@ -22,6 +21,8 @@ import javax.validation.Valid;
 public class FeignTicketController {
     @Resource
     private TicketService ticketService;
+    @Resource
+    private ValidCodeService validCodeService;
 
     /**
      * 处理乘客信息保存请求
@@ -44,5 +45,19 @@ public class FeignTicketController {
 
         // 返回创建的CommonResp对象
         return commonResp;
+    }
+    @PostMapping("/valid")
+    public ValidReq vaild(@RequestBody ValidReq req) {
+        // 调用TicketService的save方法来保存乘客信息
+        boolean isFlag = validCodeService.ValidForCode(req.getToken(),req.getCode());
+        ValidReq isValid =new ValidReq();
+        isValid.setSuccess(isFlag);
+        return isValid;
+    }
+    @PostMapping("/isCodeExpired")
+    public ValidReq isCodeExpired(@RequestBody ValidReq req) {
+        ValidReq isValid =new ValidReq();
+        isValid.setSuccess(validCodeService.isCodeExpired(req.getToken()));
+        return isValid;
     }
 }
