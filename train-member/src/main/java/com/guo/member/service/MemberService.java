@@ -2,7 +2,6 @@ package com.guo.member.service;
 
 import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.collection.CollUtil;
-import cn.hutool.core.util.RandomUtil;
 import com.guo.common.exception.ExceptionConsole;
 import com.guo.common.exception.ExceptionEnum;
 import com.guo.common.req.UserDetailsReq;
@@ -30,9 +29,10 @@ public class MemberService {
     Logger Log = LoggerFactory.getLogger(MemberService.class);
     @Resource
     private MemberMapper memberMapper;
-    private String codes=null;
-    public int count(){
-        return Math.toIntExact(memberMapper.countByExample(null));
+    @Resource
+    private ValidCodeService validCodeService;
+    public String count() {
+    return "1";
     }
 
     public long register(MemberRegisterReq req){
@@ -55,28 +55,7 @@ public class MemberService {
         memberMapper.insertSelective(member);
         return member.getId();
     }
-    public String SendCode(){
-//        MemberExample example =new MemberExample();
-//        example.createCriteria().andMobileEqualTo(req.getMobile());
-//        List<Member> list = memberMapper.selectByExample(example);
-//        if(CollUtil.isEmpty(list)) {
-//            Member member = new Member();
-//            //为了防止并发出现问题，将前面的时间戳改为雪花算法来当做id
-//            //getSnowflake(1,1)第一个参数为机器id，第二个参数为数据中心id
-//            member.setId(SnowUtil.getSnowflakeNextId());
-//            member.setMobile(req.getMobile());
-//            memberMapper.insertSelective(member);
-//        }
-        //生成随机字符串为验证码
-       codes=RandomUtil.randomString(4);
 
-        //保存短信记录表：手机号，短信验证码，有效期，是否已使用，业务类型，发送时间，使用时间
-
-        //对接短信通道，发送短信
-        //存入redis
-
-        return codes;
-    }
     public String Login(MemberLoginReq req){
         MemberExample example =new MemberExample();
         example.createCriteria().andMobileEqualTo(req.getMobile());
@@ -85,9 +64,15 @@ public class MemberService {
             //抛出异常
             throw new ExceptionConsole(ExceptionEnum.MEMBER_MOBILE_NOT_EXIST);
         }
-        String code=codes;
+
+        boolean expired = validCodeService.isCodeExpired(req.getTokenCode());
+        if(!expired){
+            //抛出验证码过期异常
+            throw new ExceptionConsole(ExceptionEnum.MEMBER_CODE_EXPIRED);
+        }
+        boolean valid = validCodeService.ValidForCode(req.getTokenCode(), req.getCode());
         //判断验证码是否正确
-        if(code.equals(req.getCode())){
+        if(valid){
 
            UserDetailsReq reqs= BeanUtil.copyProperties(req,UserDetailsReq.class);
 

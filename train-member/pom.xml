@@ -37,9 +37,14 @@
 
         <dependency>
             <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-actuator</artifactId>
+            <artifactId>spring-boot-starter-data-redis</artifactId>
         </dependency>
 
+        <!-- 用于连接池管理，常用的是Lettuce（Spring Boot 2默认使用），也可以配置成Jedis -->
+        <dependency>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-pool2</artifactId>
+        </dependency>
 
     </dependencies>
     <build>

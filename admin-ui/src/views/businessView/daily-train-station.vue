@@ -214,13 +214,13 @@ export default defineComponent({
       const res = await getDaily_Train_StationList(param);
       if (res.code === 200) {
         daily_Train_Stations.value = res.content.list;
-        pagination.value.total = res.total;
+        pagination.value.total = res.content.total;
       }
     };
 
     const handleTableChange = (page) => {
       // console.log("看看自带的分页参数都有啥：" + JSON.stringify(page));
-      pagination.value.pageSize = page.pageSize;
+      pagination.value.current = page.current;
       handleQuery({
         page: page.current,
         size: page.pageSize

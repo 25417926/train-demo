@@ -4,7 +4,7 @@
       <a-date-picker v-model:value="params.date" valueFormat="YYYY-MM-DD" placeholder="请选择日期"/>
       <RailWayPlatFormDrop v-model="params.start" style="width: 200px"/>
       <RailWayPlatFormDrop v-model="params.end" style="width: 200px"/>
-      <a-button type="primary" @click="handleQuery()">刷新</a-button>
+      <a-button type="primary" @click="handleQuery()">查询</a-button>
     </a-space>
   </p>
   <a-table :dataSource="daily_Train_Tickets"

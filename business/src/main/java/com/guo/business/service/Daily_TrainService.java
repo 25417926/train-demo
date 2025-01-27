@@ -43,6 +43,8 @@ public class Daily_TrainService {
     private Daily_Train_SeatService Daily_Train_SeatService;
     @Resource
     private Daily_Train_TicketService Daily_Train_TicketService;
+    @Resource
+    private Sk_TokenService sk_tokenService;
     public void save(Daily_TrainSaveReq req) {
         DateTime now = DateTime.now();
         Daily_Train daily_Train = BeanUtil.copyProperties(req, Daily_Train.class);
@@ -119,9 +121,11 @@ public class Daily_TrainService {
         DateTime now = DateTime.now();
         Daily_TrainExample daily_TrainExample = new Daily_TrainExample();
         Daily_TrainExample.Criteria criteria = daily_TrainExample.createCriteria();
+        String code = train.getCode();
+
         criteria
                 .andDateEqualTo(date)
-                .andCodeEqualTo(train.getCode());
+                .andCodeEqualTo(code);
         //删除该车次已有数据
         daily_TrainMapper.deleteByExample(daily_TrainExample);
         //生成该车次的数据
@@ -131,15 +135,17 @@ public class Daily_TrainService {
         daily_Train.setUpdateTime(now);
         daily_Train.setDate(date);
         daily_TrainMapper.insert(daily_Train);
-        //生成该车次车站的数据
-        DailyTrainStationService.genDaily(date,train.getCode());
-        //生成该车次车厢的数据
-        Daily_Train_CarriageService.genDaily(date,train.getCode());
-        //生成该车次座位的数据
-        Daily_Train_SeatService.genDaily(date,train.getCode());
-        //生成该车次余票的数据
-        Daily_Train_TicketService.genDaily(daily_Train,date,train.getCode());
 
+        //生成该车次车站的数据
+        DailyTrainStationService.genDaily(date, code);
+        //生成该车次车厢的数据
+        Daily_Train_CarriageService.genDaily(date, code);
+        //生成该车次座位的数据
+        Daily_Train_SeatService.genDaily(date, code);
+        //生成该车次余票的数据
+        Daily_Train_TicketService.genDaily(daily_Train,date, code);
+        //生成该车次令牌数据
+        sk_tokenService.genDaily(date, code);
     }
 
 

@@ -3,8 +3,8 @@ package com.guo.common.controller;
 import com.guo.common.exception.ExceptionConsole;
 import com.guo.common.resp.CommonResp;
 import com.guo.common.util.HttpStatus;
-import org.mybatis.logging.Logger;
-import org.mybatis.logging.LoggerFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.validation.BindException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -27,13 +27,13 @@ public class ControllerExceptionHandler {
      */
     @ExceptionHandler(value = Exception.class)
     @ResponseBody
-    public CommonResp exceptionHandler(Exception e) {
-        // LOG.info("seata全局事务ID: {}", RootContext.getXID());
-        // // 如果是在一次全局事务里出异常了，就不要包装返回值，将异常抛给调用方，让调用方回滚事务
-        // if (StrUtil.isNotBlank(RootContext.getXID())) {
-        //     throw e;
-        // }
-        LOG.error(()->"系统异常：", e);
+    public CommonResp exceptionHandler(Exception e) throws Exception {
+//         LOG.info("seata全局事务ID: {}", RootContext.getXID());
+//         // 如果是在一次全局事务里出异常了，就不要包装返回值，将异常抛给调用方，让调用方回滚事务
+//         if (StrUtil.isNotBlank(RootContext.getXID())) {
+//             throw e;
+//         }
+        LOG.error("系统异常：{}", e);
         CommonResp commonResp1 = new CommonResp(false,"系统出现异常，请联系管理员", HttpStatus.ERROR);
         return commonResp1;
     }
@@ -51,7 +51,7 @@ public class ControllerExceptionHandler {
         // if (StrUtil.isNotBlank(RootContext.getXID())) {
         //     throw e;
         // }
-        LOG.error(()->"业务异常："+e.getExceptionEnum().getMessage(),e);
+        LOG.error("业务异常：{}",e.getExceptionEnum().getMessage(),e);
         CommonResp commonResp1 = new CommonResp(false,e.getExceptionEnum().getMessage(), e.getExceptionEnum().getCode());
         return commonResp1;
     }
@@ -69,7 +69,7 @@ public class ControllerExceptionHandler {
         //     throw e;
         // }
         String message = e.getAllErrors().get(0).getDefaultMessage();
-        LOG.error(()->"校验异常："+message);
+        LOG.error("校验异常：{}",message);
         CommonResp commonResp1 = new CommonResp(false,message   , HttpStatus.BAD_REQUEST);
         return commonResp1;
     }

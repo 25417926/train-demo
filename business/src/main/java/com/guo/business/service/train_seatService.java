@@ -86,7 +86,7 @@ public class train_seatService {
         //创建查询条件对象，用于后续的查询操作
         train_seatExample train_seatExample = new train_seatExample();
         //设置查询的排序条件，以便数据按一定顺序排列
-        //train_seatExample.setOrderByClause("train_code asc,`carriage_index` asc,`carriage_seat_index` asc");
+        train_seatExample.setOrderByClause("train_code asc,`carriage_index` asc,`carriage_seat_index` asc");
         //创建查询条件
         train_seatExample.Criteria criteria = train_seatExample.createCriteria();
         //判断是否有数据
@@ -105,12 +105,16 @@ public class train_seatService {
                 String seatType = train_Carriage.getSeatType();
                 //获取车厢的座位类型
                 List<TrainSeatTypeEnum> colsByType = TrainSeatTypeEnum.getColsByType(seatType);
+                LOG.info("根据车厢的座位类型，筛选出所有的列：{}", colsByType);
+
                 //初始化座位计数器
                 int seatCount = 1;
                 //循环生成车厢的座位
                 for(int i=1;i<=rowCount;i++){
+                    LOG.info("开始生成车厢【{}】的座位",i);
                     //循环生成车厢的列数
                     for(TrainSeatTypeEnum trainSeatTypeEnum:colsByType){
+
                         //创建座位数据并保存到数据库
                         train_seat train_seat = new train_seat();
                         //使用Snowflake算法生成唯一ID

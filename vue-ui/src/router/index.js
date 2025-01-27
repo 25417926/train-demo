@@ -31,6 +31,14 @@ const routes = [
 
       },
       {
+        path: 'Order',
+        component: ()=> import('@/views/HomeView/order.vue'),
+        meta:{
+          requireAuth:true
+        },
+
+      },
+      {
         path: 'ticket',
         component: () => import('@/views/HomeView/daily-train-ticket.vue'),
         meta: {
@@ -38,17 +46,21 @@ const routes = [
         },
       },
       {
-        path: 'Order',
-        component: ()=> import('@/views/HomeView/Order.vue'),
+        path: 'my-ticket',
+        component: ()=> import('@/views/HomeView/my-ticket.vue'),
         meta:{
           requireAuth:true
         },
+
       }
     ]
   },
   {
     path: '',
-    redirect: '/welcome'
+    redirect: '/welcome',
+    meta:{
+      requireAuth:true
+    },
   }
 
   // {
@@ -75,7 +87,7 @@ router.beforeEach((to,from,next)=> {
   })) {
     // 获取token
     const _member = store.state.Mobile;
-    console.log("页面登录校验开始：", _member.token);
+    console.log("页面登录校验开始：", _member);
     // 判断是否已经登录
     if (!_member.token) {
       message.error("登录状态异常")

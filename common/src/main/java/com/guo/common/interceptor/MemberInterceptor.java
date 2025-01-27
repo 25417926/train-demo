@@ -35,8 +35,6 @@ public class MemberInterceptor implements HandlerInterceptor {
             // 将用户信息放入上下文
             MemberLoginResp member = JSONUtil.toBean(jsonObject, MemberLoginResp.class);
             LoginMemberContext.setMember(member);
-        }else{
-            Log.info("token无效");
         }
         return true;
     }

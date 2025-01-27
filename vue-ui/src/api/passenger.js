@@ -35,3 +35,11 @@ export const deletePassenger = async (data) => {
         console.log(e);
     }
 }
+export const queryMinePassenger = async () => {
+    try {
+        const res = await instance.get("/member/Passenger/query-mine/");
+        return res.data
+    } catch (e) {
+        console.log(e);
+    }
+}

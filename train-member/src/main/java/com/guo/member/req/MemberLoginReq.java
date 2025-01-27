@@ -25,4 +25,6 @@ public class MemberLoginReq {
     @NotBlank(message = "密码不能为空")
     private String password;
     private String token;
+    //验证码token
+    private String tokenCode;
 }

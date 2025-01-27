@@ -208,7 +208,6 @@ export default defineComponent({
     const handleQuery = async (param = {page: 1, size: pagination.value.pageSize}) => {
       const res = await getTrainList(param);
       if (res.code === 200) {
-
         trains.value = res.content.list;
         pagination.value.total = res.content.total;
       }

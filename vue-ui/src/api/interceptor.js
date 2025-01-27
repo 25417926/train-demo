@@ -28,11 +28,7 @@ instance.interceptors.request.use((config) => {
 instance.interceptors.response.use((res) => {
     // 接收到响应数据并成功后的一些共有的处理，关闭loading等
     // res为回调函数，也就是接口请求成功后返回的数据
-    let status = res.data.code;
-    // 根据不同的状态码进行相应的提示处理
-    if(status !== 200){
-        message.error(res.data.message);
-    }
+
     return res;
 }, (error) => {
     // 处理响应出错的情况，比如网络错误等，可以在这里统一提示用户或者进行其他错误处理逻辑
@@ -41,8 +37,7 @@ instance.interceptors.response.use((res) => {
     //处理登录权限问题
     if(res.status === 401) {
         message.error("登录状态异常")
-        store.commit("set_token", null)
-        store.commit("set_mobile", null)
+        store.commit("Mobile/clean")
         setTimeout(() => {
             router.push("/view")
         }, 1000)
