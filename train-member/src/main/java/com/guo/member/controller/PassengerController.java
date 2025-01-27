@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.*;
 
 import javax.annotation.Resource;
 import javax.validation.Valid;
+import java.util.List;
 
 /**
  * @Description
@@ -88,4 +89,18 @@ public class PassengerController {
         // 返回创建的CommonResp对象
         return commonResp;
     }
+
+    @GetMapping("/query-mine")
+    public CommonResp query_mine() {
+        // 调用PassengerService的save方法来保存乘客信息
+        List<PassengerQueryResp> passengerQueryResps = PassengerService.queryMine();
+
+        // 创建一个CommonResp对象，表示成功的响应
+        // 参数分别为：操作成功（true）、提示信息（"成功"）和HTTP状态码（HttpStatus.SUCCESS）
+        CommonResp commonResp = new CommonResp(true, "成功",passengerQueryResps, HttpStatus.SUCCESS);
+
+        // 返回创建的CommonResp对象
+        return commonResp;
+    }
+
 }

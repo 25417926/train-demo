@@ -10,29 +10,12 @@ export const getDaily_Train_SeatList = async (param) => {
                 trainCode: param.code
             }
         });
-
         if (res.data.code === 200) {
             return res.data
 
         } else {
             message.error(res.data.message)
         }
-    } catch (e) {
-        console.log(e);
-    }
-}
-export const addDaily_Train_Seat = async (data) => {
-    try {
-        const res = await instance.post("/business/daily-train-seat/save", data);
-        return res.data
-    } catch (e) {
-        console.log(e);
-    }
-}
-export const deleteDaily_Train_Seat = async (data) => {
-    try {
-        const res = await instance.delete("/business/daily-train-seat/del/" + data);
-        return res.data
     } catch (e) {
         console.log(e);
     }

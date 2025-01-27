@@ -26,7 +26,13 @@ public enum ExceptionEnum {
     CARRIAGE_EXIST(HttpStatus.WARN, "同车次厢序已存在"),
     TRAIN_NAME_EXIST(HttpStatus.WARN, "同车次站名已存在"),
     TRAIN_INDEX_EXIST(HttpStatus.WARN, "同车次站序已存在"),
-    TRAIN_CODE_EXIST(HttpStatus.WARN, "车次编号已存在");
+    TRAIN_CODE_EXIST(HttpStatus.WARN, "车次编号已存在"),
+    TICKET_NOT_ENOUGH(HttpStatus.CONFLICT, "余票不足"),
+    FAILURE_TO_SAVE_TICKET(HttpStatus.CONFLICT, "购票出现异常，请稍后再试"),
+    CONFIRM_ORDER_LOCK_FAIL(HttpStatus.CONFLICT, "当前抢票人数多，请稍后再试"),
+    CONFIRM_ORDER_FAIL_FLOW_EXCEPTION(HttpStatus.CONFLICT, "当前抢票人数多，请稍后再试"),
+    CONFIRM_ORDER_SK_TOKEN_FAIL(HttpStatus.CONFLICT, "当前抢票人数过多，请五秒后重试"),
+    MEMBER_CODE_EXPIRED(HttpStatus.CONFLICT, "验证码已过期");
 
     @Getter
     @Setter

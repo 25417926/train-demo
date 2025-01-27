@@ -6,7 +6,7 @@
         <router-link to="/welcome">12306</router-link>
         </div>
       </div>
-      <div style="float: right;color: white">您好：{{mobile}}
+      <div style="float: right;color: white">您好：管理员
         <button @click="layout()" class="layout">退出登录</button>
       </div>
       <a-menu
@@ -56,6 +56,17 @@
             <a-menu-item key="business/daily-train-carriage" ><router-link to="/business/daily-train-carriage">每日车厢</router-link></a-menu-item>
             <a-menu-item key="business/daily-train-seat" ><router-link to="/business/daily-train-seat">每日座位</router-link></a-menu-item>
             <a-menu-item key="business/daily-train-ticket" ><router-link to="/business/daily-train-ticket">余票信息</router-link></a-menu-item>
+            <a-menu-item key="business/confirm-order" ><router-link to="/business/confirm-order">订单信息</router-link></a-menu-item>
+            <a-menu-item key="business/sk-token" ><router-link to="/business/sk-token">令牌余量</router-link></a-menu-item>
+          </a-sub-menu>
+          <a-sub-menu key="member">
+            <template #title>
+              <span>
+                <user-outlined />
+                会员管理
+              </span>
+            </template>
+            <a-menu-item key="member/ticket" ><router-link to="/member/ticket">会员车票</router-link></a-menu-item>
           </a-sub-menu>
           <a-sub-menu key="batch">
             <template #title>
@@ -105,7 +116,7 @@
 <script>
 import { UserOutlined} from '@ant-design/icons-vue';
 import { defineComponent, ref ,watch} from 'vue';
-import {useStore} from "vuex";
+// import {useStore} from "vuex";
 import { useRouter } from 'vue-router';
 
 export default defineComponent({
@@ -117,10 +128,10 @@ export default defineComponent({
   },
   setup() {
     // 获取vuex
-    const store = useStore()
+    // const store = useStore()
     const router = useRouter()
     // 获取手机号
-    const mobile =store.state.MemberToken.mobile
+    // const mobile =store.state.MemberToken.mobile
     //获取选中
     const SelectKey = ref([])
     //观察路由是否变化，然后传给SelectKey来保证数据一致然后实现同步
@@ -131,8 +142,8 @@ export default defineComponent({
     },{immediate:true})
     // 退出登录
     const layout = async ()=>{
-      store.commit('set_token',null)
-      store.commit('set_mobile',null)
+      // store.commit('set_token',null)
+      // store.commit('set_mobile',null)
       router.push('/view')
     }
     return {
@@ -141,7 +152,6 @@ export default defineComponent({
       collapsed: ref(false),
       openKeys: ref([]),
       layout,
-      mobile,
       SelectKey
     };
   },

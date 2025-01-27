@@ -201,6 +201,7 @@ export default defineComponent({
       if (res.code === 200) {
         daily_Train_Tickets.value = res.content.list;
         pagination.value.total = res.content.total;
+        console.log(daily_Train_Tickets.value)
       }
     };
 

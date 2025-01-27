@@ -1,25 +1,25 @@
-
 import {LocalStorageUtil} from "@/storage/Local-Storage";
-const MOBILE ='mobile'
-const TOKEN ='token'
-const Mobile= {
-    namespaced: true,
-    state: {
-            token: LocalStorageUtil.getItem(TOKEN) || null,
-            mobile: window.sessionStorage.getItem(MOBILE) || null,
-        },
-        getters: {},
-        mutations: {
-            set_token(state, _token) {
-                state.token = _token
-                LocalStorageUtil.setItem(TOKEN, _token)
-            },
-            set_mobile(state, _mobile) {
-                state.mobile = _mobile
-                window.sessionStorage.setItem(MOBILE, _mobile)
-            },
-        },
-        actions: {},
 
+const mobile = 'mobile'
+const Token = 'token'
+export const Mobile = {
+    state: {
+        mobile: LocalStorageUtil.getItem(mobile),
+        token: LocalStorageUtil.getItem(Token),
+    },
+    mutations: {
+        set_mobile(state, _mobile) {
+            state.mobile = _mobile
+            LocalStorageUtil.setItem(mobile, _mobile)
+        },
+        set_token(state, token) {
+            state.token = token
+            LocalStorageUtil.setItem(Token, token)
+        },
+        clean(){
+            LocalStorageUtil.removeItem(mobile)
+            LocalStorageUtil.removeItem(Token)
+        }
+    }
 }
 export default Mobile

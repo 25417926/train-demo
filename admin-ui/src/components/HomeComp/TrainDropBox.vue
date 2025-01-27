@@ -17,7 +17,7 @@
 <script>
 import { defineComponent, onMounted, ref, watch } from "vue";
 import { getTrainList } from "@/api/base/train_station";
-
+import {useStore} from 'vuex'
 export default defineComponent({
   name: "TrainDropBox",
   // 父组件传入的属性
@@ -28,6 +28,8 @@ export default defineComponent({
   emits: ["update:modelValue", "Change"],
 
   setup(props, { emit }) {
+    // 获取store
+    const store = useStore()
     // 列车列表
     const trains = ref([]);
     // 选中的列车代码
@@ -49,20 +51,32 @@ export default defineComponent({
      * 获取所有列车信息
      */
     const getAllTrains = async () => {
-      try {
-        const res = await getTrainList();
-        if (res.code === 200) {
-          trains.value = res.content;
-          trainMap.value = res.content.reduce((acc, item) => {
-            acc[item.code] = item;
-            return acc;
-          }, {});
+      let list = store.state.Session_params.params
+      if (window.Tool.isNotEmpty(list)) {
+        console.log("读取缓存")
+        trains.value = list
+        trainMap.value = createTrainMap(trains.value);
+      } else {
+        try {
+          const res = await getTrainList();
+          if (res.code === 200) {
+            trains.value = res.content;
+            console.log("保存缓存")
+            store.commit('Session_params/set_params', res.content)
+            trainMap.value = createTrainMap(trains.value);
+          }
+        } catch (error) {
+          console.error("Failed to fetch train list:", error);
         }
-      } catch (error) {
-        console.error("Failed to fetch train list:", error);
       }
     };
-
+    // 创建列车代码映射表
+    const createTrainMap = (trainList) => {
+      return trainList.reduce((acc, item) => {
+        acc[item.code] = item;
+        return acc;
+      }, {});
+    };
     /**
      * 当选中的列车代码发生变化时的处理函数
      * @param {string} value - 新选中的列车代码

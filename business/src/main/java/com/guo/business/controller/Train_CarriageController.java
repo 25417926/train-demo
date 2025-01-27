@@ -87,4 +87,10 @@ public class Train_CarriageController {
         // 返回创建的CommonResp对象
         return commonResp;
     }
+//    @GetMapping("/test")
+//    public CommonResp SelectByTrainCode(){
+//        List<Train_Carriage> trainCarriages = Train_CarriageService.SelectByTrainCode("D1");
+//        return new CommonResp(true,"成功",trainCarriages,HttpStatus.SUCCESS);
+//    }
+
 }

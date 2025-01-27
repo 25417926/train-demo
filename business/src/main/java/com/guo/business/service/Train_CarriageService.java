@@ -50,11 +50,13 @@ public class Train_CarriageService {
      */
     public void save(Train_CarriageSaveReq req) {
         DateTime now = DateTime.now();
-
+        String code = TrainCarriageTypeEnum.fromCode(null,req.getSeatType()).getCode();
+        String type = TrainSeatTypeEnum.fromCode(null,null,code).getType();
         // 根据座位类型获取列数，并计算总座位数
-        req.setColCount(TrainSeatTypeEnum.getColsByType(req.getSeatType()).size());
+        req.setColCount(TrainSeatTypeEnum.getColsByType(type).size());
         req.setSeatCount(req.getRowCount() * req.getColCount());
         Train_Carriage train_Carriage = BeanUtil.copyProperties(req, Train_Carriage.class);
+
         if (ObjectUtil.isEmpty(train_Carriage.getId())) {
             Train_Carriage CarriageDB = selectByUnique(train_Carriage.getTrainCode(),train_Carriage.getIndex());
             if(ObjectUtil.isNotEmpty(CarriageDB)){
@@ -62,12 +64,15 @@ public class Train_CarriageService {
             }
             // 如果是新记录，进行插入操作
             train_Carriage.setId(SnowUtil.getSnowflakeNextId());
+
             train_Carriage.setCreateTime(now);
             train_Carriage.setUpdateTime(now);
             train_CarriageMapper.insert(train_Carriage);
         } else {
             // 如果是已有记录，进行更新操作
+
             train_Carriage.setUpdateTime(now);
+            train_Carriage.setSeatType(code);
             train_CarriageMapper.updateByPrimaryKey(train_Carriage);
         }
     }
