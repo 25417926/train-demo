@@ -53,10 +53,10 @@ public class Confirm_OrderService {
     private Daily_Train_SeatService Daily_Train_SeatService;
     @Resource
     private After_Confirm_OrderService After_Confirm_OrderService;
-
     @Resource
     private RedissonClient redissonClient;
-
+    @Resource
+    private Daily_Train_StationService daily_Train_StationService;
 
     /**
      * 保存确认订单信息
@@ -206,6 +206,34 @@ public class Confirm_OrderService {
         confirm_Order.setEnd(end);
         confirm_Order.setDailyTrainTicketId(req.getDailyTrainTicketId());
         confirm_Order.setTickets(tickets);
+
+        // 业务数据校验，如：车次是否存在，余票是否存在，车次是否在有效期内，tickets条数>0，同乘客同车次是否已买过
+        if (daily_Train_StationService.SelectByTrain(date, trainCode) <= 0) {
+            LOG.info("车次不存在");
+            throw new ExceptionConsole(ExceptionEnum.TRAIN_NOT_EXIST);
+        }
+        if (ObjectUtil.isNull(daily_Train_TicketService.selectByUnique(date, trainCode, start, end))) {
+            LOG.info("余票不存在");
+            throw new ExceptionConsole(ExceptionEnum.TICKET_NOT_EXIST);
+        }
+        if (CollUtil.isEmpty(tickets)) {
+            LOG.info("tickets条数<=0");
+        }
+        if (CollUtil.isNotEmpty(tickets)) {
+            tickets.forEach(ticket -> {
+                Confirm_OrderExample confirm_OrderExample = new Confirm_OrderExample();
+                confirm_OrderExample.createCriteria()
+                        .andDateEqualTo(date)
+                        .andTrainCodeEqualTo(trainCode)
+                        .andStartEqualTo(start)
+                        .andEndEqualTo(end)
+                        .andMemberIdEqualTo(ticket.getPassengerId());
+                if (confirm_OrderMapper.countByExample(confirm_OrderExample) > 0) {
+                    LOG.info("同乘客同车次已买过");
+                    throw new ExceptionConsole(ExceptionEnum.TRAIN_TICKET_EXIST);
+                }
+            });
+        }
         //订单进入处理中
         req.setStatus(ConfirmOrderStatusEnum.PENDING.getCode());
         LOG.info("订单进入处理中，避免重复处理");
@@ -327,10 +355,11 @@ public class Confirm_OrderService {
             case "CANCEL":
                 result = -6;
                 break;
-        };
+        }
+        ;
         // 如果结果为0，进一步查询数据库以获取相同条件的订单数量
-        if(result == -1){
-            Confirm_OrderExample confirm_OrderExample =new Confirm_OrderExample();
+        if (result == -1) {
+            Confirm_OrderExample confirm_OrderExample = new Confirm_OrderExample();
             confirm_OrderExample
                     .or()
                     .andDateEqualTo(confirmOrder.getDate())
@@ -344,7 +373,7 @@ public class Confirm_OrderService {
                     .andCreateTimeLessThan(confirmOrder.getCreateTime())
                     .andStatusEqualTo(ConfirmOrderStatusEnum.PENDING.getCode());
             return Math.toIntExact(confirm_OrderMapper.countByExample(confirm_OrderExample));
-        }else{
+        } else {
             return result;
         }
     }

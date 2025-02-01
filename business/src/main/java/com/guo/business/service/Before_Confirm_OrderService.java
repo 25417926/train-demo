@@ -50,7 +50,6 @@ public class Before_Confirm_OrderService {
         } else {
             LOG.info("令牌校验失败");
             throw new ExceptionConsole(ExceptionEnum.CONFIRM_ORDER_SK_TOKEN_FAIL);
-
         }
         //保存确认订单表
         DateTime now = DateTime.now();

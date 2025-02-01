@@ -32,7 +32,12 @@ public enum ExceptionEnum {
     CONFIRM_ORDER_LOCK_FAIL(HttpStatus.CONFLICT, "当前抢票人数多，请稍后再试"),
     CONFIRM_ORDER_FAIL_FLOW_EXCEPTION(HttpStatus.CONFLICT, "当前抢票人数多，请稍后再试"),
     CONFIRM_ORDER_SK_TOKEN_FAIL(HttpStatus.CONFLICT, "当前抢票人数过多，请五秒后重试"),
-    MEMBER_CODE_EXPIRED(HttpStatus.CONFLICT, "验证码已过期");
+    MEMBER_CODE_EXPIRED(HttpStatus.CONFLICT, "验证码已过期"),
+    CONFIRM_ORDER_EXIST(HttpStatus.CONFLICT, "订单已存在"),
+    TRAIN_NOT_EXIST(HttpStatus.CONFLICT, "车次不存在"),
+    TICKET_NOT_EXIST(HttpStatus.CONFLICT, "余票不存在"),
+    TRAIN_TICKET_EXIST(HttpStatus.CONFLICT, "请勿重复购买"),;
+
 
     @Getter
     @Setter
