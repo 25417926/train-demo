@@ -14,7 +14,7 @@
 
         <a-menu-item key="welcome"><router-link to="/welcome">欢迎</router-link></a-menu-item>
         <a-menu-item key="passenger" ><router-link to="/passenger">乘车人管理</router-link></a-menu-item>
-        <a-menu-item key="3">nav 3</a-menu-item>
+        <a-menu-item key="3" @click="OpenAI">AI助手</a-menu-item>
       </a-menu>
 
     </a-layout-header>
@@ -38,36 +38,15 @@
             <a-menu-item key="ticket"><router-link to="/ticket">余票查询</router-link></a-menu-item>
             <a-menu-item key="/my-ticket"><router-link to="/my-ticket">我的车票</router-link></a-menu-item>
           </a-sub-menu>
-          <a-sub-menu key="sub2">
-            <template #title>
-              <span>
-                <laptop-outlined />
-                subnav 2
-              </span>
-            </template>
-            <a-menu-item key="5">option5</a-menu-item>
-            <a-menu-item key="6">option6</a-menu-item>
-            <a-menu-item key="7">option7</a-menu-item>
-            <a-menu-item key="8">option8</a-menu-item>
-          </a-sub-menu>
-          <a-sub-menu key="sub3">
-            <template #title>
-              <span>
-                <notification-outlined />
-                subnav 3
-              </span>
-            </template>
-            <a-menu-item key="9">option9</a-menu-item>
-            <a-menu-item key="10">option10</a-menu-item>
-            <a-menu-item key="11">option11</a-menu-item>
-            <a-menu-item key="12">option12</a-menu-item>
-          </a-sub-menu>
         </a-menu>
       </a-layout-sider>
       <a-layout >
         <a-layout-content
             :style="{ background: '#fff',padding: '24px',  margin: 0, minHeight: '280px' }"
         >
+          <a-modal v-model:visible="visible" >
+            <AiChat/>
+          </a-modal>
           <router-view/>
         </a-layout-content>
       </a-layout>
@@ -75,17 +54,16 @@
   </a-layout>
 </template>
 <script>
-import { UserOutlined, LaptopOutlined, NotificationOutlined } from '@ant-design/icons-vue';
+import { UserOutlined } from '@ant-design/icons-vue';
 import { defineComponent, ref ,watch} from 'vue';
 import {useStore} from "vuex";
 import { useRouter } from 'vue-router';
-
+import AiChat from "@/components/AiChat.vue";
 export default defineComponent({
   name: 'HomeView',
   components: {
     UserOutlined,
-    LaptopOutlined,
-    NotificationOutlined,
+    AiChat
   },
   setup() {
     // 获取vuex
@@ -95,6 +73,7 @@ export default defineComponent({
     const mobile =store.state.Mobile.mobile
     //获取选中
     const SelectKey = ref([])
+    const visible = ref(false)
     //观察路由是否变化，然后传给SelectKey来保证数据一致然后实现同步
     watch(()=>router.currentRoute.value.path, (newValue)=> {
       console.log(newValue)
@@ -106,6 +85,9 @@ export default defineComponent({
       store.commit("Mobile/clean")
       router.push('/view')
     }
+    const OpenAI = async ()=>{
+      visible.value = true
+    }
     return {
       selectedKeys1: ref(['2']),
       selectedKeys2: ref(['1']),
@@ -113,7 +95,9 @@ export default defineComponent({
       openKeys: ref(['sub1']),
       layout,
       mobile,
-      SelectKey
+      SelectKey,
+      visible,
+      OpenAI
     };
   },
 
@@ -143,5 +127,11 @@ export default defineComponent({
 }
 .layout:hover{
   color: #3ff;
+}
+.ant-modal-body {
+  padding: 0;
+}
+.ant-modal-footer{
+  display: none;
 }
 </style>

@@ -4,10 +4,13 @@ import com.guo.common.context.LoginMemberContext;
 import com.guo.common.resp.CommonResp;
 import com.guo.common.resp.PageResp;
 import com.guo.common.util.HttpStatus;
+
 import com.guo.member.req.PassengerQueryReq;
 import com.guo.member.req.PassengerSaveReq;
 import com.guo.member.resp.PassengerQueryResp;
+import com.guo.member.service.ChatService;
 import com.guo.member.service.PassengerService;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
 import javax.annotation.Resource;
@@ -25,7 +28,8 @@ import java.util.List;
 public class PassengerController {
     @Resource
     private PassengerService PassengerService;
-
+    @Autowired
+    private ChatService chatService;
     /**
      * 处理乘客信息保存请求
      * 该方法使用HTTP POST请求来接收乘客信息，并将其保存到系统中
@@ -102,5 +106,16 @@ public class PassengerController {
         // 返回创建的CommonResp对象
         return commonResp;
     }
+    @PostMapping("/chat")
+    public CommonResp chat(@RequestBody String data) {
+        // 调用PassengerService的save方法来保存乘客信息
+        String chat = chatService.createStreamingChatCompletion(data);
 
+        // 创建一个CommonResp对象，表示成功的响应
+        // 参数分别为：操作成功（true）、提示信息（"成功"）和HTTP状态码（HttpStatus.SUCCESS）
+        CommonResp commonResp = new CommonResp(true, "成功",chat, HttpStatus.SUCCESS);
+
+        // 返回创建的CommonResp对象
+        return commonResp;
+    }
 }
