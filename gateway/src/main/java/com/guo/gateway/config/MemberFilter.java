@@ -22,16 +22,16 @@ public class MemberFilter implements GlobalFilter, Ordered {
         Logger LOG = Logger.getLogger(MemberFilter.class.getName());
     @Override
     public Mono<Void> filter(ServerWebExchange exchange, GatewayFilterChain chain) {
-        LOG.info("1");
         //写入日志，写所需过滤逻辑
         String path = exchange.getRequest().getURI().getPath();
         if (path.contains("/business")||
                 path.contains("/batch") ||
                 path.contains("/member/SendCode")||
                 path.contains("/member/LoginCode")||
-                path.contains("/member/register") ||
+                path.contains("/auth/doLogin") ||
                 path.contains("/member/admin/ticket/Query-List") ||
-                path.contains("/member/feign/save")||path.contains("/member/count")) {
+                path.contains("/member/feign/save")||
+                path.contains("/member/count")) {
             LOG.info("放行路由："+path);
             return chain.filter(exchange);
         }else{

@@ -15,6 +15,7 @@
         <module>builder</module>
         <module>business</module>
         <module>batch</module>
+        <module>auth</module>
     </modules>
     <properties>
         <java.version>1.8</java.version>

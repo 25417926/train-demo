@@ -1,0 +1,10 @@
+# 注册中心名字
+spring:
+  application:
+    name: auth
+  # 启动环境，nacos会根据不同的配置dataid：member-dev.properties
+  cloud:
+    nacos:
+      discovery:
+        server-addr: localhost:8848
+        namespace: train
