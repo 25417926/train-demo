@@ -15,4 +15,12 @@ public class RedisKeyConstants {
     public static String buildRolePermissionsKey(Long roleId) {
         return ROLE_PERMISSIONS_KEY_PREFIX + roleId;
     }
+    /**
+     * 账户对应的角色集合 KEY 前缀
+     * @param UserId
+     * @return
+     */
+    public static String buildUserRolesKey(Long UserId) {
+        return "user:roles:" + UserId;
+    }
 }

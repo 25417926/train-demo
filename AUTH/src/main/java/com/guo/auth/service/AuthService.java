@@ -8,11 +8,13 @@ import cn.hutool.core.util.RandomUtil;
 import cn.hutool.core.util.StrUtil;
 import cn.hutool.json.JSONUtil;
 import com.alibaba.nacos.shaded.com.google.common.collect.Lists;
+import com.guo.auth.constant.RedisKeyConstants;
 import com.guo.auth.domain.Member;
 import com.guo.auth.domain.MemberExample;
 import com.guo.auth.domain.UserRoleRel;
 import com.guo.auth.mapper.MemberMapper;
 import com.guo.auth.mapper.UserRoleRelMapper;
+import com.guo.auth.mapper.UserRoleRelationMapper;
 import com.guo.auth.req.UserReq;
 import com.guo.auth.resp.UserResp;
 import com.guo.auth.utils.PwdAESCryUtil;
@@ -43,13 +45,14 @@ public class AuthService {
     private UserRoleRelMapper userRoleRelMapper;
     @Resource
     private IEmailServiceImpl emailService;
+    @Resource
+    private UserRoleRelationMapper userRoleRelationMapper;
 
     public UserResp login(UserReq user) {
         MemberExample example = new MemberExample();
         //这里因为之前的业务是使用手机号，后续更新可能会改回手机号，也可以双切
         example.createCriteria().andEmailEqualTo(user.getEmail());
         List<Member> list = memberMapper.selectByExample(example);
-
         if (ObjectUtil.isNotNull(user.getCode()) && !redisTemplate.opsForValue().get(user.getEmail()).equals(user.getCode())) {
             throw new ExceptionConsole(ExceptionEnum.MEMBER_CODE_ERROR);
         }
@@ -61,6 +64,7 @@ public class AuthService {
             userResp.setSaTokenInfo(StpUtil.getTokenInfo());
             return userResp;
         }
+
         Member member = list.get(0);
         if (StrUtil.isNotBlank(user.getPassword())) {
             log.info("用户使用邮箱密码登录");
@@ -68,25 +72,17 @@ public class AuthService {
             if (!PwdAESCryUtil.decrypt(member.getPassword()).equals(user.getPassword())) {
                 throw new ExceptionConsole(ExceptionEnum.MEMBER_PASSWORD_ERROR);
             }
-
-            UserResp userResp = new UserResp();
-            userResp.setId(member.getId());
-            userResp.setSaTokenInfo(StpUtil.getTokenInfo());
-            return userResp;
         }
         if (StrUtil.isNotBlank(user.getCode())) {
             log.info("用户使用短信登录");
-            //这里使用redis存储邮箱号，后续可以修改为jwt
-            StpUtil.login(member.getId());
-            UserResp userResp = new UserResp();
-            userResp.setId(member.getId());
-            userResp.setSaTokenInfo(StpUtil.getTokenInfo());
-            return userResp;
+
         }
-
-
-        log.info("用户账号或密码错误");
-        return null;
+        StpUtil.login(member.getId());
+        redisTemplate.opsForValue().set(RedisKeyConstants.buildUserRolesKey(member.getId()), userRoleRelationMapper.selectRoleByUserId(member.getId()));
+        UserResp userResp = new UserResp();
+        userResp.setId(member.getId());
+        userResp.setSaTokenInfo(StpUtil.getTokenInfo());
+        return userResp;
     }
 
     public String SendCode(String email) throws Exception {
