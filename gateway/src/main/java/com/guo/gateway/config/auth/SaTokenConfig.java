@@ -1,4 +1,4 @@
-package com.guo.gateway.config;
+package com.guo.gateway.config.auth;
 
 import cn.dev33.satoken.exception.NotLoginException;
 import cn.dev33.satoken.exception.NotPermissionException;
@@ -24,11 +24,11 @@ public class SaTokenConfig {
                 // 鉴权方法：每次访问进入
                 .setAuth(obj -> {
                     // 登录校验 -- 拦截所有路由，并排除/user/doLogin 用于开放登录
-                    SaRouter.match("/**", "/auth/doLogin", r -> StpUtil.checkLogin());
+                    SaRouter.match("/**", "/auth/sso/**", r -> StpUtil.checkLogin());
 
                     // 权限认证 -- 不同模块, 校验不同权限
                     SaRouter.match("/member/**", r -> StpUtil.checkPermission("user"));
-                    SaRouter.match("/admin/**", r -> StpUtil.checkPermission("admin"));
+                    SaRouter.match("/business/**", r -> StpUtil.checkPermission("admin"));
                     SaRouter.match("/goods/**", r -> StpUtil.checkPermission("goods"));
                     SaRouter.match("/orders/**", r -> StpUtil.checkPermission("orders"));
 

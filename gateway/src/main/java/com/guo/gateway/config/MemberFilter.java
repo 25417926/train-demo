@@ -28,7 +28,8 @@ public class MemberFilter implements GlobalFilter, Ordered {
                 path.contains("/batch") ||
                 path.contains("/member/SendCode")||
                 path.contains("/member/LoginCode")||
-                path.contains("/auth/doLogin") ||
+                path.contains("/auth/sso/SendCode") ||
+                path.contains("/auth/sso/login") ||
                 path.contains("/member/admin/ticket/Query-List") ||
                 path.contains("/member/feign/save")||
                 path.contains("/member/count")) {

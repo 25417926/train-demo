@@ -36,7 +36,8 @@ public enum ExceptionEnum {
     CONFIRM_ORDER_EXIST(HttpStatus.CONFLICT, "订单已存在"),
     TRAIN_NOT_EXIST(HttpStatus.CONFLICT, "车次不存在"),
     TICKET_NOT_EXIST(HttpStatus.CONFLICT, "余票不存在"),
-    TRAIN_TICKET_EXIST(HttpStatus.CONFLICT, "请勿重复购买"),;
+    TRAIN_TICKET_EXIST(HttpStatus.CONFLICT, "请勿重复购买"),
+    MEMBER_TYPE_ERROR(HttpStatus.CONFLICT, "登录类型错误");
 
 
     @Getter

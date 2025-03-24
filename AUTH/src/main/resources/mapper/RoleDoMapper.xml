@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.guo.auth.mapper.RoleDoMapper">
+    <resultMap id="BaseResultMap" type="com.guo.auth.domain.Role">
+        <id column="id" jdbcType="BIGINT" property="id" />
+        <result column="role_name" jdbcType="VARCHAR" property="roleName" />
+        <result column="role_key" jdbcType="VARCHAR" property="roleKey" />
+        <result column="status" jdbcType="TINYINT" property="status" />
+        <result column="sort" jdbcType="INTEGER" property="sort" />
+        <result column="remark" jdbcType="VARCHAR" property="remark" />
+        <result column="create_time" jdbcType="TIMESTAMP" property="createTime" />
+        <result column="update_time" jdbcType="TIMESTAMP" property="updateTime" />
+        <result column="is_deleted" jdbcType="BIT" property="isDeleted" />
+    </resultMap>
+    <select id="selectEnabledList" resultMap="BaseResultMap">
+        select id,role_key,role_name
+        from t_role
+        where is_deleted = false and status = 0
+    </select>
+</mapper>
