@@ -9,11 +9,11 @@ public class RedisKeyConstants {
 
     /**
      * 构建角色对应的权限集合 KEY
-     * @param roleId
+     * @param RoleUser
      * @return
      */
-    public static String buildRolePermissionsKey(Long roleId) {
-        return ROLE_PERMISSIONS_KEY_PREFIX + roleId;
+    public static String buildRolePermissionsKey(String RoleUser) {
+        return ROLE_PERMISSIONS_KEY_PREFIX + RoleUser;
     }
     /**
      * 账户对应的角色集合 KEY 前缀

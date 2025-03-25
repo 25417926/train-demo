@@ -9,6 +9,7 @@ import com.guo.auth.constant.RedisKeyConstants;
 import com.guo.auth.domain.Permission;
 import com.guo.auth.domain.Role;
 import com.guo.auth.domain.RolePermissionRel;
+import com.guo.auth.enums.RoleEnums;
 import com.guo.auth.mapper.PermissionDoMapper;
 import com.guo.auth.mapper.RoleDoMapper;
 import com.guo.auth.mapper.RolePermissionRelDoMapper;
@@ -109,7 +110,7 @@ public class PushRolePermissions2RedisRunner implements ApplicationRunner {
                 // 将角色ID与权限对象列表的映射关系同步到Redis中
                 // 便于后续系统（如网关）能够快速查询角色的权限信息
                 roleIdPermissionsMap.forEach((roleId, permissionList) -> {
-                    String key = RedisKeyConstants.buildRolePermissionsKey(roleId); // 构建Redis的Key
+                    String key = RedisKeyConstants.buildRolePermissionsKey(RoleEnums.getRoleEnumsByCode(roleId).getName()); // 构建Redis的Key
                     redisTemplate.opsForValue().set(key, JSONUtil.toJsonStr(permissionList)); // 将权限列表序列化后存入Redis
                 });
             }
