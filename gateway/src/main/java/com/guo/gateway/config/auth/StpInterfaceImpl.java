@@ -12,7 +12,7 @@ import org.springframework.stereotype.Component;
 
 import javax.annotation.Resource;
 import java.util.ArrayList;
-import java.util.Collections;
+
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -25,6 +25,12 @@ public class StpInterfaceImpl implements StpInterface {
     @Resource
     private RedisTemplate<String, Object> redisTemplate;
 
+    /**
+     * 返回此 loginId 拥有的权限列表
+     * @param loginId
+     * @param loginType
+     * @return
+     */
     @Override
     public List<String> getPermissionList(Object loginId, String loginType) {
         // 返回此 loginId 拥有的权限列表
@@ -71,6 +77,12 @@ public class StpInterfaceImpl implements StpInterface {
         return permissionList;
     }
 
+    /**
+     * 返回此 loginId 拥有的角色列表
+     * @param loginId
+     * @param loginType
+     * @return
+     */
     @Override
     public List<String> getRoleList(Object loginId, String loginType) {
         // 返回此 loginId 拥有的角色列表
@@ -82,6 +94,7 @@ public class StpInterfaceImpl implements StpInterface {
         return roleList;
     }
 
+    //从redis中拿取对应的角色数据
     private  String getString(Object loginId) {
         String key = RedisKeyConstants.buildUserRoleKey(Long.valueOf(loginId.toString()));
         if(StrUtil.isBlank(key)){

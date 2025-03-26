@@ -4,6 +4,7 @@ import cn.dev33.satoken.stp.StpUtil;
 import com.guo.auth.req.UserReq;
 import com.guo.auth.resp.UserResp;
 import com.guo.auth.service.AuthService;
+import com.guo.common.context.LoginMemberContext;
 import com.guo.common.resp.CommonResp;
 import com.guo.common.util.HttpStatus;
 import org.apache.ibatis.annotations.Param;
@@ -29,16 +30,25 @@ public class AuthController {
     @PostMapping("/sso/login")
     public CommonResp login(@Validated @RequestBody UserReq user) {
         UserResp login = authService.login(user);
-        return new CommonResp(HttpStatus.SUCCESS,login, "登录成功");
+        return new CommonResp(HttpStatus.SUCCESS, login, "登录成功");
     }
+
     @PostMapping("/sso/SendCode")
     public CommonResp SendCode(@Param("email") String email) throws Exception {
         String sendCode = authService.SendCode(email);
-        return new CommonResp(HttpStatus.SUCCESS,sendCode, "发送成功");
+        return new CommonResp(HttpStatus.SUCCESS, sendCode, "发送成功");
     }
-    @PostMapping("/sso/layout")
-    public CommonResp layout() {
-        StpUtil.logout();
-        return new CommonResp(HttpStatus.SUCCESS,null, "退出成功");
-    }
+
+      @PostMapping("/sso/layout")
+   public CommonResp layout() {
+       // 增加登录状态校验
+       if (StpUtil.isLogin()) {
+           Long id = LoginMemberContext.getId();
+           StpUtil.logout(id);
+           return new CommonResp(HttpStatus.SUCCESS, null, "退出成功");
+       } else {
+           return new CommonResp(HttpStatus.UNAUTHORIZED, null, "请先登录");
+       }
+   }
+
 }
