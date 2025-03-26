@@ -5,6 +5,7 @@ import com.guo.gateway.util.HttpStatus;
 
 public enum LoginEnum {
     //登录所需enum
+    LOGIN_NOT_SUCCESS(HttpStatus.BAD_REQUEST, "请先登录"),
     LOGIN_SUCCESS(HttpStatus.SUCCESS, "登录成功"),
     LOGIN_FAIL(HttpStatus.BAD_REQUEST, "登录失败"),
     LOGIN_EXPIRED(HttpStatus.UNAUTHORIZED, "登录过期"),

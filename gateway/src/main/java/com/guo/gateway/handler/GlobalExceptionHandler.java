@@ -1,5 +1,7 @@
 package com.guo.gateway.handler;
 
+import cn.dev33.satoken.exception.NotLoginException;
+import cn.dev33.satoken.exception.NotPermissionException;
 import cn.dev33.satoken.exception.SaTokenException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.guo.gateway.enums.LoginEnum;
@@ -35,13 +37,17 @@ public class GlobalExceptionHandler implements ErrorWebExceptionHandler {
         // 响参
         CommonResp<?> result;
         // 根据捕获的异常类型，设置不同的响应状态码和响应消息
-        if (ex instanceof SaTokenException) { // Sa-Token 异常
+        // Sa-Token 异常
+        if (ex instanceof NotLoginException) {
+            response.setStatusCode(org.springframework.http.HttpStatus.valueOf(HttpStatus.UNAUTHORIZED));
+            result = new CommonResp(false, LoginEnum.LOGIN_NOT_SUCCESS.getMsg(), LoginEnum.LOGIN_NOT_SUCCESS.getCode());
+        } else if (ex instanceof NotPermissionException) {
             // 权限认证失败时，设置 401 状态码
             response.setStatusCode(org.springframework.http.HttpStatus.valueOf(HttpStatus.UNAUTHORIZED));
             // 构建响应结果
-            result = new CommonResp(false, LoginEnum.LOGIN_PERMISSION_ERROR.getMsg(),LoginEnum.LOGIN_PERMISSION_ERROR.getCode());
+            result = new CommonResp(false, LoginEnum.LOGIN_PERMISSION_ERROR.getMsg(), LoginEnum.LOGIN_PERMISSION_ERROR.getCode());
         } else { // 其他异常，则统一提示 “系统繁忙” 错误
-            result =new CommonResp(false,LoginEnum.LOGIN_SYSTEM_BUSY.getMsg(), LoginEnum.LOGIN_SYSTEM_BUSY.getCode());
+            result = new CommonResp(false, LoginEnum.LOGIN_SYSTEM_BUSY.getMsg(), LoginEnum.LOGIN_SYSTEM_BUSY.getCode());
         }
 
         // 设置响应头的内容类型为 application/json;charset=UTF-8，表示响应体为 JSON 格式
