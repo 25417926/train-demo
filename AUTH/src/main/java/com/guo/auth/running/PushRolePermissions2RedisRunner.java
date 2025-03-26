@@ -86,7 +86,7 @@ public class PushRolePermissions2RedisRunner implements ApplicationRunner {
                 );
 
                 // 创建一个Map，用于存储角色ID与权限对象列表的对应关系
-                Map<Long, List<Permission>> roleIdPermissionsMap = Maps.newHashMap();
+                Map<Long, List<String>> roleIdPermissionsMap = Maps.newHashMap();
 
                 // 遍历所有角色，构建角色ID与权限对象列表的映射关系
                 roles.forEach(role -> {
@@ -95,11 +95,11 @@ public class PushRolePermissions2RedisRunner implements ApplicationRunner {
 
                     // 如果权限ID列表不为空，则继续处理
                     if (CollUtil.isNotEmpty(permissionIds)) {
-                        List<Permission> permissionList = Lists.newArrayList(); // 创建一个权限对象列表
+                        List<String> permissionList = Lists.newArrayList(); // 创建一个权限key存储列表
                         for (Long permissionId : permissionIds) {
                             Permission permission = permissionIdPermissionMap.get(permissionId); // 根据权限ID获取权限对象
                             if (permission != null) {
-                                permissionList.add(permission); // 将有效的权限对象添加到列表中
+                                permissionList.add(permission.getPermissionKey()); // 将有效的权限key对象添加到列表中
                             }
                         }
                         // 将角色ID与权限对象列表的映射关系存入Map
