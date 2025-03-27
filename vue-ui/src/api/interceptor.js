@@ -16,7 +16,9 @@ instance.interceptors.request.use((config) => {
     // 发请求前做的一些处理，数据转化，配置请求头，设置token，设置loading等，根据需求去添加
     const token =store.state.Mobile.token
     if (token) { // 判断是否存在token，如果存在的话，则每个http header都加上token
-        config.headers.authorization = `${token}`; // 请求头加上token
+        // config.headers.satoken = `${token}`; // 请求头加上token
+         config.withCredentials = true;
+         document.satoken = `${token}`;
     }
     config.headers['Content-Type'] = 'application/json;charset=UTF-8';
     return config;

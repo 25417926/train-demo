@@ -9,10 +9,7 @@ import com.guo.common.resp.CommonResp;
 import com.guo.common.util.HttpStatus;
 import org.apache.ibatis.annotations.Param;
 import org.springframework.validation.annotation.Validated;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import javax.annotation.Resource;
 
@@ -33,9 +30,9 @@ public class AuthController {
         return new CommonResp(HttpStatus.SUCCESS, login, "登录成功");
     }
 
-    @PostMapping("/sso/SendCode")
-    public CommonResp SendCode(@Param("email") String email) throws Exception {
-        String sendCode = authService.SendCode(email);
+    @GetMapping("/sso/SendCode/{email}")
+    public CommonResp SendCode(@PathVariable("email") String email) throws Exception {
+        byte[] sendCode = authService.SendCode(email);
         return new CommonResp(HttpStatus.SUCCESS, sendCode, "发送成功");
     }
 

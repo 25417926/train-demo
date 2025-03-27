@@ -7,30 +7,30 @@ import javax.validation.constraints.Size;
 
 public class UserResp {
 
-    private Long id;
-    private SaTokenInfo saTokenInfo;
+    private String id;
+    private String getSaToken;
 
-    public Long getId() {
+    public String getId() {
         return id;
     }
 
-    public void setId(Long id) {
+    public void setId(String id) {
         this.id = id;
     }
 
-    public SaTokenInfo getSaTokenInfo() {
-        return saTokenInfo;
+    public String getSaToken() {
+        return getSaToken;
     }
 
-    public void setSaTokenInfo(SaTokenInfo saTokenInfo) {
-        this.saTokenInfo = saTokenInfo;
+    public void setSaToken(String getSaToken) {
+        this.getSaToken = getSaToken;
     }
 
     @Override
     public String toString() {
         return "UserResp{" +
                 "id=" + id +
-                ", saTokenInfo=" + saTokenInfo +
+                ", saTokenInfo=" + getSaToken +
                 '}';
     }
 }

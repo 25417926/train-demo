@@ -12,7 +12,7 @@ import lombok.Setter;
 
 public enum ExceptionEnum {
     PARAM_NOT_VALID(HttpStatus.BAD_REQUEST, "参数校验异常"),
-    MEMBER_NOT_EXIST(HttpStatus.NOT_FOUND, "用户不存在"),
+    MEMBER_NOT_EXIST(HttpStatus.NOT_FOUND, "用户不存在，请使用验证码登录注册"),
     MEMBER_EXIST(HttpStatus.WARN, "用户已存在"),
     MEMBER_PASSWORD_ERROR(HttpStatus.UNAUTHORIZED, "密码错误"),
     MEMBER_LOGIN_ERROR(HttpStatus.UNAUTHORIZED, "用户未登录"),
@@ -20,6 +20,7 @@ public enum ExceptionEnum {
     MEMBER_MOBILE_EXIST(HttpStatus.CONFLICT, "手机号已注册"),
     MEMBER_MOBILE_NOT_EXIST(HttpStatus.BAD_REQUEST, "手机号未注册"),
     MEMBER_CODE_ERROR(HttpStatus.CONFLICT, "验证码错误"),
+    MEMBER_CODE_EXCEOTION(HttpStatus.ERROR, "验证码生成错误"),
     MEMBER_CODE_NOT_ERROR(HttpStatus.BAD_REQUEST, "请先获取验证码"),
     NOT_AUTHORIZATION (HttpStatus.UNAUTHORIZED, "未登录"),
     STATION_EXIST(HttpStatus.WARN, "车站已存在"),

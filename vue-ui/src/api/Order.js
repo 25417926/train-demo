@@ -21,12 +21,13 @@ export const addOrderList = async (param) => {
         message.error(e.message)
     }
 }
-export const getSendCode = async (imageCodeToken)=>{
+export const getSendCode = async (email)=>{
     try{
-        const res = await instance.get("/business/kaptcha/image-code/"+imageCodeToken)
+        const res = await instance.get("/auth/sso/SendCode/"+email
+        )
         return res.data
     }catch (e){
-        message.error(e.message)
+        message.error("验证码发送失败，请稍后再试")
     }
 }
 export const queryOrderList =async (id) =>{

@@ -27,10 +27,10 @@ public class SaTokenConfig {
                     SaRouter.match("/**", "/auth/sso/**", r -> StpUtil.checkLogin());
 
                     // 权限认证 -- 不同模块, 校验不同权限
-                    SaRouter.match("/member/**", r -> StpUtil.checkRole("user"));
+                    SaRouter.match("/member/**", r -> StpUtil.checkRole("user "));
                     SaRouter.match("/business/**", r -> StpUtil.checkRole("admin"));
-                    SaRouter.match("/goods/**", r -> StpUtil.checkPermission("goods"));
-                    SaRouter.match("/orders/**", r -> StpUtil.checkPermission("orders"));
+
+
 
                     // 更多匹配 ...  */
                 })
