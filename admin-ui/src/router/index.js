@@ -10,7 +10,7 @@ const routes = [
     },
     {
         path: '/',
-        component: () => import('@/views/HomeView/index.vue'),
+        component: () => import('@/views/overView/index.vue'),
         meta: {
             requireAuth: true
         },
