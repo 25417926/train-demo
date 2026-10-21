@@ -11,24 +11,24 @@ spring:
       datasource:
         flow:
           nacos:
-            server-addr: 192.168.184.130:8848
+            server-addr: 127.0.0.1:8848
             data-id: sentinel-batch-flow
             group-id: DEFAULT_GROUP
             namespace: train
             rule-type: flow
         degrade:
           nacos:
-            server-addr: 192.168.184.130:8848
+            server-addr: 127.0.0.1:8848
             data-id: sentinel-batch-degrade
             group-id: DEFAULT_GROUP
             namespace: train
             rule-type: degrade
     nacos:
       discovery:
-        server-addr: 192.168.184.130:8848
+        server-addr: 127.0.0.1:8848
         namespace: train
       config:
-        server-addr: 192.168.184.130:8848
+        server-addr: 127.0.0.1:8848
         file-extension: properties
         data-id: batch-dev.properties
         import:
