@@ -18,8 +18,11 @@ spring:
       bindings:
         txProbeProducer-out-0:
           destination: TX_PROBE_TOPIC
+          producer:
+            group: tx-probe-producer
         txProbeConsumer-in-0:
           destination: TX_PROBE_TOPIC
+          group: tx-probe-consumer
       rocketmq:
         binder:
           name-server: ${rocketmq.name-server}
