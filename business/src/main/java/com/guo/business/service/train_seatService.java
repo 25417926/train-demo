@@ -67,7 +67,7 @@ public class train_seatService {
 
         List<train_seatQueryResp> list = BeanUtil.copyToList(train_seatList, train_seatQueryResp.class).stream().map(
                 resp -> {
-                    String train_seatTypeEnum = TrainCarriageTypeEnum.fromCode(resp.getSeatType(), null).getDesc();
+                    String train_seatTypeEnum = TrainCarriageTypeEnum.fromCode(resolveSeatTypeCode(resp.getSeatType()), null).getDesc();
                     resp.setSeatType(train_seatTypeEnum);
                     return resp;
                 }
@@ -158,6 +158,19 @@ public class train_seatService {
 //        }else{
 //            return list.get(0);
 //        }
-        return train_seatMapper.selectByExample(train_seatExample);
+        return normalizeSeatType(train_seatMapper.selectByExample(train_seatExample));
+    }
+
+    private String resolveSeatTypeCode(String seatType) {
+        if (ObjectUtil.isEmpty(seatType)) {
+            return seatType;
+        }
+        return TrainCarriageTypeEnum.fromCode(seatType, seatType).getCode();
+    }
+
+    private List<train_seat> normalizeSeatType(List<train_seat> trainSeats) {
+        return trainSeats.stream()
+                .peek(trainSeat -> trainSeat.setSeatType(resolveSeatTypeCode(trainSeat.getSeatType())))
+                .collect(Collectors.toList());
     }
 }

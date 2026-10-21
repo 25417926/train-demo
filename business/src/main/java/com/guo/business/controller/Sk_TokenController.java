@@ -7,6 +7,7 @@ import com.guo.business.service.Sk_TokenService;
 import com.guo.common.resp.CommonResp;
 import com.guo.common.resp.PageResp;
 import com.guo.common.util.HttpStatus;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.web.bind.annotation.*;
 
 import javax.annotation.Resource;
@@ -18,6 +19,7 @@ import javax.validation.Valid;
  * @Date: 2024/12/12
  */
 
+@Tag(name = "秒杀令牌", description = "抢票令牌（大闸）配置与查询")
 @RestController
 @RequestMapping("/sk-token")
 public class Sk_TokenController {

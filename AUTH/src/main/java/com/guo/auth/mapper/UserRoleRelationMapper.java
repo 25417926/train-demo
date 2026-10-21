@@ -1,9 +1,12 @@
 package com.guo.auth.mapper;
 
-import com.guo.auth.domain.Role;
+import java.util.List;
 
 public interface UserRoleRelationMapper {
 
-    //拿取用户表的id，查询角色用户关联表中的对应的角色id，再查询角色id拿到角色的name,还需要判断是否逻辑删除
-    String selectRoleByUserId(Long userId);
+    /**
+     * 查询某用户拥有的全部角色名（已过滤逻辑删除的角色）。
+     * 一个用户可能同时拥有多个角色（例如 admin + user），所以返回 List。
+     */
+    List<String> selectRoleByUserId(Long userId);
 }

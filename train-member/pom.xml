@@ -45,11 +45,17 @@
             <groupId>org.apache.commons</groupId>
             <artifactId>commons-pool2</artifactId>
         </dependency>
-        <!--ai模块-->
+        <!--ai模块（已下线，演示环境不可用）-->
+<!--        <dependency>-->
+<!--            <groupId>com.volcengine</groupId>-->
+<!--            <artifactId>volcengine-java-sdk-ark-runtime</artifactId>-->
+<!--            <version>LATEST</version>-->
+<!--        </dependency>-->
+
+        <!-- Knife4j（基于 OpenAPI3）API 文档 -->
         <dependency>
-            <groupId>com.volcengine</groupId>
-            <artifactId>volcengine-java-sdk-ark-runtime</artifactId>
-            <version>LATEST</version>
+            <groupId>com.github.xiaoymin</groupId>
+            <artifactId>knife4j-openapi3-spring-boot-starter</artifactId>
         </dependency>
     </dependencies>
     <build>

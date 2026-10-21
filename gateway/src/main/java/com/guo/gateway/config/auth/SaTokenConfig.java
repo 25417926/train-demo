@@ -1,5 +1,6 @@
 package com.guo.gateway.config.auth;
 
+import cn.dev33.satoken.context.SaHolder;
 import cn.dev33.satoken.exception.NotLoginException;
 import cn.dev33.satoken.exception.NotPermissionException;
 import cn.dev33.satoken.exception.NotRoleException;
@@ -23,12 +24,27 @@ public class SaTokenConfig {
                 .addExclude("/favicon.ico")
                 // 鉴权方法：每次访问进入
                 .setAuth(obj -> {
-                    // 登录校验 -- 拦截所有路由，并排除/user/doLogin 用于开放登录
+
+                    // 放行所有 OPTIONS 预检请求，交给 Spring Cloud Gateway 的 globalcors 处理 CORS 头
+                    SaRouter.match(r -> "OPTIONS".equalsIgnoreCase(
+                            SaHolder.getRequest().getMethod())).stop();
+
+                    // 内部 Feign 调用接口禁止外部访问（** 只能放在末尾，按模块分别声明）
+                    SaRouter.match("/member/internal/**").back("internal api forbidden");
+                    SaRouter.match("/business/internal/**").back("internal api forbidden");
+                    SaRouter.match("/batch/internal/**").back("internal api forbidden");
+                    SaRouter.match("/auth/internal/**").back("internal api forbidden");
+
+                    // 登录校验 -- 拦截所有路由，并排除 /auth/sso/** 用于开放登录
                     SaRouter.match("/**", "/auth/sso/**", r -> StpUtil.checkLogin());
 
                     // 权限认证 -- 不同模块, 校验不同权限
-                    SaRouter.match("/member/**", r -> StpUtil.checkRole("user "));
-                    SaRouter.match("/business/**", r -> StpUtil.checkRole("admin"));
+                    // /member/**       会员中心：user 或 admin 都可访问
+                    // /business/web/** 会员侧业务（车次查询、下单、支付、退款、改签等）：user 或 admin 都可访问
+                    // /business/**     其余视为后台管理：仅 admin 可访问
+                    SaRouter.match("/member/**", r -> StpUtil.checkRoleOr("user", "admin"));
+                    SaRouter.match("/business/web/**", r -> StpUtil.checkRoleOr("user", "admin"));
+                    SaRouter.match("/business/**", "/business/web/**", r -> StpUtil.checkRole("admin"));
 
 
 

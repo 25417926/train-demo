@@ -6,5 +6,5 @@ spring:
   cloud:
     nacos:
       discovery:
-        server-addr: localhost:8848
+        server-addr: 192.168.184.130:8848
         namespace: train

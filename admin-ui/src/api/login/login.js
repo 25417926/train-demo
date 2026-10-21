@@ -9,10 +9,10 @@ export const SendCodes= async (email)=>{
         console.log(e);
     }
 }
-// 登录
+// 登录（带 source=admin，让后端走管理后台校验：禁止自动注册、必须有 admin 角色）
 export const LoginCode= async (data)=>{
     try {
-        const res = await instance.post("/auth/sso/login",data);
+        const res = await instance.post("/auth/sso/login", { ...data, source: 'admin' });
         return res.data
     } catch (e) {
         console.log("111")

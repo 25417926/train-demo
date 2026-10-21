@@ -85,12 +85,19 @@ public class StpInterfaceImpl implements StpInterface {
      */
     @Override
     public List<String> getRoleList(Object loginId, String loginType) {
-        // 返回此 loginId 拥有的角色列表
-
-        // todo 从 redis 获取
+        // 从 redis 读取 user:roles:{loginId}，AUTH 写入的是 List<String> 序列化后的 JSON 数组
         String useRolesValue = getString(loginId);
         List<String> roleList = new ArrayList<>();
-        roleList.add(useRolesValue);
+        if (StrUtil.isBlank(useRolesValue)) {
+            return roleList;
+        }
+        try {
+            // 优先按 JSON 数组解析
+            roleList.addAll(JSONUtil.toList(JSONUtil.parseArray(useRolesValue), String.class));
+        } catch (Exception e) {
+            // 兼容旧数据：写的是单个角色字符串
+            roleList.add(useRolesValue);
+        }
         return roleList;
     }
 
@@ -100,10 +107,15 @@ public class StpInterfaceImpl implements StpInterface {
         if(StrUtil.isBlank(key)){
             throw new RuntimeException("loginId为空");
         }
-        String useRolesValue = (String) redisTemplate.opsForValue().get(key);
-        if (StrUtil.isBlank(useRolesValue)) {
+        Object cacheValue = redisTemplate.opsForValue().get(key);
+        if (cacheValue == null) {
             return null;
         }
-        return useRolesValue;
+        // value 序列化器是 Jackson，AUTH 写入的是 List<String>，反序列化回来是 ArrayList
+        // 这里统一转成 JSON 字符串，让 getRoleList 用 JSONUtil 解析
+        if (cacheValue instanceof String) {
+            return (String) cacheValue;
+        }
+        return JSONUtil.toJsonStr(cacheValue);
     }
 }

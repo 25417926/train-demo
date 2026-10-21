@@ -42,7 +42,7 @@ export const PauseJob = async (name,group) => {
 }
 export const ResumeJob = async (record) => {
     try {
-        const res = await instance.post("/batch/job/reschedule",record);
+        const res = await instance.post("/batch/job/resume",record);
         return res.data
     } catch (e) {
         console.log(e);

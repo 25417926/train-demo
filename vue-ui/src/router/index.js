@@ -52,6 +52,14 @@ const routes = [
           requireAuth:true
         },
 
+      },
+      {
+        path: 'my-order',
+        component: ()=> import('@/views/HomeView/my-order.vue'),
+        meta:{
+          requireAuth:true
+        },
+
       }
     ]
   },

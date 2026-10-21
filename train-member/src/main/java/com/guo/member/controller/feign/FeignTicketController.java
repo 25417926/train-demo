@@ -1,15 +1,22 @@
 package com.guo.member.controller.feign;
 
+import cn.hutool.core.bean.BeanUtil;
 import com.guo.common.req.MemberTicketReq;
 import com.guo.common.req.ValidReq;
 import com.guo.common.resp.CommonResp;
 import com.guo.common.util.HttpStatus;
+import com.guo.member.domain.Ticket;
+import com.guo.member.resp.TicketQueryResp;
 import com.guo.member.service.TicketService;
 import com.guo.member.service.ValidCodeService;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.web.bind.annotation.*;
 
 import javax.annotation.Resource;
 import javax.validation.Valid;
+import java.util.Date;
+import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * @Description
@@ -17,7 +24,7 @@ import javax.validation.Valid;
  * @Date: 2025/1/7
  */
 @RestController
-@RequestMapping("/feign")
+@RequestMapping("/internal/feign")
 public class FeignTicketController {
     @Resource
     private TicketService ticketService;
@@ -59,5 +66,31 @@ public class FeignTicketController {
         ValidReq isValid =new ValidReq();
         isValid.setSuccess(validCodeService.isCodeExpired(req.getToken()));
         return isValid;
+    }
+
+    /**
+     * 按订单 key 查询车票（供 business 退票/退改签反查座位）
+     */
+    @GetMapping("/ticket/list-by-order")
+    public CommonResp<List<TicketQueryResp>> listByOrder(
+            @RequestParam("memberId") Long memberId,
+            @RequestParam("trainDate") @DateTimeFormat(pattern = "yyyy-MM-dd") Date trainDate,
+            @RequestParam("trainCode") String trainCode,
+            @RequestParam(value = "startStation", required = false) String startStation,
+            @RequestParam(value = "endStation", required = false) String endStation) {
+        List<Ticket> list = ticketService.selectByOrderKey(memberId, trainDate, trainCode, startStation, endStation);
+        List<TicketQueryResp> respList = list.stream()
+                .map(t -> BeanUtil.copyProperties(t, TicketQueryResp.class))
+                .collect(Collectors.toList());
+        return new CommonResp(true, "成功", respList, HttpStatus.SUCCESS);
+    }
+
+    /**
+     * 删除车票（供 business 退票流程使用）
+     */
+    @DeleteMapping("/ticket/del/{id}")
+    public CommonResp deleteTicket(@PathVariable Long id) {
+        ticketService.delete(id);
+        return new CommonResp(true, "成功", HttpStatus.SUCCESS);
     }
 }

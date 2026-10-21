@@ -16,7 +16,7 @@ import java.util.logging.Logger;
 
 @SpringBootApplication
 @ComponentScan("com.guo")
-@MapperScan("com.guo.*.mapper")
+
 @EnableFeignClients("com.guo.*.feign")
 public class BatchApplication {
     private static final Logger LOG = Logger.getLogger(BatchApplication.class.getName());

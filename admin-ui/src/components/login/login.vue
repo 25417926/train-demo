@@ -13,15 +13,7 @@
       </a-input>
     </a-form-item>
 
-    <a-form-item name="code" v-if="flag" :rules="[{ required: true, message: 'Please input the code!' }]">
-      <span style="margin-right: 8px">验证码:</span>
-      <div style="display: flex; align-items: center;">
-        <a-input v-model:value="formState.code" placeholder="请输入验证码" style="flex: 1; margin-right: 8px;"></a-input>
-        <a-button type="primary" @click="SendsCodes" :disabled="countdown > 0">{{ countdown ? `${countdown}秒后重发` : '获取验证码' }}</a-button>
-      </div>
-    </a-form-item>
-
-    <a-form-item name="password" v-else :rules="[{ required: true, message: 'Please input your password!' }]">
+    <a-form-item name="password" :rules="[{ required: true, message: 'Please input your password!' }]">
       <span style="margin-right: 8px">密码:</span>
       <a-input-password v-model:value="formState.password" placeholder="请输入密码">
         <template #prefix>
@@ -31,22 +23,21 @@
     </a-form-item>
 
     <a-form-item>
-      <div style="display: flex; justify-content: space-between;">
-        <a-checkbox v-model:checked="flag">验证码登录</a-checkbox>
+      <div style="display: flex; justify-content: flex-end;">
         <a-checkbox v-model:checked="formState.remember">记住我</a-checkbox>
       </div>
     </a-form-item>
 
     <a-form-item>
-      <a-button type="primary" html-type="submit" @click="login(formState.email, formState.password, formState.code)"
+      <a-button type="primary" html-type="submit" @click="login(formState.email, formState.password)"
                 style="width: 25%; margin: 0 auto;">Log in</a-button>
     </a-form-item>
   </a-form>
 </template>
 
 <script>
-import { reactive, ref } from "vue";
-import { LoginCode,SendCodes } from "@/api/login/login";
+import { reactive } from "vue";
+import { LoginCode } from "@/api/login/login";
 import { useRouter } from 'vue-router';
 import { UserOutlined, LockOutlined } from '@ant-design/icons-vue';
 import { message } from "ant-design-vue";
@@ -64,67 +55,28 @@ export default {
       email: '',
       password: '',
       remember: true,
-      code: '',
-      codes: null,
-      flesh: false,
     });
-    const flag = ref(true);
-    const SendCode = ref();
     const router = useRouter();
 
-    let countdown = ref(0);
-
-    const startCountdown = () => {
-      countdown.value = 60;
-      const timer = setInterval(() => {
-        if (countdown.value > 0) {
-          countdown.value--;
-        } else {
-          clearInterval(timer);
-        }
-      }, 1000);
-    };
-
-    const validateEmail = (email) => {
-      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-      return emailRegex.test(email);
-    };
-
-    const SendsCodes = async () => {
-      try {
-        // 验证邮箱是否为空
-        if (!formState.email) {
-          message.error('请输入邮箱');
-          return;
-        }
-
-        // 验证邮箱格式是否正确
-        if (!validateEmail(formState.email)) {
-          message.error('请输入正确的邮箱格式');
-          return;
-        }
-
-        const res = await SendCodes(formState.email);
-        if (res.code === 200) {
-          // SendCode.value = "data:image/gif;base64," + res.content || null;
-          startCountdown();
-          message.success('验证码发送成功');
-        }
-      } catch (e) {
-        console.log(e);
+    const login = async (email, password) => {
+      if (!email) {
+        message.error('请输入邮箱');
+        return;
       }
-    };
-
-    const login = async (email, password, code) => {
+      if (!password) {
+        message.error('请输入密码');
+        return;
+      }
       try {
-        const data = { email: email, password: password, code: code };
+        const data = { email, password };
         const res = await LoginCode(data);
-        if (res.code === 200) {
-          console.log(res)
-          message.success(res.message);
-          router.push('/');
+        if (res && res.code === 200) {
+          message.success(res.message || '登录成功');
           store.commit('Mobile/set_token', res.content.saToken);
           store.commit('Mobile/set_mobile', res.content.id);
+          await router.push('/welcome');
+        } else if (res) {
+          message.error(res.message || '登录失败');
         }
       } catch (e) {
         console.log(e);
@@ -132,12 +84,8 @@ export default {
     };
 
     return {
-      SendsCodes,
       login,
-      SendCode,
       formState,
-      countdown,
-      flag
     };
   },
 };

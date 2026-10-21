@@ -7,6 +7,8 @@ import com.guo.business.service.Confirm_OrderService;
 import com.guo.common.resp.CommonResp;
 import com.guo.common.resp.PageResp;
 import com.guo.common.util.HttpStatus;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.web.bind.annotation.*;
 
 import javax.annotation.Resource;
@@ -18,6 +20,7 @@ import javax.validation.Valid;
  * @Date: 2024/12/12
  */
 
+@Tag(name = "确认订单(后台)", description = "确认订单的基础 CRUD")
 @RestController
 @RequestMapping("/confirm-order")
 public class Confirm_OrderController {
@@ -34,6 +37,7 @@ public class Confirm_OrderController {
      * @return 返回一个CommonResp对象，表示保存操作的结果
      * 包含操作是否成功、提示信息以及HTTP状态码
      */
+    @Operation(summary = "保存确认订单(后台)")
     @PostMapping("/save")
     public CommonResp save(@Valid @RequestBody Confirm_OrderSaveReq req) {
 // 调用Confirm_OrderService的save方法来保存乘客信息
@@ -56,6 +60,7 @@ public class Confirm_OrderController {
      * @param req 经过验证的乘客查询请求对象，包含查询所需的各种参数
      * @return 返回一个通用响应对象，其中包含查询结果列表
      */
+    @Operation(summary = "确认订单分页查询")
     @GetMapping("/Query-List")
     public CommonResp<PageResp<Confirm_OrderQueryResp>> list(@Valid Confirm_OrderQueryReq req) {
         // 设置查询请求中的成员ID为当前登录成员的ID
@@ -69,6 +74,7 @@ public class Confirm_OrderController {
         return commonResp;
     }
 
+    @Operation(summary = "查询订单排队人数")
     @GetMapping("/Query-Line-count/{id}")
     public CommonResp<Integer> list(@PathVariable Long id) {
         // 设置查询请求中的成员ID为当前登录成员的ID
@@ -88,6 +94,7 @@ public class Confirm_OrderController {
     //        CommonResp commonResp = new CommonResp(true, "成功",HttpStatus.SUCCESS);
     //        return commonResp;
     //    }
+    @Operation(summary = "删除确认订单")
     @DeleteMapping("/del/{id}")
     public CommonResp delete(@PathVariable Long id) {
         // 调用Confirm_OrderService的save方法来保存乘客信息

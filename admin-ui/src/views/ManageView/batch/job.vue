@@ -12,6 +12,9 @@
              :columns="columns"
              :loading="loading">
       <template #bodyCell="{ column, record }">
+        <template v-if="column.dataIndex === 'name'">
+          {{ getJobLabel(record.name) }}
+        </template>
         <template v-if="column.dataIndex === 'operation'">
           <a-space>
             <a-popconfirm
@@ -63,14 +66,19 @@
     </a-table>
 
     <a-modal
-        title="用户"
+        title="定时任务"
         v-model:visible="modalVisible"
         :confirm-loading="modalLoading"
         @ok="handleModalOk"
     >
       <a-form :model="job" :label-col="{ span: 6 }" :wrapper-col="{ span: 18 }">
         <a-form-item label="类名">
-          <a-input v-model:value="job.name" />
+          <a-select v-if="!job.state" v-model:value="job.name">
+            <a-select-option v-for="item in JOB_OPTIONS" :key="item.value" :value="item.value">
+              {{ item.label }}
+            </a-select-option>
+          </a-select>
+          <a-input v-else v-model:value="job.name" disabled />
         </a-form-item>
         <a-form-item label="描述">
           <a-input v-model:value="job.description" />
@@ -99,6 +107,18 @@ import { notification } from 'ant-design-vue';
 export default defineComponent({
   name: 'batch-job-view',
   setup () {
+    const JOB_OPTIONS = [
+      {
+        value: 'DailyTrainJob',
+        label: '每日车次生成',
+        aliases: ['com.guo.batch.job.DailyTrainJob', '1']
+      },
+      {
+        value: 'testJob',
+        label: '测试任务',
+        aliases: ['com.guo.batch.job.testJob', '2']
+      }
+    ];
     const jobs = ref();
     const loading = ref();
 
@@ -160,7 +180,7 @@ export default defineComponent({
         notification.success({description: "保存成功！"});
         handleQuery();
       } else {
-        notification.success({description: "保存失败！"});
+        notification.error({description: data.message || "保存失败！"});
       }
     };
 
@@ -170,7 +190,8 @@ export default defineComponent({
     const handleAdd = () => {
       modalVisible.value = true;
       job.value = {
-        group: 'DEFAULT'
+        group: 'DEFAULT',
+        name: JOB_OPTIONS[0].value
       };
     };
 
@@ -191,7 +212,7 @@ export default defineComponent({
         notification.success({description: "删除成功！"});
         handleQuery();
       } else {
-        notification.success({description: "删除失败！"});
+        notification.error({description: data.message || "删除失败！"});
       }
     };
 
@@ -204,7 +225,7 @@ export default defineComponent({
         notification.success({description: "暂停成功！"});
         handleQuery();
       } else {
-        notification.success({description: "暂停失败！"});
+        notification.error({description: data.message || "暂停失败！"});
       }
     };
 
@@ -232,12 +253,17 @@ export default defineComponent({
       if (data.success) {
         notification.success({description: "手动执行成功！"});
       } else {
-        notification.success({description: "手动执行失败！"});
+        notification.error({description: data.message || "手动执行失败！"});
       }
     };
 
     const getEnumValue = (key, obj) => {
       return window.Tool.getEnumValue(key, obj);
+    };
+
+    const getJobLabel = (name) => {
+      const option = JOB_OPTIONS.find(item => item.value === name || item.aliases.includes(name));
+      return option ? option.label : name;
     };
 
     onMounted(() => {
@@ -261,7 +287,9 @@ export default defineComponent({
       modalLoading,
       handleModalOk,
       getEnumValue,
-      handleRun
+      handleRun,
+      JOB_OPTIONS,
+      getJobLabel
     };
   }
 })

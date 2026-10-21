@@ -7,6 +7,7 @@ import com.guo.common.util.HttpStatus;
 import com.guo.member.req.TicketQueryReq;
 import com.guo.member.resp.TicketQueryResp;
 import com.guo.member.service.TicketService;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -20,6 +21,7 @@ import javax.validation.Valid;
  * @Date: 2024/12/12
  */
 
+@Tag(name = "我的车票(C 端)", description = "当前会员名下车票查询")
 @RestController
 @RequestMapping("/ticket")
 public class TicketController {

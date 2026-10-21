@@ -36,59 +36,62 @@ public class Daily_TrainService {
     @Resource
     private trainService trainService;
     @Resource
-    private Daily_Train_StationService DailyTrainStationService;
+    private train_seatService train_seatService;
     @Resource
-    private Daily_Train_CarriageService Daily_Train_CarriageService;
+    private Daily_Train_StationService dailyTrainStationService;
     @Resource
-    private Daily_Train_SeatService Daily_Train_SeatService;
+    private Daily_Train_CarriageService dailyTrainCarriageService;
     @Resource
-    private Daily_Train_TicketService Daily_Train_TicketService;
+    private Daily_Train_SeatService dailyTrainSeatService;
     @Resource
-    private Sk_TokenService sk_tokenService;
+    private Daily_Train_TicketService dailyTrainTicketService;
+    @Resource
+    private Sk_TokenService skTokenService;
+
+    @Transactional
     public void save(Daily_TrainSaveReq req) {
         DateTime now = DateTime.now();
-        Daily_Train daily_Train = BeanUtil.copyProperties(req, Daily_Train.class);
-        String type = TrainTypeEnum.fromCode(null,req.getType()).getCode();
-        if (ObjectUtil.isNull(daily_Train.getId())) {
+        Daily_Train dailyTrain = BeanUtil.copyProperties(req, Daily_Train.class);
+        String type = TrainTypeEnum.fromCode(null, req.getType()).getCode();
 
-            daily_Train.setId(SnowUtil.getSnowflakeNextId());
-            daily_Train.setType(type);
-            daily_Train.setCreateTime(now);
-            daily_Train.setUpdateTime(now);
-            daily_TrainMapper.insert(daily_Train);
+        if (ObjectUtil.isNull(dailyTrain.getId())) {
+            dailyTrain.setId(SnowUtil.getSnowflakeNextId());
+            dailyTrain.setType(type);
+            dailyTrain.setCreateTime(now);
+            dailyTrain.setUpdateTime(now);
+            daily_TrainMapper.insert(dailyTrain);
         } else {
-
-            daily_Train.setType(type);
-            daily_Train.setUpdateTime(now);
-            daily_TrainMapper.updateByPrimaryKey(daily_Train);
+            dailyTrain.setType(type);
+            dailyTrain.setUpdateTime(now);
+            daily_TrainMapper.updateByPrimaryKey(dailyTrain);
         }
+
+        generateDailyAssociatedData(dailyTrain);
     }
 
     public PageResp<Daily_TrainQueryResp> QueryList(Daily_TrainQueryReq req) {
-        Daily_TrainExample daily_TrainExample = new Daily_TrainExample();
-        daily_TrainExample.setOrderByClause("date desc ,code asc");
-        Daily_TrainExample.Criteria criteria = daily_TrainExample.createCriteria();
-        if(ObjectUtil.isNotNull(req.getDate())) {
+        Daily_TrainExample dailyTrainExample = new Daily_TrainExample();
+        dailyTrainExample.setOrderByClause("date desc ,code asc");
+        Daily_TrainExample.Criteria criteria = dailyTrainExample.createCriteria();
+        if (ObjectUtil.isNotNull(req.getDate())) {
             criteria.andDateEqualTo(req.getDate());
         }
         if (ObjectUtil.isNotEmpty(req.getCode())) {
             criteria.andCodeEqualTo(req.getCode());
         }
-        LOG.info("查询页码：{}", req.getPage());
-        LOG.info("每页条数：{}", req.getSize());
+        LOG.info("query page: {}", req.getPage());
+        LOG.info("query size: {}", req.getSize());
         PageHelper.startPage(req.getPage(), req.getSize());
-        List<Daily_Train> daily_TrainList = daily_TrainMapper.selectByExample(daily_TrainExample);
+        List<Daily_Train> dailyTrainList = daily_TrainMapper.selectByExample(dailyTrainExample);
 
-        PageInfo<Daily_Train> pageInfo = new PageInfo<>(daily_TrainList);
-        LOG.info("总行数：{}", pageInfo.getTotal());
-        LOG.info("总页数：{}", pageInfo.getPages());
+        PageInfo<Daily_Train> pageInfo = new PageInfo<>(dailyTrainList);
+        LOG.info("query total: {}", pageInfo.getTotal());
+        LOG.info("query pages: {}", pageInfo.getPages());
 
-        List<Daily_TrainQueryResp> list = BeanUtil.copyToList(daily_TrainList, Daily_TrainQueryResp.class)
-                .stream().peek(
-                        resp -> {
-                            resp.setType(TrainTypeEnum.fromCode(resp.getType(),null).getDesc());
-                        }
-                ).collect(Collectors.toList());
+        List<Daily_TrainQueryResp> list = BeanUtil.copyToList(dailyTrainList, Daily_TrainQueryResp.class)
+                .stream()
+                .peek(resp -> resp.setType(TrainTypeEnum.fromCode(resp.getType(), null).getDesc()))
+                .collect(Collectors.toList());
 
         PageResp<Daily_TrainQueryResp> pageResp = new PageResp<>();
         pageResp.setTotal(pageInfo.getTotal());
@@ -100,54 +103,47 @@ public class Daily_TrainService {
         daily_TrainMapper.deleteByPrimaryKey(id);
     }
 
-    /**
-     * 生成某日所以车次信息,包括车次，车厢等
-     * @param date
-     */
     public void gen_daily(Date date) {
-
         List<train> trainList = trainService.selectAll();
-        if(CollUtil.isEmpty(trainList)){
-            LOG.error("没有车次数据信息,任务结束");
+        if (CollUtil.isEmpty(trainList)) {
+            LOG.error("No base train data, skip daily generation");
             return;
         }
-        for(train train : trainList){
-            gen_dailyTrain(date,train);
+        for (train train : trainList) {
+            gen_dailyTrain(date, train);
         }
-
     }
+
     @Transactional
-    public void gen_dailyTrain(Date date,train train) {
+    public void gen_dailyTrain(Date date, train train) {
         DateTime now = DateTime.now();
-        Daily_TrainExample daily_TrainExample = new Daily_TrainExample();
-        Daily_TrainExample.Criteria criteria = daily_TrainExample.createCriteria();
-        String code = train.getCode();
-
-        criteria
+        Daily_TrainExample dailyTrainExample = new Daily_TrainExample();
+        dailyTrainExample.createCriteria()
                 .andDateEqualTo(date)
-                .andCodeEqualTo(code);
-        //删除该车次已有数据
-        daily_TrainMapper.deleteByExample(daily_TrainExample);
-        //生成该车次的数据
-        Daily_Train daily_Train = BeanUtil.copyProperties(train, Daily_Train.class);
-        daily_Train.setId(SnowUtil.getSnowflakeNextId());
-        daily_Train.setCreateTime(now);
-        daily_Train.setUpdateTime(now);
-        daily_Train.setDate(date);
-        daily_TrainMapper.insert(daily_Train);
+                .andCodeEqualTo(train.getCode());
 
-        //生成该车次车站的数据
-        DailyTrainStationService.genDaily(date, code);
-        //生成该车次车厢的数据
-        Daily_Train_CarriageService.genDaily(date, code);
-        //生成该车次座位的数据
-        Daily_Train_SeatService.genDaily(date, code);
-        //生成该车次余票的数据
-        Daily_Train_TicketService.genDaily(daily_Train,date, code);
-        //生成该车次令牌数据
-        sk_tokenService.genDaily(date, code);
+        daily_TrainMapper.deleteByExample(dailyTrainExample);
+
+        Daily_Train dailyTrain = BeanUtil.copyProperties(train, Daily_Train.class);
+        dailyTrain.setId(SnowUtil.getSnowflakeNextId());
+        dailyTrain.setCreateTime(now);
+        dailyTrain.setUpdateTime(now);
+        dailyTrain.setDate(date);
+        daily_TrainMapper.insert(dailyTrain);
+
+        generateDailyAssociatedData(dailyTrain);
     }
 
+    private void generateDailyAssociatedData(Daily_Train dailyTrain) {
+        Date date = dailyTrain.getDate();
+        String code = dailyTrain.getCode();
 
-
+        // Refresh base seats first so daily data always matches latest carriage setup.
+        train_seatService.genSeat(code);
+        dailyTrainStationService.genDaily(date, code);
+        dailyTrainCarriageService.genDaily(date, code);
+        dailyTrainSeatService.genDaily(date, code);
+        dailyTrainTicketService.genDaily(dailyTrain, date, code);
+        skTokenService.genDaily(date, code);
+    }
 }

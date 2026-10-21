@@ -56,7 +56,7 @@ public class Sk_TokenService {
      */
     public void genDaily(Date date, String trainCode) {
         // 记录生成令牌信息的开始日志
-        LOG.info("生成日期【{}】车次【{}】的令牌信息开始", DateUtil.formatDate(date), trainCode);
+        LOG.debug("生成日期【{}】车次【{}】的令牌信息开始", DateUtil.formatDate(date), trainCode);
 
         // 获取当前时间，用于记录创建和更新时间
         DateTime now = DateTime.now();
@@ -82,17 +82,17 @@ public class Sk_TokenService {
         // 计算车次的座位数
         int SeatCount = daily_Train_SeatService.CountSeats(date, trainCode);
         // 记录车次和座位数的日志
-        LOG.info("车次 {}，座位数 {}", trainCode, SeatCount);
+        LOG.debug("车次 {}，座位数 {}", trainCode, SeatCount);
 
         // 计算车次的站点数
         long countByTrainCode = daily_train_stationService.countByTrainCode(date, trainCode);
         // 记录车次和站点数的日志
-        LOG.info("车次 {}，站数 {}", trainCode, countByTrainCode);
+        LOG.debug("车次 {}，站数 {}", trainCode, countByTrainCode);
 
         // 根据站点数和座位数计算令牌数量
         int count = (int) (countByTrainCode * SeatCount);
         // 记录车次和令牌数的日志
-        LOG.info("车次 {}，令牌数 {}", trainCode, count);
+        LOG.debug("车次 {}，令牌数 {}", trainCode, count);
         sk_Token.setCount(count);
         String SkTokenCountKey = LockKeyPreEnum.SK_TOKEN_COUNT.getCode() + date + "-" + trainCode;
         redisTemplate.opsForValue().set(SkTokenCountKey, count, 100, TimeUnit.MINUTES);
@@ -118,15 +118,14 @@ public class Sk_TokenService {
         Sk_TokenExample sk_TokenExample = new Sk_TokenExample();
         sk_TokenExample.setOrderByClause("id desc");
         Sk_TokenExample.Criteria criteria = sk_TokenExample.createCriteria();
-
-        LOG.info("查询页码：{}", req.getPage());
-        LOG.info("每页条数：{}", req.getSize());
+        LOG.debug("查询页码：{}", req.getPage());
+        LOG.debug("每页条数：{}", req.getSize());
         PageHelper.startPage(req.getPage(), req.getSize());
         List<Sk_Token> sk_TokenList = sk_TokenMapper.selectByExample(sk_TokenExample);
 
         PageInfo<Sk_Token> pageInfo = new PageInfo<>(sk_TokenList);
-        LOG.info("总行数：{}", pageInfo.getTotal());
-        LOG.info("总页数：{}", pageInfo.getPages());
+        LOG.debug("总行数：{}", pageInfo.getTotal());
+        LOG.debug("总页数：{}", pageInfo.getPages());
 
         List<Sk_TokenQueryResp> list = BeanUtil.copyToList(sk_TokenList, Sk_TokenQueryResp.class);
 
@@ -164,9 +163,9 @@ public boolean validToken(Date date, String trainCode, Long memberId) {
         tryLock = lock.tryLock(0, 5, TimeUnit.SECONDS);
 
         if (Boolean.TRUE.equals(tryLock)) {
-            LOG.info("key:{} 抢到锁了", lockKey);
+            LOG.debug("key:{} 抢到锁了", lockKey);
         } else {
-            LOG.info("key:{} 没抢到锁", lockKey);
+            LOG.debug("key:{} 没抢到锁", lockKey);
             return false;
         }
         // 构造令牌计数的键值，用于追踪指定日期和列车的令牌数量
@@ -174,7 +173,7 @@ public boolean validToken(Date date, String trainCode, Long memberId) {
         // 从Redis中获取当前令牌计数
         Object RedisTokenCount = redisTemplate.opsForValue().get(SkTokenCountKey);
         if (ObjectUtil.isNotNull(RedisTokenCount)) {
-            LOG.info("缓存内有RedisTokenCount:{}", RedisTokenCount);
+            LOG.debug("缓存内有RedisTokenCount:{}", RedisTokenCount);
             // 检查令牌数量是否大于0
             if (Integer.parseInt(RedisTokenCount.toString()) > 0) {
                 LOG.info("RedisTokenCount:{}", RedisTokenCount);
@@ -185,7 +184,7 @@ public boolean validToken(Date date, String trainCode, Long memberId) {
                     LOG.error("获取令牌失败{}", SkTokenCountKey);
                     return false;
                 } else {
-                    LOG.error("获取令牌成功{},令牌剩余{}", SkTokenCountKey, decrement);
+                    LOG.info("获取令牌成功{},令牌剩余{}", SkTokenCountKey, decrement);
                     // 当令牌剩余数量是5的倍数时，调用减少令牌大闸的数量
                     if (decrement % 5 == 0) {
                         CUST_Sk_TokenMapper.decrease(date, trainCode, 5);
@@ -193,34 +192,39 @@ public boolean validToken(Date date, String trainCode, Long memberId) {
                     return true;
                 }
             } else {
-                LOG.info("缓存中并没有该车次的令牌大闸key:{}", RedisTokenCount);
+                LOG.error("缓存中并没有该车次的令牌大闸key:{}", RedisTokenCount);
                 // 如果缓存中没有令牌大闸，从数据库中查询
                 Sk_TokenExample example = new Sk_TokenExample();
                 Sk_TokenExample.Criteria criteria = example.createCriteria();
                 criteria.andDateEqualTo(date).andTrainCodeEqualTo(trainCode);
                 List<Sk_Token> list = sk_TokenMapper.selectByExample(example);
                 if (CollUtil.isEmpty(list)) {
-                    LOG.info("数据库中并没有该车次的令牌大闸");
+                    LOG.error("数据库中并没有该车次的令牌大闸");
                     return false;
                 }
                 Sk_Token sk_Token = list.get(0);
                 if(sk_Token.getCount()<= 0){
-                    LOG.info("数据库中该车次的令牌大闸数量为0");
+                    LOG.error("数据库中该车次的令牌大闸数量为0");
                     return false;
                 }
 
                 // 减少数据库中的令牌大闸数量，并更新到Redis中
                 Integer count = sk_Token.getCount() - 1;
                 sk_Token.setCount(count);
-                LOG.info("数据库中车次{}的令牌大闸减1后剩余{}", trainCode, count);
+                LOG.debug("数据库中车次{}的令牌大闸减1后剩余{}", trainCode, count);
                 redisTemplate.opsForValue().set(SkTokenCountKey, count, 60, TimeUnit.MINUTES);
-                sk_TokenMapper.selectByPrimaryKey(sk_Token.getId());
+                sk_TokenMapper.updateByPrimaryKey(sk_Token);
                 return true;
             }
         }
 //        return updateCounts > 0;
     } catch (InterruptedException e) {
         throw new RuntimeException(e);
+    } finally {
+       //判断锁是否被当前线程持有和锁是否存在，如果持有则释放锁
+        if (null != lock && lock.isHeldByCurrentThread()) {
+            lock.unlock();
+        }
     }
     return false;
 }

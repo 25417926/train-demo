@@ -44,7 +44,7 @@ public class AuthService {
     private final Logger log = LoggerFactory.getLogger(AuthService.class);
 
     @Resource
-    private RedisTemplate<Object, Object> redisTemplate;
+    private RedisTemplate<String, Object> redisTemplate;
     @Resource
     private MemberMapper memberMapper;
     @Resource
@@ -59,33 +59,59 @@ public class AuthService {
         //这里因为之前的业务是使用手机号，后续更新可能会改回手机号，也可以双切
         example.createCriteria().andEmailEqualTo(user.getEmail());
         List<Member> list = memberMapper.selectByExample(example);
-        if(StrUtil.isNotBlank(user.getPassword())){
+
+        boolean useCode = StrUtil.isNotBlank(user.getCode());
+        boolean usePwd  = StrUtil.isNotBlank(user.getPassword());
+        boolean fromAdmin = "admin".equalsIgnoreCase(user.getSource());
+
+        // 验证码登录：先校验 redis 里的验证码，校验通过后再删
+        if (useCode) {
+            Object cacheCode = redisTemplate.opsForValue().get(user.getEmail());
+            if (cacheCode == null) {
+                throw new ExceptionConsole(ExceptionEnum.MEMBER_CODE_EXPIRED);
+            }
+            if (!user.getCode().equals(String.valueOf(cacheCode))) {
+                throw new ExceptionConsole(ExceptionEnum.MEMBER_CODE_ERROR);
+            }
             redisTemplate.delete(user.getEmail());
         }
-        if (ObjectUtil.isNotEmpty(user.getCode()) && !redisTemplate.opsForValue().get(user.getEmail()).equals(user.getCode())) {
-            throw new ExceptionConsole(ExceptionEnum.MEMBER_CODE_ERROR);
-        }
 
-        redisTemplate.delete(user.getEmail());
-        Member member ;
+        Member member;
         if (CollUtil.isEmpty(list)) {
+            // admin 端：禁止自动注册，账号不存在直接拒绝
+            if (fromAdmin) {
+                throw new ExceptionConsole(ExceptionEnum.MEMBER_NOT_EXIST);
+            }
+            // 会员端：仅当走验证码流程时允许自动注册
+            if (!useCode) {
+                throw new ExceptionConsole(ExceptionEnum.MEMBER_NOT_EXIST);
+            }
             member = register(user);
-        }else{
+        } else {
             member = list.get(0);
         }
-        if (StrUtil.isNotBlank(user.getPassword())) {
+
+        if (usePwd) {
             log.info("用户使用邮箱密码登录");
-            //这里使用redis存储邮箱
             if (!PwdAESCryUtil.decrypt(member.getPassword()).equals(user.getPassword())) {
                 throw new ExceptionConsole(ExceptionEnum.MEMBER_PASSWORD_ERROR);
             }
         }
-        if (StrUtil.isNotBlank(user.getCode())) {
+        if (useCode) {
             log.info("用户使用短信登录");
-
         }
+
+        // 登录成功后写入"用户角色"缓存
+        List<String> roles = userRoleRelationMapper.selectRoleByUserId(member.getId());
+
+        // admin 端：要求账户具备 admin 角色，否则拒绝
+        if (fromAdmin && (CollUtil.isEmpty(roles) || !roles.contains("admin"))) {
+            log.warn("非 admin 账户尝试登录管理后台，userId={}, roles={}", member.getId(), roles);
+            throw new ExceptionConsole(ExceptionEnum.ADMIN_ONLY);
+        }
+
         StpUtil.login(member.getId());
-        redisTemplate.opsForValue().set(RedisKeyConstants.buildUserRolesKey(member.getId()), userRoleRelationMapper.selectRoleByUserId(member.getId()));
+        redisTemplate.opsForValue().set(RedisKeyConstants.buildUserRolesKey(member.getId()), roles);
         UserResp userResp = new UserResp();
         userResp.setId(String.valueOf(member.getId()));
         userResp.setSaToken(StpUtil.getTokenValue());
@@ -114,7 +140,7 @@ public class AuthService {
             if (redisTemplate.hasKey(email)) {
                 redisTemplate.delete(email);
             }
-            redisTemplate.opsForValue().set(email, captchaCode, 60, TimeUnit.SECONDS);
+            redisTemplate.opsForValue().set(email, captchaCode, 5, TimeUnit.MINUTES);
             emailService.send("12306", "254179262@qq.com", email, "验证码", "本次的验证码为:" + captchaCode, false, null, null, null);
             return bos.toByteArray();
         }
@@ -128,8 +154,8 @@ public class AuthService {
             }
             log.info("用户使用短信注册");
             MemberExample example = new MemberExample();
-            //这里因为之前的业务是使用手机号，后续更新可能会改回手机号，也可以双切
-            example.createCriteria().andMobileEqualTo(user.getEmail());
+            // 注册唯一性按邮箱判定（之前误写成了 mobile，导致同邮箱可重复注册并写入随机手机号）
+            example.createCriteria().andEmailEqualTo(user.getEmail());
             List<Member> list = memberMapper.selectByExample(example);
             if (CollUtil.isNotEmpty(list)) {
                 throw new ExceptionConsole(ExceptionEnum.MEMBER_EXIST);
@@ -155,7 +181,7 @@ public class AuthService {
             List<Long> roles = Lists.newArrayList();
             roles.add(userRoleRel.getRoleId());
             //将用户的权限id存到redis中，方便后续使用
-            redisTemplate.opsForValue().set(member.getId(), JSONUtil.toJsonStr(roles));
+            redisTemplate.opsForValue().set(String.valueOf(member.getId()), JSONUtil.toJsonStr(roles));
             return member;
     }
 }

@@ -37,6 +37,7 @@
             <a-menu-item key="passenger" ><router-link to="/passenger">乘车人管理</router-link></a-menu-item>
             <a-menu-item key="ticket"><router-link to="/ticket">余票查询</router-link></a-menu-item>
             <a-menu-item key="/my-ticket"><router-link to="/my-ticket">我的车票</router-link></a-menu-item>
+            <a-menu-item key="/my-order"><router-link to="/my-order">我的订单</router-link></a-menu-item>
           </a-sub-menu>
         </a-menu>
       </a-layout-sider>
@@ -44,7 +45,7 @@
         <a-layout-content
             :style="{ background: '#fff',padding: '24px',  margin: 0, minHeight: '280px' }"
         >
-          <a-modal v-model:visible="visible" >
+          <a-modal v-model:visible="visible" :footer="null" title="AI 助手">
             <AiChat/>
           </a-modal>
           <router-view/>
@@ -127,11 +128,5 @@ export default defineComponent({
 }
 .layout:hover{
   color: #3ff;
-}
-.ant-modal-body {
-  padding: 0;
-}
-.ant-modal-footer{
-  display: none;
 }
 </style>

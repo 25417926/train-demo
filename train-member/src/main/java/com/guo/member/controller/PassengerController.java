@@ -10,6 +10,7 @@ import com.guo.member.req.PassengerSaveReq;
 import com.guo.member.resp.PassengerQueryResp;
 import com.guo.member.service.ChatService;
 import com.guo.member.service.PassengerService;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
@@ -23,6 +24,7 @@ import java.util.List;
  * @Date: 2024/12/12
  */
 
+@Tag(name = "乘车人管理", description = "当前会员名下乘车人增删改查")
 @RestController
 @RequestMapping("/Passenger")
 public class PassengerController {

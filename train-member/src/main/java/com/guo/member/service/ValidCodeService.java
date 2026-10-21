@@ -23,7 +23,7 @@ public class ValidCodeService {
         String redisCode = (String) redisTemplate.opsForValue().get(token);
         LOG.info("redisCode:{},code:{}", redisCode, code);
         // 验证码校验
-        if (redisCode.equalsIgnoreCase(code)) {
+        if (redisCode != null && redisCode.equalsIgnoreCase(code)) {
             redisTemplate.delete(token);
             LOG.info("验证码正确，放行");
             return true;

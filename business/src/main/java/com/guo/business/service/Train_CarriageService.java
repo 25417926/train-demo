@@ -50,12 +50,14 @@ public class Train_CarriageService {
      */
     public void save(Train_CarriageSaveReq req) {
         DateTime now = DateTime.now();
-        String code = TrainCarriageTypeEnum.fromCode(null,req.getSeatType()).getCode();
-        String type = TrainSeatTypeEnum.fromCode(null,null,code).getType();
+        String code = resolveSeatTypeCode(req.getSeatType());
+        String type = TrainSeatTypeEnum.fromCode(null, null, code).getType();
         // 根据座位类型获取列数，并计算总座位数
+        req.setSeatType(code);
         req.setColCount(TrainSeatTypeEnum.getColsByType(type).size());
         req.setSeatCount(req.getRowCount() * req.getColCount());
         Train_Carriage train_Carriage = BeanUtil.copyProperties(req, Train_Carriage.class);
+        train_Carriage.setSeatType(code);
 
         if (ObjectUtil.isEmpty(train_Carriage.getId())) {
             Train_Carriage CarriageDB = selectByUnique(train_Carriage.getTrainCode(),train_Carriage.getIndex());
@@ -102,8 +104,7 @@ public class Train_CarriageService {
         // 将查询结果转换为响应对象，并设置座位类型描述
         List<Train_CarriageQueryResp> list = BeanUtil.copyToList(train_CarriageList, Train_CarriageQueryResp.class).stream().map(
                 resp -> {
-                    String type = TrainCarriageTypeEnum.fromCode(resp.getSeatType(), null).getDesc();
-                    resp.setSeatType(type);
+                    resp.setSeatType(resolveSeatTypeCode(resp.getSeatType()));
                     return resp;
                 }
         ).collect(Collectors.toList());
@@ -127,7 +128,7 @@ public class Train_CarriageService {
 
         criteria.andTrainCodeEqualTo(TrainCode);
         List<Train_Carriage> trainCarriages = train_CarriageMapper.selectByExample(train_CarriageExample);
-        return trainCarriages;
+        return normalizeSeatType(trainCarriages);
 
     }
     private Train_Carriage selectByUnique(String trainCode ,Integer index) {
@@ -162,6 +163,23 @@ public class Train_CarriageService {
 //        }else{
 //            return list.get(0);
 //        }
-        return train_CarriageMapper.selectByExample(Train_CarriageExample);
+        return normalizeSeatType(train_CarriageMapper.selectByExample(Train_CarriageExample));
+    }
+
+    private String resolveSeatTypeCode(String seatType) {
+        if (ObjectUtil.isEmpty(seatType)) {
+            throw new ExceptionConsole(ExceptionEnum.PARAM_NOT_VALID);
+        }
+        try {
+            return TrainCarriageTypeEnum.fromCode(seatType, seatType).getCode();
+        } catch (IllegalArgumentException e) {
+            throw new ExceptionConsole(ExceptionEnum.PARAM_NOT_VALID);
+        }
+    }
+
+    private List<Train_Carriage> normalizeSeatType(List<Train_Carriage> trainCarriages) {
+        return trainCarriages.stream()
+                .peek(trainCarriage -> trainCarriage.setSeatType(resolveSeatTypeCode(trainCarriage.getSeatType())))
+                .collect(Collectors.toList());
     }
 }

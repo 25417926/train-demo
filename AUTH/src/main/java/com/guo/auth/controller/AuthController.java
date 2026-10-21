@@ -7,12 +7,14 @@ import com.guo.auth.service.AuthService;
 import com.guo.common.context.LoginMemberContext;
 import com.guo.common.resp.CommonResp;
 import com.guo.common.util.HttpStatus;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import org.apache.ibatis.annotations.Param;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import javax.annotation.Resource;
 
+@Tag(name = "认证授权", description = "登录/单点登录/邮箱验证码")
 @RestController
 public class AuthController {
 

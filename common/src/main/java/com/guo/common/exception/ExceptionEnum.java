@@ -38,7 +38,15 @@ public enum ExceptionEnum {
     TRAIN_NOT_EXIST(HttpStatus.CONFLICT, "车次不存在"),
     TICKET_NOT_EXIST(HttpStatus.CONFLICT, "余票不存在"),
     TRAIN_TICKET_EXIST(HttpStatus.CONFLICT, "请勿重复购买"),
-    MEMBER_TYPE_ERROR(HttpStatus.CONFLICT, "登录类型错误");
+    MEMBER_TYPE_ERROR(HttpStatus.CONFLICT, "登录类型错误"),
+    ORDER_NOT_EXIST(HttpStatus.NOT_FOUND, "订单不存在"),
+    ORDER_STATUS_ERROR(HttpStatus.CONFLICT, "订单状态不允许此操作"),
+    PAYMENT_NOT_EXIST(HttpStatus.NOT_FOUND, "支付记录不存在"),
+    PAYMENT_ALREADY_DONE(HttpStatus.CONFLICT, "订单已支付"),
+    REFUND_ALREADY_DONE(HttpStatus.CONFLICT, "订单已退款"),
+    CHANGE_ALREADY_DONE(HttpStatus.CONFLICT, "订单已改签"),
+    ORDER_MEMBER_ERROR(HttpStatus.CONFLICT, "订单用户与登录用户不一致"),
+    ADMIN_ONLY(HttpStatus.UNAUTHORIZED, "该账号无管理后台访问权限");
 
 
     @Getter
