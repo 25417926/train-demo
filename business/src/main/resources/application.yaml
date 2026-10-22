@@ -14,7 +14,7 @@ spring:
     stream:
       default-binder: rocketmq
       function:
-        definition: txProbeConsumer
+        definition: txProbeConsumer;purchaseConfirmConsumer
       bindings:
         txProbeProducer-out-0:
           destination: TX_PROBE_TOPIC
@@ -28,6 +28,14 @@ spring:
           destination: order-confirm
           producer:
             group: business-order-confirm
+        # I08 ORDER_CONFIRM 消费组：重投 5 次后转 %DLQ%business-order-confirm
+        purchaseConfirmConsumer-in-0:
+          destination: order-confirm
+          group: business-order-confirm
+          consumer:
+            concurrency: 4
+            # 重投由消费端计数控制，关闭进程内重试，避免次数被放大
+            maxAttempts: 1
       rocketmq:
         binder:
           name-server: ${rocketmq.name-server}
@@ -48,6 +56,12 @@ spring:
               producerType: Trans
               transactionListener: purchaseConfirmTransactionListener
               sendMsgTimeout: 3000
+          # I08 消费端：延迟等级 1（重投退避由 RocketMQ 负责）
+          purchaseConfirmConsumer-in-0:
+            consumer:
+              push:
+                maxReconsumeTimes: 5
+                delayLevelWhenNextConsume: 1
   mvc:
     pathmatch:
       matching-strategy: ant_path_matcher
