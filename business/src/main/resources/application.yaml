@@ -23,6 +23,11 @@ spring:
         txProbeConsumer-in-0:
           destination: TX_PROBE_TOPIC
           group: tx-probe-consumer
+        # I06 受理事务消息：ORDER_CONFIRM
+        purchaseConfirmProducer-out-0:
+          destination: order-confirm
+          producer:
+            group: business-order-confirm
       rocketmq:
         binder:
           name-server: ${rocketmq.name-server}
@@ -36,6 +41,13 @@ spring:
           txProbeConsumer-in-0:
             consumer:
               group: tx-probe-consumer
+          # I06 受理事务消息：半消息 + 本地事务 + 回查
+          purchaseConfirmProducer-out-0:
+            producer:
+              group: business-order-confirm
+              producerType: Trans
+              transactionListener: purchaseConfirmTransactionListener
+              sendMsgTimeout: 3000
   mvc:
     pathmatch:
       matching-strategy: ant_path_matcher

@@ -12,6 +12,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
@@ -40,12 +41,14 @@ public class InventoryService {
     private final DefaultRedisScript<List> reserveScript;
     private final DefaultRedisScript<List> releaseScript;
     private final DefaultRedisScript<List> confirmScript;
+    private final DefaultRedisScript<Long> abortScript;
 
     public InventoryService(StringRedisTemplate redis) {
         this.redis = redis;
         this.reserveScript = load("lua/reserve.lua");
         this.releaseScript = load("lua/release.lua");
         this.confirmScript = load("lua/confirm.lua");
+        this.abortScript = loadLong("lua/abort.lua");
     }
 
     /**
@@ -143,6 +146,22 @@ public class InventoryService {
         return code;
     }
 
+    /**
+     * 受理失败清理（I06）：删除仍属于当前订单的幂等状态与 hold 凭据。
+     *
+     * <p>只做比较后删除，重复调用或已被重试覆盖时无副作用。</p>
+     */
+    public long abort(String requestId, String orderId, String holdToken) {
+        if (isBlank(requestId) || isBlank(orderId) || isBlank(holdToken)) {
+            throw new IllegalArgumentException("清理参数不完整");
+        }
+        Long cleaned = redis.execute(abortScript,
+                Arrays.asList(InventoryKey.purchaseRequest(requestId), InventoryKey.hold(holdToken)),
+                orderId);
+        LOG.info("受理失败清理 requestId={} orderId={} cleaned={}", requestId, orderId, cleaned);
+        return cleaned == null ? 0L : cleaned;
+    }
+
     private void validateReserve(ReserveCommand command) {
         if (command == null
                 || isBlank(command.getRequestId())
@@ -180,6 +199,16 @@ public class InventoryService {
         try (InputStream in = resource.getInputStream()) {
             String body = StreamUtils.copyToString(in, StandardCharsets.UTF_8);
             return new DefaultRedisScript<>(body, List.class);
+        } catch (IOException e) {
+            throw new IllegalStateException("库存 Lua 脚本加载失败：" + path, e);
+        }
+    }
+
+    private static DefaultRedisScript<Long> loadLong(String path) {
+        ClassPathResource resource = new ClassPathResource(path);
+        try (InputStream in = resource.getInputStream()) {
+            String body = StreamUtils.copyToString(in, StandardCharsets.UTF_8);
+            return new DefaultRedisScript<>(body, Long.class);
         } catch (IOException e) {
             throw new IllegalStateException("库存 Lua 脚本加载失败：" + path, e);
         }
