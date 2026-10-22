@@ -14,7 +14,7 @@ spring:
     stream:
       default-binder: rocketmq
       function:
-        definition: txProbeConsumer;purchaseConfirmConsumer
+        definition: txProbeConsumer;purchaseConfirmConsumer;ticketCreateConsumer
       bindings:
         txProbeProducer-out-0:
           destination: TX_PROBE_TOPIC
@@ -35,6 +35,13 @@ spring:
           consumer:
             concurrency: 4
             # 重投由消费端计数控制，关闭进程内重试，避免次数被放大
+            maxAttempts: 1
+        # I10 出票事件消费组：超过 5 次转 %DLQ%business-ticket-create
+        ticketCreateConsumer-in-0:
+          destination: ticket-create
+          group: business-ticket-create
+          consumer:
+            concurrency: 2
             maxAttempts: 1
       rocketmq:
         binder:
@@ -58,6 +65,12 @@ spring:
               sendMsgTimeout: 3000
           # I08 消费端：延迟等级 1（重投退避由 RocketMQ 负责）
           purchaseConfirmConsumer-in-0:
+            consumer:
+              push:
+                maxReconsumeTimes: 5
+                delayLevelWhenNextConsume: 1
+          # I10 出票事件消费端：重投退避等级 1
+          ticketCreateConsumer-in-0:
             consumer:
               push:
                 maxReconsumeTimes: 5

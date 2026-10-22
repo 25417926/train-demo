@@ -40,6 +40,7 @@ class OrderConfirmTicketServiceTest {
     private InventoryService inventoryService;
     private StringRedisTemplate redis;
     private HashOperations<String, Object, Object> hashOps;
+    private TicketCreateProducer ticketCreateProducer;
     private OrderConfirmTicketService service;
 
     @BeforeEach
@@ -49,12 +50,14 @@ class OrderConfirmTicketServiceTest {
         redis = mock(StringRedisTemplate.class);
         hashOps = mock(HashOperations.class);
         when(redis.opsForHash()).thenReturn(hashOps);
+        ticketCreateProducer = mock(TicketCreateProducer.class);
 
         PlatformTransactionManager txManager = mock(PlatformTransactionManager.class);
         when(txManager.getTransaction(any(TransactionDefinition.class)))
                 .thenReturn(new SimpleTransactionStatus());
 
-        service = new OrderConfirmTicketService(persistMapper, inventoryService, redis, txManager);
+        service = new OrderConfirmTicketService(
+                persistMapper, inventoryService, redis, txManager, ticketCreateProducer);
     }
 
     @Test
@@ -94,6 +97,8 @@ class OrderConfirmTicketServiceTest {
         verify(persistMapper).decreaseTicket(eq(9001L), eq("ydz"), eq(1));
         verify(persistMapper).consumeQualifications(order.getId());
         verify(persistMapper).markSuccess(eq(order.getId()), any(Date.class));
+        verify(persistMapper).insertOutbox(any());
+        verify(ticketCreateProducer).send(order.getId(), "R1");
         verify(inventoryService).confirm(any());
     }
 

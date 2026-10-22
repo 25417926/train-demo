@@ -121,9 +121,8 @@ public class RefundService {
             );
         }
 
-        for (RefundTicketContext refundTicket : refundTickets) {
-            memberFeign.deleteTicket(refundTicket.ticketId);
-        }
+        // I10：按订单精确删除本单车票，避免逐个 id 删除时误删或漏删
+        memberFeign.deleteTicketsByOrder(order.getId());
 
         paymentService.markRefunded(payment.getId());
 
@@ -155,7 +154,6 @@ public class RefundService {
             Integer carriageIndex = readRequiredInteger(ticket, "carriageIndex");
             String seatRow = readRequiredString(ticket, "seatRow");
             String seatCol = readRequiredString(ticket, "seatCol");
-            Long ticketId = readRequiredLong(ticket, "id");
 
             Daily_Train_Seat seat = daily_Train_SeatService.selectByPosition(
                     order.getDate(), order.getTrainCode(), carriageIndex, seatRow, seatCol);
@@ -167,7 +165,7 @@ public class RefundService {
                 throw new ExceptionConsole(ExceptionEnum.FAILURE_TO_SAVE_TICKET);
             }
 
-            refundTickets.add(new RefundTicketContext(ticketId, seat));
+            refundTickets.add(new RefundTicketContext(seat));
         }
         return refundTickets;
     }
@@ -226,18 +224,6 @@ public class RefundService {
         throw new ExceptionConsole(ExceptionEnum.FAILURE_TO_SAVE_TICKET);
     }
 
-    private Long readRequiredLong(Map<String, Object> ticket, String fieldName) {
-        Object value = ticket.get(fieldName);
-        if (value instanceof Number) {
-            return ((Number) value).longValue();
-        }
-        if (value instanceof String && StrUtil.isNotBlank((String) value)) {
-            return Long.parseLong((String) value);
-        }
-        LOG.error("ticket field {} is invalid, value={}", fieldName, value);
-        throw new ExceptionConsole(ExceptionEnum.FAILURE_TO_SAVE_TICKET);
-    }
-
     private String readRequiredString(Map<String, Object> ticket, String fieldName) {
         Object value = ticket.get(fieldName);
         if (ObjectUtil.isNull(value)) {
@@ -268,11 +254,9 @@ public class RefundService {
     }
 
     private static class RefundTicketContext {
-        private final Long ticketId;
         private final Daily_Train_Seat seat;
 
-        private RefundTicketContext(Long ticketId, Daily_Train_Seat seat) {
-            this.ticketId = ticketId;
+        private RefundTicketContext(Daily_Train_Seat seat) {
             this.seat = seat;
         }
     }

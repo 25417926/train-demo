@@ -2,6 +2,7 @@ package com.guo.member.controller.feign;
 
 import cn.hutool.core.bean.BeanUtil;
 import com.guo.common.req.MemberTicketReq;
+import com.guo.common.req.TicketIssueReq;
 import com.guo.common.req.ValidReq;
 import com.guo.common.resp.CommonResp;
 import com.guo.common.util.HttpStatus;
@@ -87,5 +88,23 @@ public class FeignTicketController {
     public CommonResp deleteTicket(@PathVariable Long id) {
         ticketService.delete(id);
         return new CommonResp(true, "成功", HttpStatus.SUCCESS);
+    }
+
+    /**
+     * I10 出票：按订单批量写票，唯一键保证重复投递不重复发票
+     */
+    @PostMapping("/ticket/issue")
+    public CommonResp<Integer> issue(@RequestBody TicketIssueReq req) {
+        int inserted = ticketService.issue(req);
+        return new CommonResp(true, "成功", inserted, HttpStatus.SUCCESS);
+    }
+
+    /**
+     * I10 按订单精确删除本单车票，不误删其他订单
+     */
+    @DeleteMapping("/ticket/by-order/{orderId}")
+    public CommonResp<Integer> deleteByOrder(@PathVariable Long orderId) {
+        int deleted = ticketService.deleteByOrderId(orderId);
+        return new CommonResp(true, "成功", deleted, HttpStatus.SUCCESS);
     }
 }

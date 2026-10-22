@@ -2,6 +2,7 @@ package com.guo.business.mapper;
 
 import com.guo.business.domain.Confirm_Order;
 import com.guo.business.purchase.model.InventoryHoldRecord;
+import com.guo.business.purchase.model.OrderOutboxRecord;
 import com.guo.business.purchase.model.SeatRecord;
 import org.apache.ibatis.annotations.Insert;
 import org.apache.ibatis.annotations.Mapper;
@@ -21,6 +22,11 @@ public interface OrderConfirmPersistMapper {
             + "status, ticket_status, expire_at, request_id, version "
             + "from confirm_order where request_id = #{requestId} limit 1")
     Confirm_Order selectOrderByRequestId(@Param("requestId") String requestId);
+
+    @Select("select id, member_id, date, train_code, start, `end`, daily_train_ticket_id, tickets, "
+            + "status, ticket_status, expire_at, request_id, version "
+            + "from confirm_order where id = #{orderId}")
+    Confirm_Order selectOrderById(@Param("orderId") Long orderId);
 
     @Update("update confirm_order set status = #{toStatus}, version = version + 1, update_time = now(3) "
             + "where id = #{id} and status = #{fromStatus} and expire_at > now(3)")
@@ -63,4 +69,26 @@ public interface OrderConfirmPersistMapper {
     @Update("update purchase_qualification set status = 'C', update_time = now(3) "
             + "where order_id = #{orderId} and status = 'H'")
     int consumeQualifications(@Param("orderId") Long orderId);
+
+    /**
+     * I10 出票事件与出票落库同事务写入，作为审计与人工重投依据
+     */
+    @Insert("insert into order_outbox "
+            + "(id, event_id, aggregate_type, aggregate_id, event_type, payload, `status`, retry_count, "
+            + "next_retry_at, create_time, update_time) "
+            + "values (#{id}, #{eventId}, #{aggregateType}, #{aggregateId}, #{eventType}, #{payload}, #{status}, "
+            + "#{retryCount}, #{nextRetryAt}, #{createTime}, #{updateTime})")
+    int insertOutbox(OrderOutboxRecord record);
+
+    @Update("update confirm_order set ticket_status = 'S', version = version + 1, update_time = now(3) "
+            + "where id = #{orderId} and ticket_status = 'I'")
+    int markTicketSuccess(@Param("orderId") Long orderId);
+
+    @Update("update confirm_order set ticket_status = 'F', version = version + 1, update_time = now(3) "
+            + "where id = #{orderId} and ticket_status = 'I'")
+    int markTicketFailed(@Param("orderId") Long orderId);
+
+    @Update("update order_outbox set `status` = 'S', update_time = now(3) "
+            + "where event_id = #{eventId} and `status` = 'N'")
+    int markOutboxSent(@Param("eventId") String eventId);
 }

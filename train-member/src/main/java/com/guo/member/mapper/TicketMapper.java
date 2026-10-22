@@ -16,6 +16,16 @@ public interface TicketMapper {
 
     int insertSelective(Ticket record);
 
+    /**
+     * I10 幂等写票：命中唯一键 (order_id, passenger_id) 时忽略，返回 0
+     */
+    int insertIgnore(Ticket record);
+
+    /**
+     * I10 按订单精确删除本单车票
+     */
+    int deleteByOrderId(@Param("orderId") Long orderId);
+
     List<Ticket> selectByExample(TicketExample example);
 
     List<Ticket> selectByOrderId(@Param("orderId") Long orderId);

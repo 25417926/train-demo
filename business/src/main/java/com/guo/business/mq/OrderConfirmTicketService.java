@@ -2,6 +2,7 @@ package com.guo.business.mq;
 
 import cn.hutool.core.util.StrUtil;
 import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson.JSONObject;
 import com.guo.business.TypeEnum.TrainCarriageTypeEnum;
 import com.guo.business.domain.Confirm_Order;
 import com.guo.business.exception.SeatConflictException;
@@ -11,6 +12,7 @@ import com.guo.business.inventory.InventoryService;
 import com.guo.business.inventory.ReleaseCommand;
 import com.guo.business.mapper.OrderConfirmPersistMapper;
 import com.guo.business.purchase.model.InventoryHoldRecord;
+import com.guo.business.purchase.model.OrderOutboxRecord;
 import com.guo.business.purchase.model.SeatRecord;
 import com.guo.business.req.Confirm_OrderTicketReq;
 import com.guo.common.util.SnowUtil;
@@ -45,15 +47,18 @@ public class OrderConfirmTicketService {
     private final InventoryService inventoryService;
     private final StringRedisTemplate redis;
     private final TransactionTemplate transactionTemplate;
+    private final TicketCreateProducer ticketCreateProducer;
 
     public OrderConfirmTicketService(OrderConfirmPersistMapper persistMapper,
                                      InventoryService inventoryService,
                                      StringRedisTemplate redis,
-                                     PlatformTransactionManager transactionManager) {
+                                     PlatformTransactionManager transactionManager,
+                                     TicketCreateProducer ticketCreateProducer) {
         this.persistMapper = persistMapper;
         this.inventoryService = inventoryService;
         this.redis = redis;
         this.transactionTemplate = new TransactionTemplate(transactionManager);
+        this.ticketCreateProducer = ticketCreateProducer;
     }
 
     public void handle(Long orderId, String requestId, String holdToken) {
@@ -66,6 +71,10 @@ public class OrderConfirmTicketService {
         }
         if ("S".equals(order.getStatus())) {
             LOG.info("ORDER_CONFIRM 重复消息，订单已出票 orderId={}", orderId);
+            // 上次已提交事务但事件未投递（发送失败/ACK 丢失）：补投，消费端幂等
+            if ("I".equals(order.getTicketStatus())) {
+                ticketCreateProducer.send(orderId, order.getRequestId());
+            }
             return;
         }
         if ("I".equals(order.getStatus())) {
@@ -118,6 +127,8 @@ public class OrderConfirmTicketService {
             return;
         }
 
+        // 事务已提交，再投递出票事件；发送失败会触发 ORDER_CONFIRM 重投，由 S 分支补投
+        ticketCreateProducer.send(order.getId(), requestId);
         confirmRedisQuietly(order, holdToken, tickets);
     }
 
@@ -192,6 +203,31 @@ public class OrderConfirmTicketService {
         if (persistMapper.markSuccess(order.getId(), expireAt) != 1) {
             throw new IllegalStateException("订单状态已变更，无法置成功, orderId=" + order.getId());
         }
+
+        insertTicketCreateOutbox(order, now);
+    }
+
+    /**
+     * 出票事件与落库同事务写入 order_outbox（审计与人工重投依据），投递在提交后。
+     */
+    private void insertTicketCreateOutbox(Confirm_Order order, Date now) {
+        JSONObject payload = new JSONObject(true);
+        payload.put("orderId", order.getId());
+        payload.put("requestId", order.getRequestId());
+
+        OrderOutboxRecord outbox = new OrderOutboxRecord();
+        outbox.setId(SnowUtil.getSnowflakeNextId());
+        outbox.setEventId("TICKET_CREATE:" + order.getId());
+        outbox.setAggregateType("ORDER");
+        outbox.setAggregateId(order.getId());
+        outbox.setEventType("TICKET_CREATE");
+        outbox.setPayload(JSON.toJSONString(payload));
+        outbox.setStatus("N");
+        outbox.setRetryCount(0);
+        outbox.setNextRetryAt(now);
+        outbox.setCreateTime(now);
+        outbox.setUpdateTime(now);
+        persistMapper.insertOutbox(outbox);
     }
 
     /**
