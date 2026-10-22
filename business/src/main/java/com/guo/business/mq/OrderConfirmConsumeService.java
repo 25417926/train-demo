@@ -36,11 +36,14 @@ public class OrderConfirmConsumeService {
 
     private final StringRedisTemplate stringRedisTemplate;
     private final OrderConfirmDlqSender dlqSender;
+    private final OrderConfirmTicketService ticketService;
 
     public OrderConfirmConsumeService(StringRedisTemplate stringRedisTemplate,
-                                      OrderConfirmDlqSender dlqSender) {
+                                      OrderConfirmDlqSender dlqSender,
+                                      OrderConfirmTicketService ticketService) {
         this.stringRedisTemplate = stringRedisTemplate;
         this.dlqSender = dlqSender;
+        this.ticketService = ticketService;
     }
 
     public void consume(String body) {
@@ -73,15 +76,16 @@ public class OrderConfirmConsumeService {
     }
 
     /**
-     * I08 仅校验消息结构；I09 在此接入 confirm_order 状态流转与落库。
+     * 解析消息并交给 I09 落库；解析失败与落库异常都会触发重投。
      */
     private void process(String body, String requestId) {
         JSONObject json = JSON.parseObject(body);
-        if (json == null || json.getLong("orderId") == null) {
-            throw new IllegalArgumentException("ORDER_CONFIRM 消息缺少 orderId, requestId=" + requestId);
+        Long orderId = json == null ? null : json.getLong("orderId");
+        String holdToken = json == null ? null : json.getString("holdToken");
+        if (orderId == null || StrUtil.isBlank(holdToken)) {
+            throw new IllegalArgumentException("ORDER_CONFIRM 消息缺少 orderId/holdToken, requestId=" + requestId);
         }
-        LOG.info("ORDER_CONFIRM 消费受理 requestId={} orderId={}（落库逻辑见 I09）",
-                requestId, json.getLong("orderId"));
+        ticketService.handle(orderId, requestId, holdToken);
     }
 
     private int nextAttempt(String requestId) {

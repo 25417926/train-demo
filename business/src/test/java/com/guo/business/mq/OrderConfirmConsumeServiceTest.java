@@ -26,6 +26,7 @@ class OrderConfirmConsumeServiceTest {
     private StringRedisTemplate redis;
     private ValueOperations<String, String> valueOps;
     private OrderConfirmDlqSender dlqSender;
+    private OrderConfirmTicketService ticketService;
     private OrderConfirmConsumeService service;
 
     @BeforeEach
@@ -33,8 +34,9 @@ class OrderConfirmConsumeServiceTest {
         redis = mock(StringRedisTemplate.class);
         valueOps = mock(ValueOperations.class);
         dlqSender = mock(OrderConfirmDlqSender.class);
+        ticketService = mock(OrderConfirmTicketService.class);
         when(redis.opsForValue()).thenReturn(valueOps);
-        service = new OrderConfirmConsumeService(redis, dlqSender);
+        service = new OrderConfirmConsumeService(redis, dlqSender, ticketService);
     }
 
     @Test
