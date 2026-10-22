@@ -6,6 +6,9 @@ import com.guo.business.inventory.InventoryService;
 import com.guo.business.mapper.OrderConfirmPersistMapper;
 import com.guo.business.purchase.model.SeatRecord;
 import com.guo.business.req.Confirm_OrderTicketReq;
+import com.guo.business.service.TicketIssueService;
+import com.guo.common.event.TicketCreateEvent;
+import com.guo.common.req.MemberTicketReq;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.data.redis.core.HashOperations;
@@ -15,6 +18,7 @@ import org.springframework.transaction.TransactionDefinition;
 import org.springframework.transaction.support.SimpleTransactionStatus;
 
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
@@ -41,6 +45,7 @@ class OrderConfirmTicketServiceTest {
     private StringRedisTemplate redis;
     private HashOperations<String, Object, Object> hashOps;
     private TicketCreateProducer ticketCreateProducer;
+    private TicketIssueService ticketIssueService;
     private OrderConfirmTicketService service;
 
     @BeforeEach
@@ -51,13 +56,14 @@ class OrderConfirmTicketServiceTest {
         hashOps = mock(HashOperations.class);
         when(redis.opsForHash()).thenReturn(hashOps);
         ticketCreateProducer = mock(TicketCreateProducer.class);
+        ticketIssueService = mock(TicketIssueService.class);
 
         PlatformTransactionManager txManager = mock(PlatformTransactionManager.class);
         when(txManager.getTransaction(any(TransactionDefinition.class)))
                 .thenReturn(new SimpleTransactionStatus());
 
         service = new OrderConfirmTicketService(
-                persistMapper, inventoryService, redis, txManager, ticketCreateProducer);
+                persistMapper, inventoryService, redis, txManager, ticketCreateProducer, ticketIssueService);
     }
 
     @Test
@@ -73,6 +79,7 @@ class OrderConfirmTicketServiceTest {
         verify(persistMapper, never()).casStatus(anyLong(), anyString(), anyString());
         verify(persistMapper, never()).insertHold(any());
         verify(inventoryService, never()).confirm(any());
+        verify(ticketCreateProducer, never()).send(any());
     }
 
     @Test
@@ -90,6 +97,7 @@ class OrderConfirmTicketServiceTest {
         when(persistMapper.selectSeat(101L)).thenReturn(seat);
         when(persistMapper.casSeatSell(eq(101L), eq("110"), eq(0))).thenReturn(1);
         when(persistMapper.markSuccess(eq(order.getId()), any(Date.class))).thenReturn(1);
+        when(ticketIssueService.buildTicketRequests(order)).thenReturn(ticketRequests());
 
         service.handle(order.getId(), "R1", "H1");
 
@@ -98,7 +106,7 @@ class OrderConfirmTicketServiceTest {
         verify(persistMapper).consumeQualifications(order.getId());
         verify(persistMapper).markSuccess(eq(order.getId()), any(Date.class));
         verify(persistMapper).insertOutbox(any());
-        verify(ticketCreateProducer).send(order.getId(), "R1");
+        verify(ticketCreateProducer).send(any(TicketCreateEvent.class));
         verify(inventoryService).confirm(any());
     }
 
@@ -186,5 +194,13 @@ class OrderConfirmTicketServiceTest {
         hold.put("seatIds", "101");
         hold.put("passengerIds", "6001");
         return hold;
+    }
+
+    private List<MemberTicketReq> ticketRequests() {
+        MemberTicketReq req = new MemberTicketReq();
+        req.setOrderId(8001L);
+        req.setPassengerId(6001L);
+        req.setTrainCode("G100");
+        return Collections.singletonList(req);
     }
 }

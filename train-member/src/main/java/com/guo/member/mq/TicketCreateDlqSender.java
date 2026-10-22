@@ -1,4 +1,4 @@
-package com.guo.business.mq;
+package com.guo.member.mq;
 
 import cn.hutool.core.util.StrUtil;
 import org.apache.rocketmq.common.message.Message;
@@ -11,7 +11,7 @@ import java.nio.charset.StandardCharsets;
 
 /**
  * I10 TICKET_CREATE 死信投递：超过重投上限的消息写入
- * {@code %DLQ%business-ticket-create}，供人工重放。
+ * {@code %DLQ%member-ticket-create}，供人工重放。
  */
 @Component
 public class TicketCreateDlqSender {

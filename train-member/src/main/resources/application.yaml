@@ -1,39 +1,23 @@
-server:
-  port: 8080
-  servlet:
-    context-path: /member
-
+# I10 TICKET_CREATE 消费（其余配置在 Nacos member-dev.properties）
 spring:
-  datasource:
-    url: jdbc:mysql://localhost:3306/train?useUnicode=true&characterEncoding=UTF-8&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true
-    username: train-member
-    password: 123456
-  mvc:
-    pathmatch:
-      matching-strategy: ant_path_matcher
-  redis:
-    host: localhost
-    port: 6379
-    lettuce:
-      pool:
-        max-active: 8  # 连接池最大连接数
-        max-wait: -1ms  # 最大阻塞等待时间，-1表示无限制
-        max-idle: 8  # 最大空闲连接数
-        min-idle: 0  # 最小空闲连接数
-#       以下为注释掉的配置项，可以根据需要取消注释并进行修改
-#       namespace: member
-#       group: DEFAULT_GROUP
-#       data-id: your-app-config
-#       username: nacos
-#       password: nacos123
-#       config-retry-time: 3000
-#       config-long-poll-timeout: 60000
-
-test.nacos: member
-
-mybatis:
-  mapper-locations: classpath:mapper/**/*.xml
-
-#logging:
-#  level:
-#    root: DEBUG
+  cloud:
+    stream:
+      function:
+        definition: ticketCreateConsumer
+      bindings:
+        ticketCreateConsumer-in-0:
+          destination: ticket-create
+          group: member-ticket-create
+          consumer:
+            concurrency: 2
+            # 重投由消费端计数控制，关闭进程内重试，避免次数被放大
+            maxAttempts: 1
+      rocketmq:
+        binder:
+          name-server: ${rocketmq.name-server:127.0.0.1:9876}
+        bindings:
+          ticketCreateConsumer-in-0:
+            consumer:
+              push:
+                maxReconsumeTimes: 5
+                delayLevelWhenNextConsume: 1

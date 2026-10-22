@@ -90,7 +90,10 @@ public class TicketIssueService {
         LOG.info("订单[{}]出票完成，车票数：{}，新增：{}", order.getId(), requests.size(), resp.getContent());
     }
 
-    private List<MemberTicketReq> buildTicketRequests(Confirm_Order order) {
+    /**
+     * 按订单组装车票明细（I10 事件携带 / 支付后出票共用）
+     */
+    public List<MemberTicketReq> buildTicketRequests(Confirm_Order order) {
         List<InventoryHold> holds = inventoryHoldMapper.selectHeldByOrderId(order.getId());
         if (CollUtil.isEmpty(holds)) {
             throw new IllegalStateException("NO_INVENTORY_HOLD");

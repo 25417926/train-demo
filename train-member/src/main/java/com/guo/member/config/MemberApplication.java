@@ -8,6 +8,7 @@ package com.guo.member.config;
 import org.mybatis.spring.annotation.MapperScan;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.cloud.openfeign.EnableFeignClients;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.core.env.Environment;
 
@@ -16,6 +17,7 @@ import java.util.logging.Logger;
 @SpringBootApplication
 @ComponentScan("com.guo")
 @MapperScan("com.guo.member.mapper")
+@EnableFeignClients("com.guo.member.feign")
 public class MemberApplication {
     private static final Logger LOG = Logger.getLogger(MemberApplication.class.getName());
     public static void main(String[] args) {

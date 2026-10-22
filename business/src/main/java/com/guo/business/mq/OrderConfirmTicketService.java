@@ -15,6 +15,8 @@ import com.guo.business.purchase.model.InventoryHoldRecord;
 import com.guo.business.purchase.model.OrderOutboxRecord;
 import com.guo.business.purchase.model.SeatRecord;
 import com.guo.business.req.Confirm_OrderTicketReq;
+import com.guo.business.service.TicketIssueService;
+import com.guo.common.event.TicketCreateEvent;
 import com.guo.common.util.SnowUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -48,17 +50,20 @@ public class OrderConfirmTicketService {
     private final StringRedisTemplate redis;
     private final TransactionTemplate transactionTemplate;
     private final TicketCreateProducer ticketCreateProducer;
+    private final TicketIssueService ticketIssueService;
 
     public OrderConfirmTicketService(OrderConfirmPersistMapper persistMapper,
                                      InventoryService inventoryService,
                                      StringRedisTemplate redis,
                                      PlatformTransactionManager transactionManager,
-                                     TicketCreateProducer ticketCreateProducer) {
+                                     TicketCreateProducer ticketCreateProducer,
+                                     TicketIssueService ticketIssueService) {
         this.persistMapper = persistMapper;
         this.inventoryService = inventoryService;
         this.redis = redis;
         this.transactionTemplate = new TransactionTemplate(transactionManager);
         this.ticketCreateProducer = ticketCreateProducer;
+        this.ticketIssueService = ticketIssueService;
     }
 
     public void handle(Long orderId, String requestId, String holdToken) {
@@ -73,7 +78,7 @@ public class OrderConfirmTicketService {
             LOG.info("ORDER_CONFIRM 重复消息，订单已出票 orderId={}", orderId);
             // 上次已提交事务但事件未投递（发送失败/ACK 丢失）：补投，消费端幂等
             if ("I".equals(order.getTicketStatus())) {
-                ticketCreateProducer.send(orderId, order.getRequestId());
+                sendTicketCreate(order);
             }
             return;
         }
@@ -128,8 +133,19 @@ public class OrderConfirmTicketService {
         }
 
         // 事务已提交，再投递出票事件；发送失败会触发 ORDER_CONFIRM 重投，由 S 分支补投
-        ticketCreateProducer.send(order.getId(), requestId);
+        sendTicketCreate(order);
         confirmRedisQuietly(order, holdToken, tickets);
+    }
+
+    /**
+     * 组装 TICKET_CREATE 事件并投递。车票明细随事件下发，member 消费端无需跨服务反查订单。
+     */
+    private void sendTicketCreate(Confirm_Order order) {
+        TicketCreateEvent event = new TicketCreateEvent();
+        event.setOrderId(order.getId());
+        event.setRequestId(order.getRequestId());
+        event.setTickets(ticketIssueService.buildTicketRequests(order));
+        ticketCreateProducer.send(event);
     }
 
     private void persistWithRetry(Confirm_Order order,

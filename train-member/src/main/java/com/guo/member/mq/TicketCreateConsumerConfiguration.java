@@ -1,4 +1,4 @@
-package com.guo.business.mq;
+package com.guo.member.mq;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
