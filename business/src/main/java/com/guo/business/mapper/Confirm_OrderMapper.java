@@ -42,6 +42,16 @@ public interface Confirm_OrderMapper {
                                     @Param("ticketStatus") String ticketStatus,
                                     @Param("updateTime") Date updateTime);
 
+    /**
+     * I07 状态机 CAS：只有当前状态仍为 fromStatus 时才更新，返回影响行数用于判断并发冲突。
+     */
+    @Update("update confirm_order set status = #{toStatus}, update_time = #{updateTime} " +
+            "where id = #{id} and status = #{fromStatus}")
+    int updateStatusCas(@Param("id") Long id,
+                        @Param("fromStatus") String fromStatus,
+                        @Param("toStatus") String toStatus,
+                        @Param("updateTime") Date updateTime);
+
     @Select("select ticket_status from confirm_order where id = #{id}")
     String selectTicketStatus(@Param("id") Long id);
 

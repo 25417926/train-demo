@@ -57,6 +57,11 @@ public class Confirm_OrderQueryResp {
     private String status;
 
     /**
+     * 订单状态码（I07 新增）：I/P/S/Y/H/G/R/X/C/D/E/F，旧前端继续可用 status 描述
+     */
+    private String statusCode;
+
+    /**
      * 新增时间
      */
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss",timezone = "GMT+8")
@@ -138,6 +143,14 @@ public class Confirm_OrderQueryResp {
 
     public void setStatus(String status) {
         this.status = status;
+    }
+
+    public String getStatusCode() {
+        return statusCode;
+    }
+
+    public void setStatusCode(String statusCode) {
+        this.statusCode = statusCode;
     }
 
     public Date getCreateTime() {

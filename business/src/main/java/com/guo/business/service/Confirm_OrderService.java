@@ -107,7 +107,10 @@ public class Confirm_OrderService {
         List<Confirm_OrderQueryResp> list = BeanUtil.copyToList(confirm_OrderList, Confirm_OrderQueryResp.class)
                 .stream().peek(
                         resp -> {
-                            resp.setStatus(ConfirmOrderStatusEnum.fromCode(resp.getStatus(), null).getDesc());
+                            // I07：statusCode 返回原始状态码，status 保留中文描述以兼容旧前端
+                            ConfirmOrderStatusEnum status = ConfirmOrderStatusEnum.fromCode(resp.getStatus(), null);
+                            resp.setStatusCode(status.getCode());
+                            resp.setStatus(status.getDesc());
                         }
                 ).collect(Collectors.toList());
 
