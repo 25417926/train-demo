@@ -178,6 +178,35 @@ class OrderCloseServiceTest {
         verify(orderCloseMapper, never()).increaseTicket(anyLong(), anyString(), anyInt());
     }
 
+    /**
+     * I14：退款成功复用释放落账，流水键与释放类型必须是 R，且不得再做关单状态 CAS。
+     */
+    @Test
+    void refundReleaseWritesRefundRecordWithoutOrderStatusCas() {
+        Confirm_Order order = order("G");
+        InventoryHold hold = hold();
+        when(inventoryHoldMapper.selectHeldByOrderId(ORDER_ID)).thenReturn(Collections.singletonList(hold));
+
+        SeatRecord seat = new SeatRecord();
+        seat.setId(SEAT_ID);
+        seat.setSell("110");
+        seat.setVersion(0);
+        when(orderCloseMapper.selectSeat(SEAT_ID)).thenReturn(seat);
+        when(orderCloseMapper.casSeatSell(eq(SEAT_ID), eq("000"), eq(0))).thenReturn(1);
+        when(inventoryService.release(any(ReleaseCommand.class)))
+                .thenReturn(ReleaseResult.of(InventoryResultCode.OK, 1));
+
+        OrderCloseService.CloseContext context =
+                service.releaseInTransaction(order, OrderCloseReasonEnum.REFUND);
+        service.releaseAfterCommit(context);
+
+        verify(orderCloseMapper, never()).closeOrder(anyLong(), anyString(), anyString());
+        verify(orderCloseMapper, times(1)).insertReleaseRecord(anyLong(), eq("REL:8001:R"), eq(5001L),
+                eq(ORDER_ID), eq("R"), eq(1), eq("S"), any(Date.class));
+        verify(inventoryService, times(1)).release(any(ReleaseCommand.class));
+        verify(memberFeign, times(1)).deleteTicketsByOrder(ORDER_ID);
+    }
+
     private Confirm_Order order(String status) {
         Confirm_Order order = new Confirm_Order();
         order.setId(ORDER_ID);
