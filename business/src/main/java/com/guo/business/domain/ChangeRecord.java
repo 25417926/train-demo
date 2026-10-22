@@ -22,6 +22,8 @@ public class ChangeRecord {
 
     private Date updateTime;
 
+    private String failReason;
+
     public Long getId() {
         return id;
     }
@@ -76,6 +78,14 @@ public class ChangeRecord {
 
     public void setFee(BigDecimal fee) {
         this.fee = fee;
+    }
+
+    public String getFailReason() {
+        return failReason;
+    }
+
+    public void setFailReason(String failReason) {
+        this.failReason = failReason;
     }
 
     public Date getCreateTime() {

@@ -77,6 +77,10 @@ public class RefundService {
         if (!ConfirmOrderStatusEnum.PAID.getCode().equals(order.getStatus())) {
             throw new ExceptionConsole(ExceptionEnum.ORDER_STATUS_ERROR);
         }
+        // 支付成功后才异步出票，未出票时不能退款
+        if (!"S".equals(confirm_OrderMapper.selectTicketStatus(order.getId()))) {
+            throw new ExceptionConsole(ExceptionEnum.TICKET_ISSUING);
+        }
 
         Payment payment = paymentMapper.selectByOrderId(order.getId());
         if (ObjectUtil.isNull(payment)) {
@@ -89,9 +93,7 @@ public class RefundService {
             throw new ExceptionConsole(ExceptionEnum.TICKET_NOT_EXIST);
         }
 
-        CommonResp<List<Map<String, Object>>> resp = memberFeign.listByOrder(
-                order.getMemberId(), order.getDate(), order.getTrainCode(),
-                order.getStart(), order.getEnd());
+        CommonResp<List<Map<String, Object>>> resp = memberFeign.listByOrder(order.getId());
         List<Map<String, Object>> ticketList = ObjectUtil.isNotNull(resp) ? resp.getContent() : null;
         if (CollUtil.isEmpty(ticketList)) {
             LOG.error("refund tickets not found, orderId={}", order.getId());
@@ -126,11 +128,9 @@ public class RefundService {
         paymentService.markRefunded(payment.getId());
 
         DateTime now = DateTime.now();
-        Confirm_Order forUpdate = new Confirm_Order();
-        forUpdate.setId(order.getId());
-        forUpdate.setStatus(ConfirmOrderStatusEnum.REFUNDED.getCode());
-        forUpdate.setUpdateTime(now);
-        confirm_OrderMapper.updateByPrimaryKeySelective(forUpdate);
+        // 退票成功后车票已删除，订单标记为已退款，ticket_status 同步回到未出票
+        confirm_OrderMapper.updateStatusAndTicketStatus(
+                order.getId(), ConfirmOrderStatusEnum.REFUNDED.getCode(), "N", now);
 
         Refund refund = new Refund();
         refund.setId(SnowUtil.getSnowflakeNextId());

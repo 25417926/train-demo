@@ -2,6 +2,7 @@ package com.guo.business.controller.web;
 
 import com.guo.business.req.RefundReq;
 import com.guo.business.resp.RefundResp;
+import com.guo.business.service.OrderFailureRecorder;
 import com.guo.business.service.RefundService;
 import com.guo.common.context.LoginMemberContext;
 import com.guo.common.req.PageReq;
@@ -29,12 +30,20 @@ public class RefundController {
 
     @Resource
     private RefundService refundService;
+    @Resource
+    private OrderFailureRecorder failureRecorder;
 
     @Operation(summary = "申请退票退款")
     @PostMapping("/apply")
     public CommonResp<RefundResp> apply(@Valid @RequestBody RefundReq req) {
         Long memberId = LoginMemberContext.getId();
-        RefundResp resp = refundService.refund(req, memberId);
+        RefundResp resp;
+        try {
+            resp = refundService.refund(req, memberId);
+        } catch (RuntimeException e) {
+            failureRecorder.recordRefundFail(req.getOrderId(), memberId, OrderFailureRecorder.reasonOf(e));
+            throw e;
+        }
         return new CommonResp<>(true, "退款成功", resp, HttpStatus.SUCCESS);
     }
 

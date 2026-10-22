@@ -4,6 +4,7 @@ import com.guo.business.feign.MemberFeign;
 import com.guo.business.req.Confirm_OrderDoReq;
 import com.guo.business.req.Confirm_OrderQueryReq;
 import com.guo.business.resp.Confirm_OrderQueryResp;
+import com.guo.business.resp.UnpaidOrderResp;
 import com.guo.business.service.Before_Confirm_OrderService;
 import com.guo.business.service.Confirm_OrderService;
 import com.guo.common.context.LoginMemberContext;
@@ -23,6 +24,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import javax.annotation.Resource;
 import javax.validation.Valid;
+import java.util.List;
 
 /**
  * @Description
@@ -79,6 +81,13 @@ public class Confirm_OrderMemberController {
         CommonResp commonResp = new CommonResp(true, "成功",String.valueOf(l), HttpStatus.SUCCESS);
         // 返回创建的CommonResp对象
         return commonResp;
+    }
+
+    @Operation(summary = "未支付订单列表（锁座成功、待支付）")
+    @GetMapping("/unpaid-list")
+    public CommonResp<List<UnpaidOrderResp>> unpaidList() {
+        return new CommonResp<>(true, "成功",
+                confirmOrderService.queryUnpaid(LoginMemberContext.getId()), HttpStatus.SUCCESS);
     }
 
     @Operation(summary = "我的订单分页查询")

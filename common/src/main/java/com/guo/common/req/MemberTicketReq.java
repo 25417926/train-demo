@@ -22,6 +22,12 @@ import java.util.Date;
 public class MemberTicketReq {
 
     /**
+     * 订单id（出票时由 business 写入，用于按订单精确退票/对账）
+     */
+    @NotNull(message = "【订单id】不能为空")
+    private Long orderId;
+
+    /**
      * 乘客id
      */
     @NotNull(message = "【会员id】不能为空")

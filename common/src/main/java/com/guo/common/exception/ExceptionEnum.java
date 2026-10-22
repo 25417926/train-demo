@@ -41,6 +41,7 @@ public enum ExceptionEnum {
     MEMBER_TYPE_ERROR(HttpStatus.CONFLICT, "登录类型错误"),
     ORDER_NOT_EXIST(HttpStatus.NOT_FOUND, "订单不存在"),
     ORDER_STATUS_ERROR(HttpStatus.CONFLICT, "订单状态不允许此操作"),
+    TICKET_ISSUING(HttpStatus.CONFLICT, "车票正在出票，请稍后重试"),
     PAYMENT_NOT_EXIST(HttpStatus.NOT_FOUND, "支付记录不存在"),
     PAYMENT_ALREADY_DONE(HttpStatus.CONFLICT, "订单已支付"),
     REFUND_ALREADY_DONE(HttpStatus.CONFLICT, "订单已退款"),

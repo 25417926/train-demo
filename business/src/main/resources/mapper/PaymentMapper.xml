@@ -10,11 +10,12 @@
     <result column="pay_status" jdbcType="CHAR" property="payStatus" />
     <result column="pay_time" jdbcType="TIMESTAMP" property="payTime" />
     <result column="trade_no" jdbcType="VARCHAR" property="tradeNo" />
+    <result column="fail_reason" jdbcType="VARCHAR" property="failReason" />
     <result column="create_time" jdbcType="TIMESTAMP" property="createTime" />
     <result column="update_time" jdbcType="TIMESTAMP" property="updateTime" />
   </resultMap>
   <sql id="Base_Column_List">
-    id, order_id, member_id, amount, pay_channel, pay_status, pay_time, trade_no, create_time, update_time
+    id, order_id, member_id, amount, pay_channel, pay_status, pay_time, trade_no, fail_reason, create_time, update_time
   </sql>
   <select id="selectByPrimaryKey" parameterType="java.lang.Long" resultMap="BaseResultMap">
     select
@@ -58,11 +59,12 @@
   <insert id="insert" parameterType="com.guo.business.domain.Payment">
     insert into payment (id, order_id, member_id,
       amount, pay_channel, pay_status,
-      pay_time, trade_no, create_time, update_time
+      pay_time, trade_no, fail_reason, create_time, update_time
       )
     values (#{id,jdbcType=BIGINT}, #{orderId,jdbcType=BIGINT}, #{memberId,jdbcType=BIGINT},
       #{amount,jdbcType=DECIMAL}, #{payChannel,jdbcType=CHAR}, #{payStatus,jdbcType=CHAR},
-      #{payTime,jdbcType=TIMESTAMP}, #{tradeNo,jdbcType=VARCHAR}, #{createTime,jdbcType=TIMESTAMP}, #{updateTime,jdbcType=TIMESTAMP}
+      #{payTime,jdbcType=TIMESTAMP}, #{tradeNo,jdbcType=VARCHAR}, #{failReason,jdbcType=VARCHAR},
+      #{createTime,jdbcType=TIMESTAMP}, #{updateTime,jdbcType=TIMESTAMP}
       )
   </insert>
   <update id="updateByPrimaryKeySelective" parameterType="com.guo.business.domain.Payment">
@@ -88,6 +90,9 @@
       </if>
       <if test="tradeNo != null">
         trade_no = #{tradeNo,jdbcType=VARCHAR},
+      </if>
+      <if test="failReason != null">
+        fail_reason = #{failReason,jdbcType=VARCHAR},
       </if>
       <if test="createTime != null">
         create_time = #{createTime,jdbcType=TIMESTAMP},

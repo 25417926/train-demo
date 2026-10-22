@@ -8,13 +8,14 @@
     <result column="member_id" jdbcType="BIGINT" property="memberId" />
     <result column="amount" jdbcType="DECIMAL" property="amount" />
     <result column="reason" jdbcType="VARCHAR" property="reason" />
+    <result column="fail_reason" jdbcType="VARCHAR" property="failReason" />
     <result column="refund_status" jdbcType="CHAR" property="refundStatus" />
     <result column="refund_time" jdbcType="TIMESTAMP" property="refundTime" />
     <result column="create_time" jdbcType="TIMESTAMP" property="createTime" />
     <result column="update_time" jdbcType="TIMESTAMP" property="updateTime" />
   </resultMap>
   <sql id="Base_Column_List">
-    id, order_id, payment_id, member_id, amount, reason, refund_status, refund_time, create_time, update_time
+    id, order_id, payment_id, member_id, amount, reason, fail_reason, refund_status, refund_time, create_time, update_time
   </sql>
   <select id="selectByPrimaryKey" parameterType="java.lang.Long" resultMap="BaseResultMap">
     select
@@ -47,11 +48,11 @@
   </select>
   <insert id="insert" parameterType="com.guo.business.domain.Refund">
     insert into refund (id, order_id, payment_id,
-      member_id, amount, reason,
+      member_id, amount, reason, fail_reason,
       refund_status, refund_time, create_time, update_time
       )
     values (#{id,jdbcType=BIGINT}, #{orderId,jdbcType=BIGINT}, #{paymentId,jdbcType=BIGINT},
-      #{memberId,jdbcType=BIGINT}, #{amount,jdbcType=DECIMAL}, #{reason,jdbcType=VARCHAR},
+      #{memberId,jdbcType=BIGINT}, #{amount,jdbcType=DECIMAL}, #{reason,jdbcType=VARCHAR}, #{failReason,jdbcType=VARCHAR},
       #{refundStatus,jdbcType=CHAR}, #{refundTime,jdbcType=TIMESTAMP}, #{createTime,jdbcType=TIMESTAMP}, #{updateTime,jdbcType=TIMESTAMP}
       )
   </insert>
@@ -72,6 +73,9 @@
       </if>
       <if test="reason != null">
         reason = #{reason,jdbcType=VARCHAR},
+      </if>
+      <if test="failReason != null">
+        fail_reason = #{failReason,jdbcType=VARCHAR},
       </if>
       <if test="refundStatus != null">
         refund_status = #{refundStatus,jdbcType=CHAR},

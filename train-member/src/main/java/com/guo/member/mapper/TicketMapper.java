@@ -18,6 +18,8 @@ public interface TicketMapper {
 
     List<Ticket> selectByExample(TicketExample example);
 
+    List<Ticket> selectByOrderId(@Param("orderId") Long orderId);
+
     Ticket selectByPrimaryKey(Long id);
 
     int updateByExampleSelective(@Param("record") Ticket record, @Param("example") TicketExample example);

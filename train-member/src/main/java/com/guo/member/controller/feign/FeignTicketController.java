@@ -69,16 +69,11 @@ public class FeignTicketController {
     }
 
     /**
-     * 按订单 key 查询车票（供 business 退票/退改签反查座位）
+     * 按订单id查询车票（供 business 退票/退改签反查座位）
      */
     @GetMapping("/ticket/list-by-order")
-    public CommonResp<List<TicketQueryResp>> listByOrder(
-            @RequestParam("memberId") Long memberId,
-            @RequestParam("trainDate") @DateTimeFormat(pattern = "yyyy-MM-dd") Date trainDate,
-            @RequestParam("trainCode") String trainCode,
-            @RequestParam(value = "startStation", required = false) String startStation,
-            @RequestParam(value = "endStation", required = false) String endStation) {
-        List<Ticket> list = ticketService.selectByOrderKey(memberId, trainDate, trainCode, startStation, endStation);
+    public CommonResp<List<TicketQueryResp>> listByOrder(@RequestParam("orderId") Long orderId) {
+        List<Ticket> list = ticketService.selectByOrderId(orderId);
         List<TicketQueryResp> respList = list.stream()
                 .map(t -> BeanUtil.copyProperties(t, TicketQueryResp.class))
                 .collect(Collectors.toList());

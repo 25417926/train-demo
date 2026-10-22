@@ -2,6 +2,7 @@ package com.guo.business.controller.web;
 
 import com.guo.business.req.PaymentReq;
 import com.guo.business.resp.PaymentResp;
+import com.guo.business.service.OrderFailureRecorder;
 import com.guo.business.service.PaymentService;
 import com.guo.common.context.LoginMemberContext;
 import com.guo.common.req.PageReq;
@@ -29,12 +30,22 @@ public class PaymentController {
 
     @Resource
     private PaymentService paymentService;
+    @Resource
+    private OrderFailureRecorder failureRecorder;
 
     @Operation(summary = "发起支付")
     @PostMapping("/pay")
     public CommonResp<PaymentResp> pay(@Valid @RequestBody PaymentReq req) {
         Long memberId = LoginMemberContext.getId();
-        PaymentResp resp = paymentService.pay(req, memberId);
+        PaymentResp resp;
+        try {
+            resp = paymentService.pay(req, memberId);
+        } catch (RuntimeException e) {
+            failureRecorder.recordPaymentFail(
+                    req.getOrderId(), memberId, req.getAmount(), req.getPayChannel(),
+                    OrderFailureRecorder.reasonOf(e));
+            throw e;
+        }
         return new CommonResp<>(true, "支付成功", resp, HttpStatus.SUCCESS);
     }
 

@@ -67,22 +67,9 @@ public class TicketService {
     }
 
     /**
-     * 按订单维度（memberId + 日期 + 车次 + 出发站 + 到达站）查询车票
-     * 供退票/退改签场景反查座位、删除车票使用
+     * 按订单id查询车票，供退票/退改签场景精确反查与删除
      */
-    public List<Ticket> selectByOrderKey(Long memberId, java.util.Date trainDate, String trainCode,
-                                         String startStation, String endStation) {
-        TicketExample example = new TicketExample();
-        TicketExample.Criteria criteria = example.createCriteria()
-                .andMemberIdEqualTo(memberId)
-                .andTrainDateEqualTo(trainDate)
-                .andTrainCodeEqualTo(trainCode);
-        if (ObjectUtil.isNotEmpty(startStation)) {
-            criteria.andStartStationEqualTo(startStation);
-        }
-        if (ObjectUtil.isNotEmpty(endStation)) {
-            criteria.andEndStationEqualTo(endStation);
-        }
-        return ticketMapper.selectByExample(example);
+    public List<Ticket> selectByOrderId(Long orderId) {
+        return ticketMapper.selectByOrderId(orderId);
     }
 }

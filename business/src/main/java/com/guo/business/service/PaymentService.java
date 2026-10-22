@@ -3,14 +3,17 @@ package com.guo.business.service;
 import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.date.DateTime;
 import cn.hutool.core.util.ObjectUtil;
+import com.alibaba.fastjson.JSON;
 import com.github.pagehelper.PageHelper;
 import com.github.pagehelper.PageInfo;
 import com.guo.business.TypeEnum.ConfirmOrderStatusEnum;
 import com.guo.business.TypeEnum.PaymentStatusEnum;
+import com.guo.business.TypeEnum.RocketMqEnum;
 import com.guo.business.domain.Confirm_Order;
 import com.guo.business.domain.Payment;
 import com.guo.business.mapper.Confirm_OrderMapper;
 import com.guo.business.mapper.PaymentMapper;
+import com.guo.business.req.OrderIssueDto;
 import com.guo.business.req.PaymentReq;
 import com.guo.business.resp.PaymentResp;
 import com.guo.common.exception.ExceptionConsole;
@@ -18,10 +21,14 @@ import com.guo.common.exception.ExceptionEnum;
 import com.guo.common.req.PageReq;
 import com.guo.common.resp.PageResp;
 import com.guo.common.util.SnowUtil;
+import org.apache.rocketmq.spring.core.RocketMQTemplate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.slf4j.MDC;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import javax.annotation.Resource;
 import java.util.Date;
@@ -46,6 +53,8 @@ public class PaymentService {
     private PaymentMapper paymentMapper;
     @Resource
     private Confirm_OrderMapper confirm_OrderMapper;
+    @Resource
+    private RocketMQTemplate rocketMQTemplate;
 
     /**
      * 发起支付（演示场景：直接置为支付成功）
@@ -61,7 +70,7 @@ public class PaymentService {
         if (!order.getMemberId().equals(memberId)) {
             throw new ExceptionConsole(ExceptionEnum.ORDER_MEMBER_ERROR);
         }
-        // 仅出票成功的订单可支付
+        // 仅"锁座成功、待支付"的订单可支付；出票在支付成功后异步完成
         if (!ConfirmOrderStatusEnum.SUCCESS.getCode().equals(order.getStatus())) {
             if (ConfirmOrderStatusEnum.PAID.getCode().equals(order.getStatus())) {
                 throw new ExceptionConsole(ExceptionEnum.PAYMENT_ALREADY_DONE);
@@ -70,18 +79,31 @@ public class PaymentService {
         }
 
         DateTime now = DateTime.now();
-        Payment payment = new Payment();
-        payment.setId(SnowUtil.getSnowflakeNextId());
-        payment.setOrderId(req.getOrderId());
-        payment.setMemberId(memberId);
-        payment.setAmount(req.getAmount());
-        payment.setPayChannel(req.getPayChannel());
-        payment.setPayStatus(PaymentStatusEnum.SUCCESS.getCode());
-        payment.setPayTime(now);
-        payment.setTradeNo("DEMO-" + payment.getId());
-        payment.setCreateTime(now);
-        payment.setUpdateTime(now);
-        paymentMapper.insert(payment);
+        // 同一订单只保留一条支付记录：失败重试成功后复用原记录并置为 S
+        Payment payment = paymentMapper.selectByOrderId(order.getId());
+        if (ObjectUtil.isNull(payment)) {
+            payment = new Payment();
+            payment.setId(SnowUtil.getSnowflakeNextId());
+            payment.setOrderId(req.getOrderId());
+            payment.setMemberId(memberId);
+            payment.setAmount(req.getAmount());
+            payment.setPayChannel(req.getPayChannel());
+            payment.setPayStatus(PaymentStatusEnum.SUCCESS.getCode());
+            payment.setPayTime(now);
+            payment.setTradeNo("DEMO-" + payment.getId());
+            payment.setCreateTime(now);
+            payment.setUpdateTime(now);
+            paymentMapper.insert(payment);
+        } else {
+            payment.setAmount(req.getAmount());
+            payment.setPayChannel(req.getPayChannel());
+            payment.setPayStatus(PaymentStatusEnum.SUCCESS.getCode());
+            payment.setPayTime(now);
+            payment.setTradeNo("DEMO-" + payment.getId());
+            payment.setFailReason("");
+            payment.setUpdateTime(now);
+            paymentMapper.updateByPrimaryKeySelective(payment);
+        }
 
         // 推进订单状态到 PAID
         Confirm_Order forUpdate = new Confirm_Order();
@@ -91,7 +113,34 @@ public class PaymentService {
         confirm_OrderMapper.updateByPrimaryKeySelective(forUpdate);
         LOG.info("订单【{}】支付成功，流水号：{}", order.getId(), payment.getTradeNo());
 
+        // 支付成功才出票：事务提交后投递 order_issue，消费者写会员车票并回写 ticket_status
+        OrderIssueDto issueDto = new OrderIssueDto();
+        issueDto.setOrderId(order.getId());
+        issueDto.setLogId(MDC.get("LOG_ID"));
+        Runnable sendIssue = () -> sendIssueMessage(issueDto);
+        if (TransactionSynchronizationManager.isSynchronizationActive()) {
+            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+                @Override
+                public void afterCommit() {
+                    sendIssue.run();
+                }
+            });
+        } else {
+            sendIssue.run();
+        }
+
         return BeanUtil.copyProperties(payment, PaymentResp.class);
+    }
+
+    private void sendIssueMessage(OrderIssueDto issueDto) {
+        String body = JSON.toJSONString(issueDto);
+        try {
+            rocketMQTemplate.convertAndSend(RocketMqEnum.ORDER_ISSUE.getCode(), body);
+            LOG.info("支付成功，已投递出票消息：{}", body);
+        } catch (Exception e) {
+            // 出票消息投递失败由 I04 的补偿任务重试，先记录
+            LOG.error("出票消息投递失败：{}", body, e);
+        }
     }
 
     /**

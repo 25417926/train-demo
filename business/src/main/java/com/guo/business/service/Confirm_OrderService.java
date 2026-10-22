@@ -17,6 +17,7 @@ import com.guo.business.domain.*;
 import com.guo.business.mapper.Confirm_OrderMapper;
 import com.guo.business.req.*;
 import com.guo.business.resp.Confirm_OrderQueryResp;
+import com.guo.business.resp.UnpaidOrderResp;
 import com.guo.common.exception.ExceptionConsole;
 import com.guo.common.exception.ExceptionEnum;
 import com.guo.common.resp.PageResp;
@@ -117,6 +118,19 @@ public class Confirm_OrderService {
     }
 
     /**
+     * 未支付订单：锁座成功（S）、尚未出票（N）、支付未超时
+     */
+    public List<UnpaidOrderResp> queryUnpaid(Long memberId) {
+        List<UnpaidOrderResp> list = confirm_OrderMapper.selectUnpaidByMember(memberId);
+        Date now = new Date();
+        for (UnpaidOrderResp resp : list) {
+            long remaining = (resp.getExpireAt().getTime() - now.getTime()) / 1000;
+            resp.setRemainingSeconds(Math.max(remaining, 0));
+        }
+        return list;
+    }
+
+    /**
      * 删除确认订单
      *
      * @param id 确认订单ID
@@ -184,11 +198,11 @@ public class Confirm_OrderService {
                             LOG.error("纭璁㈠崟澶勭悊澶辫触: {}", e.getExceptionEnum().getMessage(), e);
                             confirmOrder.setStatus(ConfirmOrderStatusEnum.FAIL.getCode());
                         }
-                        updateStatus(confirmOrder);
+                        updateStatusAndTicket(confirmOrder, "F");
                     } catch (Exception e) {
                         LOG.error("纭璁㈠崟澶勭悊寮傚父", e);
                         confirmOrder.setStatus(ConfirmOrderStatusEnum.FAIL.getCode());
-                        updateStatus(confirmOrder);
+                        updateStatusAndTicket(confirmOrder, "F");
                     }
                 }
             }
@@ -249,7 +263,7 @@ public class Confirm_OrderService {
         //订单进入处理中
         req.setStatus(ConfirmOrderStatusEnum.PENDING.getCode());
         LOG.info("订单进入处理中，避免重复处理");
-        updateStatus(req);
+        updateStatusAndTicket(req, "I");
         //查出余票数据，需要得到真实库存
         Daily_Train_Ticket dailyTrainTicket = daily_Train_TicketService.selectByUnique(date, req.getTrainCode(), req.getStart(), req.getEnd());
         LOG.info("查出余票信息记录：{}", dailyTrainTicket);
@@ -606,12 +620,9 @@ public class Confirm_OrderService {
         }
     }
 
-    private void updateStatus(Confirm_Order req) {
-        Confirm_Order updateForStatus = new Confirm_Order();
-        updateForStatus.setId(req.getId());
-        updateForStatus.setUpdateTime(new Date());
-        updateForStatus.setStatus(req.getStatus());
-        confirm_OrderMapper.updateByPrimaryKeySelective(updateForStatus);
+    private void updateStatusAndTicket(Confirm_Order req, String ticketStatus) {
+        confirm_OrderMapper.updateStatusAndTicketStatus(
+                req.getId(), req.getStatus(), ticketStatus, new Date());
     }
 
     private String extractSeatColumn(String seat) {

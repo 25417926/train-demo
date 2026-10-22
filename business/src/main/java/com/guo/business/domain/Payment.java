@@ -20,6 +20,8 @@ public class Payment {
 
     private String tradeNo;
 
+    private String failReason;
+
     private Date createTime;
 
     private Date updateTime;
@@ -86,6 +88,14 @@ public class Payment {
 
     public void setTradeNo(String tradeNo) {
         this.tradeNo = tradeNo;
+    }
+
+    public String getFailReason() {
+        return failReason;
+    }
+
+    public void setFailReason(String failReason) {
+        this.failReason = failReason;
     }
 
     public Date getCreateTime() {

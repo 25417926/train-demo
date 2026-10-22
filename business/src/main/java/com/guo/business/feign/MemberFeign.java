@@ -27,15 +27,10 @@ public interface MemberFeign {
     ValidReq isCodeExpired(@RequestBody ValidReq req);
 
     /**
-     * 按订单 key 查询车票（用于退票/退改签反查座位）
+     * 按订单id查询车票（用于退票/退改签精确反查座位）
      */
     @GetMapping("member/internal/feign/ticket/list-by-order")
-    CommonResp<List<Map<String, Object>>> listByOrder(
-            @RequestParam("memberId") Long memberId,
-            @RequestParam("trainDate") @DateTimeFormat(pattern = "yyyy-MM-dd") Date trainDate,
-            @RequestParam("trainCode") String trainCode,
-            @RequestParam(value = "startStation", required = false) String startStation,
-            @RequestParam(value = "endStation", required = false) String endStation);
+    CommonResp<List<Map<String, Object>>> listByOrder(@RequestParam("orderId") Long orderId);
 
     /**
      * 删除车票

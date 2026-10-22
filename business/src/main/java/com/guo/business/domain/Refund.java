@@ -24,6 +24,8 @@ public class Refund {
 
     private Date updateTime;
 
+    private String failReason;
+
     public Long getId() {
         return id;
     }
@@ -70,6 +72,14 @@ public class Refund {
 
     public void setReason(String reason) {
         this.reason = reason;
+    }
+
+    public String getFailReason() {
+        return failReason;
+    }
+
+    public void setFailReason(String failReason) {
+        this.failReason = failReason;
     }
 
     public String getRefundStatus() {

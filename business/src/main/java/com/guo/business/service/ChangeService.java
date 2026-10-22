@@ -122,12 +122,8 @@ public class ChangeService {
             record.setChangeStatus(ChangeStatusEnum.SUCCESS.getCode());
             LOG.info("改签成功，原订单【{}】，新订单【{}】", original.getId(), newOrderId);
         } catch (Exception e) {
+            // 失败记录由 OrderFailureRecorder 用独立事务落库，避免随本事务回滚
             LOG.error("改签失败：{}", e.getMessage());
-            ChangeRecord recordUpdate = new ChangeRecord();
-            recordUpdate.setId(record.getId());
-            recordUpdate.setChangeStatus(ChangeStatusEnum.FAIL.getCode());
-            recordUpdate.setUpdateTime(new DateTime());
-            changeRecordMapper.updateByPrimaryKeySelective(recordUpdate);
             throw e;
         }
         return BeanUtil.copyProperties(record, ChangeRecordResp.class);

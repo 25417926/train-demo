@@ -1,0 +1,2 @@
+ticket_id,member_id,passenger_id,passenger_name,train_date,train_code,start_station,end_station,seat_type,create_time,order_id,reason
+2064091034660507648,2064044044501258240,2064056182418575360,11,2026-06-09,G105,西安,南京,1,2026-06-09 05:03:46.277,2064091034354323456,RESOLVED_BOUND_BY_PASSENGER_AND_SEAT

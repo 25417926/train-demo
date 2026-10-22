@@ -3,6 +3,7 @@ package com.guo.business.controller.web;
 import com.guo.business.req.ChangeReq;
 import com.guo.business.resp.ChangeRecordResp;
 import com.guo.business.service.ChangeService;
+import com.guo.business.service.OrderFailureRecorder;
 import com.guo.common.context.LoginMemberContext;
 import com.guo.common.req.PageReq;
 import com.guo.common.resp.CommonResp;
@@ -29,12 +30,20 @@ public class ChangeController {
 
     @Resource
     private ChangeService changeService;
+    @Resource
+    private OrderFailureRecorder failureRecorder;
 
     @Operation(summary = "申请改签")
     @PostMapping("/apply")
     public CommonResp<ChangeRecordResp> apply(@Valid @RequestBody ChangeReq req) {
         Long memberId = LoginMemberContext.getId();
-        ChangeRecordResp resp = changeService.change(req, memberId);
+        ChangeRecordResp resp;
+        try {
+            resp = changeService.change(req, memberId);
+        } catch (RuntimeException e) {
+            failureRecorder.recordChangeFail(req.getOriginalOrderId(), memberId, OrderFailureRecorder.reasonOf(e));
+            throw e;
+        }
         return new CommonResp<>(true, "改签成功", resp, HttpStatus.SUCCESS);
     }
 

@@ -3,6 +3,7 @@
 <mapper namespace="com.guo.member.mapper.TicketMapper">
   <resultMap id="BaseResultMap" type="com.guo.member.domain.Ticket">
     <id column="id" jdbcType="BIGINT" property="id" />
+    <result column="order_id" jdbcType="BIGINT" property="orderId" />
     <result column="member_id" jdbcType="BIGINT" property="memberId" />
     <result column="passenger_id" jdbcType="BIGINT" property="passengerId" />
     <result column="passenger_name" jdbcType="VARCHAR" property="passengerName" />
@@ -78,7 +79,7 @@
     </where>
   </sql>
   <sql id="Base_Column_List">
-    id, member_id, passenger_id, passenger_name, train_date, train_code, carriage_index, 
+    id, order_id, member_id, passenger_id, passenger_name, train_date, train_code, carriage_index, 
     seat_row, seat_col, start_station, start_time, end_station, end_time, seat_type, 
     create_time, update_time
   </sql>
@@ -95,6 +96,13 @@
     <if test="orderByClause != null">
       order by ${orderByClause}
     </if>
+  </select>
+  <select id="selectByOrderId" resultMap="BaseResultMap">
+    select
+    <include refid="Base_Column_List" />
+    from ticket
+    where order_id = #{orderId,jdbcType=BIGINT}
+    order by id asc
   </select>
   <select id="selectByPrimaryKey" parameterType="java.lang.Long" resultMap="BaseResultMap">
     select 
@@ -113,13 +121,13 @@
     </if>
   </delete>
   <insert id="insert" parameterType="com.guo.member.domain.Ticket">
-    insert into ticket (id, member_id, passenger_id, 
+    insert into ticket (id, order_id, member_id, passenger_id, 
       passenger_name, train_date, train_code, 
       carriage_index, seat_row, seat_col, 
       start_station, start_time, end_station, 
       end_time, seat_type, create_time, 
       update_time)
-    values (#{id,jdbcType=BIGINT}, #{memberId,jdbcType=BIGINT}, #{passengerId,jdbcType=BIGINT}, 
+    values (#{id,jdbcType=BIGINT}, #{orderId,jdbcType=BIGINT}, #{memberId,jdbcType=BIGINT}, #{passengerId,jdbcType=BIGINT}, 
       #{passengerName,jdbcType=VARCHAR}, #{trainDate,jdbcType=DATE}, #{trainCode,jdbcType=VARCHAR}, 
       #{carriageIndex,jdbcType=INTEGER}, #{seatRow,jdbcType=CHAR}, #{seatCol,jdbcType=CHAR}, 
       #{startStation,jdbcType=VARCHAR}, #{startTime,jdbcType=TIME}, #{endStation,jdbcType=VARCHAR}, 
