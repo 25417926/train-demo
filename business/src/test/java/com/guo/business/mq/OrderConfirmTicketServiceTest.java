@@ -6,6 +6,7 @@ import com.guo.business.inventory.InventoryService;
 import com.guo.business.mapper.OrderConfirmPersistMapper;
 import com.guo.business.purchase.model.SeatRecord;
 import com.guo.business.req.Confirm_OrderTicketReq;
+import com.guo.business.service.OrderCloseQueue;
 import com.guo.business.service.TicketIssueService;
 import com.guo.common.event.TicketCreateEvent;
 import com.guo.common.req.MemberTicketReq;
@@ -57,13 +58,15 @@ class OrderConfirmTicketServiceTest {
         when(redis.opsForHash()).thenReturn(hashOps);
         ticketCreateProducer = mock(TicketCreateProducer.class);
         ticketIssueService = mock(TicketIssueService.class);
+        OrderCloseQueue orderCloseQueue = mock(OrderCloseQueue.class);
 
         PlatformTransactionManager txManager = mock(PlatformTransactionManager.class);
         when(txManager.getTransaction(any(TransactionDefinition.class)))
                 .thenReturn(new SimpleTransactionStatus());
 
         service = new OrderConfirmTicketService(
-                persistMapper, inventoryService, redis, txManager, ticketCreateProducer, ticketIssueService);
+                persistMapper, inventoryService, redis, txManager, ticketCreateProducer, ticketIssueService,
+                orderCloseQueue);
     }
 
     @Test

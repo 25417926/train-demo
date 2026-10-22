@@ -78,7 +78,8 @@ class PurchaseAcceptServiceTest {
         when(ticketService.selectByUnique(any(Date.class), anyString(), anyString(), anyString()))
                 .thenReturn(dailyTrainTicket);
 
-        acceptService = new PurchaseAcceptService(inventoryService, ticketService, txWriter, producer, redis);
+        acceptService = new PurchaseAcceptService(inventoryService, ticketService, txWriter, producer,
+                new com.guo.business.service.OrderCloseQueue(redis), redis);
 
         cleanUp();
         Map<String, String> ticket = new HashMap<>();
@@ -193,6 +194,7 @@ class PurchaseAcceptServiceTest {
         keys.addAll(redis.keys("purchase:req:test-key-*"));
         keys.addAll(redis.keys("hold:HOLD-*"));
         keys.addAll(redis.keys("rel:ACCEPT-*"));
+        keys.add(InventoryKey.ORDER_CLOSE);
         if (!keys.isEmpty()) {
             redis.delete(keys);
         }

@@ -15,6 +15,7 @@ import com.guo.business.purchase.model.InventoryHoldRecord;
 import com.guo.business.purchase.model.OrderOutboxRecord;
 import com.guo.business.purchase.model.SeatRecord;
 import com.guo.business.req.Confirm_OrderTicketReq;
+import com.guo.business.service.OrderCloseQueue;
 import com.guo.business.service.TicketIssueService;
 import com.guo.common.event.TicketCreateEvent;
 import com.guo.common.util.SnowUtil;
@@ -51,19 +52,22 @@ public class OrderConfirmTicketService {
     private final TransactionTemplate transactionTemplate;
     private final TicketCreateProducer ticketCreateProducer;
     private final TicketIssueService ticketIssueService;
+    private final OrderCloseQueue orderCloseQueue;
 
     public OrderConfirmTicketService(OrderConfirmPersistMapper persistMapper,
                                      InventoryService inventoryService,
                                      StringRedisTemplate redis,
                                      PlatformTransactionManager transactionManager,
                                      TicketCreateProducer ticketCreateProducer,
-                                     TicketIssueService ticketIssueService) {
+                                     TicketIssueService ticketIssueService,
+                                     OrderCloseQueue orderCloseQueue) {
         this.persistMapper = persistMapper;
         this.inventoryService = inventoryService;
         this.redis = redis;
         this.transactionTemplate = new TransactionTemplate(transactionManager);
         this.ticketCreateProducer = ticketCreateProducer;
         this.ticketIssueService = ticketIssueService;
+        this.orderCloseQueue = orderCloseQueue;
     }
 
     public void handle(Long orderId, String requestId, String holdToken) {
@@ -123,7 +127,10 @@ public class OrderConfirmTicketService {
         String dbSeatType = tickets.get(0).getSeatTypeCode();
 
         try {
-            persistWithRetry(order, holdToken, seatIds, tickets, startIndex, endIndex);
+            Date expireAt = new Date(System.currentTimeMillis() + PAYMENT_WINDOW_MS);
+            persistWithRetry(order, holdToken, seatIds, tickets, startIndex, endIndex, expireAt);
+            // 出票成功刷新关闭队列 score，支付窗口从出票成功时刻重新计算
+            orderCloseQueue.schedule(order.getId(), expireAt);
         } catch (SeatConflictException e) {
             LOG.error("ORDER_CONFIRM 座位冲突重试 {} 次仍失败，释放并置失败 orderId={}",
                     SEAT_RETRY_TIMES, orderId, e);
@@ -153,11 +160,12 @@ public class OrderConfirmTicketService {
                                   List<String> seatIds,
                                   List<Confirm_OrderTicketReq> tickets,
                                   int startIndex,
-                                  int endIndex) {
+                                  int endIndex,
+                                  Date expireAt) {
         for (int attempt = 1; attempt <= SEAT_RETRY_TIMES; attempt++) {
             try {
                 transactionTemplate.executeWithoutResult(status ->
-                        persist(order, holdToken, seatIds, tickets, startIndex, endIndex));
+                        persist(order, holdToken, seatIds, tickets, startIndex, endIndex, expireAt));
                 return;
             } catch (SeatConflictException e) {
                 LOG.warn("ORDER_CONFIRM 座位落库冲突，第 {}/{} 次 orderId={}",
@@ -174,7 +182,8 @@ public class OrderConfirmTicketService {
                          List<String> seatIds,
                          List<Confirm_OrderTicketReq> tickets,
                          int startIndex,
-                         int endIndex) {
+                         int endIndex,
+                         Date expireAt) {
         Date now = new Date();
         for (int i = 0; i < seatIds.size(); i++) {
             Confirm_OrderTicketReq ticket = tickets.get(i);
@@ -215,7 +224,6 @@ public class OrderConfirmTicketService {
 
         persistMapper.consumeQualifications(order.getId());
 
-        Date expireAt = new Date(now.getTime() + PAYMENT_WINDOW_MS);
         if (persistMapper.markSuccess(order.getId(), expireAt) != 1) {
             throw new IllegalStateException("订单状态已变更，无法置成功, orderId=" + order.getId());
         }

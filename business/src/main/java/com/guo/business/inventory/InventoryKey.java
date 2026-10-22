@@ -18,6 +18,9 @@ public final class InventoryKey {
     /** 无法关联到订单的历史占用，用该占位值标记，避免释放时误删。 */
     public static final String LEGACY_ORDER = "LEGACY";
 
+    /** I12 超时关闭延迟队列：ZSet，score=expireAt(ms)，member=orderId。 */
+    public static final String ORDER_CLOSE = "order:close";
+
     private static final String TICKET_PREFIX = "inv:t";
     private static final String SEAT_PREFIX = "inv:seat";
     private static final String POOL_PREFIX = "inv:pool";

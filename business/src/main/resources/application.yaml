@@ -118,3 +118,12 @@ train:
     mq-consumers: order-confirm:business-order-confirm,ticket-create:member-ticket-create
     mq-lag-refresh-ms: 60000
     mq-lag-initial-delay-ms: 60000
+  close:
+    # I12 超时关闭：ZSet 主触发（秒级）+ 扫表兜底（5 分钟）
+    enabled: true
+    poll-interval-ms: 5000
+    poll-initial-delay-ms: 10000
+    poll-batch: 100
+    sweep-interval-ms: 300000
+    sweep-initial-delay-ms: 60000
+    sweep-batch: 200

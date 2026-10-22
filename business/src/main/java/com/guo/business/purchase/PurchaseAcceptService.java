@@ -13,6 +13,7 @@ import com.guo.business.inventory.ReserveCommand;
 import com.guo.business.inventory.ReserveResult;
 import com.guo.business.req.Confirm_OrderTicketReq;
 import com.guo.business.service.Daily_Train_TicketService;
+import com.guo.business.service.OrderCloseQueue;
 import com.guo.common.util.SnowUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -42,21 +43,27 @@ public class PurchaseAcceptService {
 
     private static final String WAITLIST_COUNT_PREFIX = "waitlist:count:";
 
+    /** 受理后出票窗口 5 分钟，与 PurchaseTxWriter 的 expire_at 对齐 */
+    private static final long ORDER_EXPIRE_MS = 5 * 60 * 1000L;
+
     private final InventoryService inventoryService;
     private final Daily_Train_TicketService dailyTrainTicketService;
     private final PurchaseTxWriter purchaseTxWriter;
     private final PurchaseConfirmProducer purchaseConfirmProducer;
+    private final OrderCloseQueue orderCloseQueue;
     private final StringRedisTemplate redis;
 
     public PurchaseAcceptService(InventoryService inventoryService,
                                  Daily_Train_TicketService dailyTrainTicketService,
                                  PurchaseTxWriter purchaseTxWriter,
                                  PurchaseConfirmProducer purchaseConfirmProducer,
+                                 OrderCloseQueue orderCloseQueue,
                                  StringRedisTemplate redis) {
         this.inventoryService = inventoryService;
         this.dailyTrainTicketService = dailyTrainTicketService;
         this.purchaseTxWriter = purchaseTxWriter;
         this.purchaseConfirmProducer = purchaseConfirmProducer;
+        this.orderCloseQueue = orderCloseQueue;
         this.redis = redis;
     }
 
@@ -122,11 +129,20 @@ public class PurchaseAcceptService {
             if (committedOrderId != null) {
                 LOG.warn("受理事务消息未确认但本地事务已提交 requestId={} orderId={}",
                         requestId, committedOrderId);
+                scheduleClose(committedOrderId);
                 return PurchaseApplyResp.accepted(requestId, committedOrderId);
             }
             throw new PurchaseException(PurchaseErrorCode.ACCEPT_FAILED);
         }
+        scheduleClose(orderId);
         return PurchaseApplyResp.accepted(requestId, orderId);
+    }
+
+    /**
+     * 受理成功即进入超时关闭窗口，5 分钟后由调度任务兜底关单。
+     */
+    private void scheduleClose(long orderId) {
+        orderCloseQueue.schedule(orderId, new Date(System.currentTimeMillis() + ORDER_EXPIRE_MS));
     }
 
     private String validateIdempotencyKey(String idempotencyKey) {

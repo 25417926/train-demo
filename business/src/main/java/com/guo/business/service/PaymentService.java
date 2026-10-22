@@ -55,6 +55,8 @@ public class PaymentService {
     private Confirm_OrderMapper confirm_OrderMapper;
     @Resource
     private RocketMQTemplate rocketMQTemplate;
+    @Resource
+    private OrderCloseQueue orderCloseQueue;
 
     /**
      * 发起支付（演示场景：直接置为支付成功）
@@ -105,12 +107,12 @@ public class PaymentService {
             paymentMapper.updateByPrimaryKeySelective(payment);
         }
 
-        // 推进订单状态到 PAID
-        Confirm_Order forUpdate = new Confirm_Order();
-        forUpdate.setId(order.getId());
-        forUpdate.setStatus(ConfirmOrderStatusEnum.PAID.getCode());
-        forUpdate.setUpdateTime(now);
-        confirm_OrderMapper.updateByPrimaryKeySelective(forUpdate);
+        // 推进订单状态到 PAID：CAS 防止并发下订单已被超时关闭后仍支付成功
+        if (confirm_OrderMapper.updateStatusCas(order.getId(),
+                ConfirmOrderStatusEnum.SUCCESS.getCode(), ConfirmOrderStatusEnum.PAID.getCode(), now) != 1) {
+            LOG.warn("订单【{}】支付时状态已变更（可能已超时关闭），支付回滚", order.getId());
+            throw new ExceptionConsole(ExceptionEnum.ORDER_STATUS_ERROR);
+        }
         LOG.info("订单【{}】支付成功，流水号：{}", order.getId(), payment.getTradeNo());
 
         // 支付成功才出票：事务提交后投递 order_issue，消费者写会员车票并回写 ticket_status
@@ -122,6 +124,8 @@ public class PaymentService {
             TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
                 @Override
                 public void afterCommit() {
+                    // I12：支付成功后移出超时关闭队列，避免被定时任务误关
+                    orderCloseQueue.cancel(order.getId());
                     sendIssue.run();
                 }
             });
