@@ -16,6 +16,7 @@ import org.springframework.cache.annotation.EnableCaching;
 import org.springframework.cloud.openfeign.EnableFeignClients;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.core.env.Environment;
+import org.springframework.scheduling.annotation.EnableScheduling;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -26,6 +27,7 @@ import java.util.logging.Logger;
 @MapperScan("com.guo.*.mapper")
 @EnableFeignClients("com.guo.business.feign")
 @EnableCaching
+@EnableScheduling
 public class BusinessApplication {
     private static final Logger LOG = Logger.getLogger(BusinessApplication.class.getName());
     public static void main(String[] args) {

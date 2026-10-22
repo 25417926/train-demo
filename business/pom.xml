@@ -109,6 +109,12 @@
             <scope>test</scope>
         </dependency>
 
+        <!-- I11 指标采集与监控端点（micrometer） -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-actuator</artifactId>
+        </dependency>
+
         <!-- Knife4j（基于 OpenAPI3）API 文档 -->
         <dependency>
             <groupId>com.github.xiaoymin</groupId>

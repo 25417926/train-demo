@@ -1,7 +1,11 @@
 package com.guo.business.inventory;
 
+import io.micrometer.core.instrument.DistributionSummary;
+import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.core.script.DefaultRedisScript;
@@ -42,13 +46,28 @@ public class InventoryService {
     private final DefaultRedisScript<List> releaseScript;
     private final DefaultRedisScript<List> confirmScript;
     private final DefaultRedisScript<Long> abortScript;
+    /** I11 指标：lua_duration_ms{script} */
+    private final DistributionSummary reserveDuration;
+    private final DistributionSummary releaseDuration;
+    private final DistributionSummary confirmDuration;
+    private final DistributionSummary abortDuration;
 
+    /** 供单测直接构造，指标写入独立注册表 */
     public InventoryService(StringRedisTemplate redis) {
+        this(redis, new SimpleMeterRegistry());
+    }
+
+    @Autowired
+    public InventoryService(StringRedisTemplate redis, MeterRegistry meterRegistry) {
         this.redis = redis;
         this.reserveScript = load("lua/reserve.lua");
         this.releaseScript = load("lua/release.lua");
         this.confirmScript = load("lua/confirm.lua");
         this.abortScript = loadLong("lua/abort.lua");
+        this.reserveDuration = luaDuration(meterRegistry, "reserve");
+        this.releaseDuration = luaDuration(meterRegistry, "release");
+        this.confirmDuration = luaDuration(meterRegistry, "confirm");
+        this.abortDuration = luaDuration(meterRegistry, "abort");
     }
 
     /**
@@ -59,7 +78,7 @@ public class InventoryService {
         String dateText = InventoryKey.formatDate(command.getDate());
         String holdToken = "HOLD-" + command.getOrderId();
 
-        List<?> raw = redis.execute(reserveScript,
+        List<?> raw = execute(reserveDuration, reserveScript,
                 Collections.singletonList(InventoryKey.purchaseRequest(command.getRequestId())),
                 command.getOrderId(),
                 command.getRequestId(),
@@ -99,7 +118,7 @@ public class InventoryService {
         validateRelease(command);
         String dateText = InventoryKey.formatDate(command.getDate());
 
-        List<?> raw = redis.execute(releaseScript,
+        List<?> raw = execute(releaseDuration, releaseScript,
                 Collections.singletonList(InventoryKey.releaseMark(command.getReleaseKey())),
                 command.getOrderId(),
                 InventoryKey.qualificationPrefix(dateText, command.getTrainCode()),
@@ -133,7 +152,7 @@ public class InventoryService {
         }
         String dateText = InventoryKey.formatDate(command.getDate());
 
-        List<?> raw = redis.execute(confirmScript,
+        List<?> raw = execute(confirmDuration, confirmScript,
                 Collections.singletonList(InventoryKey.hold(command.getHoldToken())),
                 command.getOrderId(),
                 InventoryKey.qualificationPrefix(dateText, command.getTrainCode()),
@@ -155,7 +174,7 @@ public class InventoryService {
         if (isBlank(requestId) || isBlank(orderId) || isBlank(holdToken)) {
             throw new IllegalArgumentException("清理参数不完整");
         }
-        Long cleaned = redis.execute(abortScript,
+        Long cleaned = execute(abortDuration, abortScript,
                 Arrays.asList(InventoryKey.purchaseRequest(requestId), InventoryKey.hold(holdToken)),
                 orderId);
         LOG.info("受理失败清理 requestId={} orderId={} cleaned={}", requestId, orderId, cleaned);
@@ -191,6 +210,26 @@ public class InventoryService {
                 || command.getSeatIds() == null
                 || command.getSeatIds().isEmpty()) {
             throw new IllegalArgumentException("释放参数不完整");
+        }
+    }
+
+    /**
+     * 记录单次 Lua 执行耗时（毫秒），指标名 lua_duration_ms{script}。
+     */
+    private static DistributionSummary luaDuration(MeterRegistry registry, String script) {
+        return DistributionSummary.builder("lua_duration_ms")
+                .tag("script", script)
+                .baseUnit("milliseconds")
+                .register(registry);
+    }
+
+    private <T> T execute(DistributionSummary duration, DefaultRedisScript<T> script,
+                          List<String> keys, Object... args) {
+        long begin = System.nanoTime();
+        try {
+            return redis.execute(script, keys, args);
+        } finally {
+            duration.record((System.nanoTime() - begin) / 1_000_000.0);
         }
     }
 

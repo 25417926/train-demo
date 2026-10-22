@@ -96,3 +96,25 @@ rocketmq:
   name-server: 127.0.0.1:9876
   producer:
     group: default
+# I11 对账与指标
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+  endpoint:
+    metrics:
+      enabled: true
+train:
+  reconcile:
+    # 每分钟比对 Redis 与 MySQL；差异以 MySQL 账本为准回写 Redis
+    enabled: true
+    fixed-delay-ms: 60000
+    initial-delay-ms: 30000
+    # 对账范围：今天 + 未来 N 天
+    days-ahead: 1
+  metrics:
+    # mq_consume_lag 采集的 主题:消费组 列表
+    mq-consumers: order-confirm:business-order-confirm,ticket-create:member-ticket-create
+    mq-lag-refresh-ms: 60000
+    mq-lag-initial-delay-ms: 60000
