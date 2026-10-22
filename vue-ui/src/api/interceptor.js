@@ -7,7 +7,7 @@ const instance = axios.create({
     // 设置接口域名
     baseURL: 'http://localhost:80',
     // 设置请求超时时间（注意这里timeout的值应该是数字类型，原代码中是字符串，修改为数字）
-    timeout: 7000,
+    timeout: 60000,
     // withCredentials: true
 });
 
@@ -16,7 +16,7 @@ instance.interceptors.request.use((config) => {
     // 发请求前做的一些处理，数据转化，配置请求头，设置token，设置loading等，根据需求去添加
     const token =store.state.Mobile.token
     if (token) { // 判断是否存在token，如果存在的话，则每个http header都加上token
-        config.headers.authorization = `${token}`; // 请求头加上token
+        config.headers.satoken = token; // 请求头加上token
     }
     config.headers['Content-Type'] = 'application/json;charset=UTF-8';
     return config;
@@ -35,7 +35,7 @@ instance.interceptors.response.use((res) => {
 
     const res = error.response;
     //处理登录权限问题
-    if(res.status === 401) {
+    if(res && res.status === 401) {
         message.error("登录状态异常")
         store.commit("Mobile/clean")
         setTimeout(() => {

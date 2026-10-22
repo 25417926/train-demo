@@ -65,4 +65,11 @@ public class TicketService {
     public void delete(Long id) {
         ticketMapper.deleteByPrimaryKey(id);
     }
+
+    /**
+     * 按订单id查询车票，供退票/退改签场景精确反查与删除
+     */
+    public List<Ticket> selectByOrderId(Long orderId) {
+        return ticketMapper.selectByOrderId(orderId);
+    }
 }

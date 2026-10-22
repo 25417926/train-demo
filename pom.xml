@@ -15,6 +15,7 @@
         <module>builder</module>
         <module>business</module>
         <module>batch</module>
+        <module>auth</module>
     </modules>
     <properties>
         <java.version>1.8</java.version>
@@ -102,6 +103,13 @@
                 <groupId>org.apache.rocketmq</groupId>
                 <artifactId>rocketmq-spring-boot-starter</artifactId>
                 <version>2.2.3</version>
+            </dependency>
+
+            <!-- Knife4j（基于 OpenAPI3）API 文档 -->
+            <dependency>
+                <groupId>com.github.xiaoymin</groupId>
+                <artifactId>knife4j-openapi3-spring-boot-starter</artifactId>
+                <version>4.4.0</version>
             </dependency>
         </dependencies>
     </dependencyManagement>

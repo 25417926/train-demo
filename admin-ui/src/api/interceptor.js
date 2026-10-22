@@ -1,6 +1,6 @@
 import axios from 'axios';
-import { message } from 'ant-design-vue';
-// import store from "@/store";
+import {message} from 'ant-design-vue';
+import store from "@/store";
 //import router from "@/router";
 // 1. 创建新的axios实例
 const instance = axios.create({
@@ -14,10 +14,12 @@ const instance = axios.create({
 // 2. 请求拦截器（请求拦截器作用就是用于发送接口请求前需要做的操作）
 instance.interceptors.request.use((config) => {
     // 发请求前做的一些处理，数据转化，配置请求头，设置token，设置loading等，根据需求去添加
-    // const token =store.state.MemberToken.token || null
-    // if (token!==null) { // 判断是否存在token，如果存在的话，则每个http header都加上token
-    //     config.headers.authorization = `${token}`; // 请求头加上token
-    // }
+    const token =store.state.Mobile.token
+    if (token !== null) { // 判断是否存在token，如果存在的话，则每个http header都加上token
+        // config.headers.authorization = `${token}`; // 请求头加上token
+        config.withCredentials = true;
+        document.satoken = `${token}`;
+    }
     config.headers['Content-Type'] = 'application/json;charset=UTF-8'; //Content-Type
 
     return config;
@@ -27,16 +29,16 @@ instance.interceptors.request.use((config) => {
 
 // 3. 响应拦截器（响应拦截器作用就是接收到响应数据后需要做的一些操作，比如判断接口状态）
 instance.interceptors.response.use((res) => {
-    let status =null
+    let status = null
     // 接收到响应数据并成功后的一些共有的处理，关闭loading等
     // res为回调函数，也就是接口请求成功后返回的数据
-    if(res.data.code !== null) {
-         status = res.data.code;
-    }else if(res.status !== null){
-         status = res.status;
+    if (res.data.code !== null) {
+        status = res.data.code;
+    } else if (res.status !== null) {
+        status = res.status;
     }
     // 根据不同的状态码进行相应的提示处理
-    if(status !== 200){
+    if (status !== 200) {
         message.error(res.data.message);
     }
     return res;
@@ -53,9 +55,9 @@ instance.interceptors.response.use((res) => {
     //         router.push("/view")
     //     }, 1000)
     // }else {
-        // 这里可以统一提示错误信息
-        message.error('接口请求出现错误，请稍后重试');
-        return Promise.reject(error);
+    // 这里可以统一提示错误信息
+    message.error('接口请求出现错误，请稍后重试');
+    return Promise.reject(error);
     // }
 });
 

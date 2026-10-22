@@ -26,6 +26,9 @@ import java.math.RoundingMode;
 import java.util.Date;
 import java.util.List;
 
+/**
+ * 日列车票务服务类
+ */
 @Service
 public class Daily_Train_TicketService {
 
@@ -38,21 +41,26 @@ public class Daily_Train_TicketService {
     @Resource
     private Daily_Train_SeatService Daily_Train_SeatService;
 
-
+    /**
+     * 查询列车票务信息列表
+     *
+     * @param req 查询请求对象，包含查询条件
+     * @return 分页响应对象，包含查询结果
+     */
     public PageResp<Daily_Train_TicketQueryResp> QueryList(Daily_Train_TicketQueryReq req) {
         Daily_Train_TicketExample daily_Train_TicketExample = new Daily_Train_TicketExample();
         daily_Train_TicketExample.setOrderByClause("id desc");
         Daily_Train_TicketExample.Criteria criteria = daily_Train_TicketExample.createCriteria();
-        if(ObjectUtil.isNotNull(req.getDate())){
+        if (ObjectUtil.isNotNull(req.getDate())) {
             criteria.andDateEqualTo(req.getDate());
         }
         if (ObjectUtil.isNotEmpty(req.getTrainCode())) {
             criteria.andTrainCodeEqualTo(req.getTrainCode());
         }
-        if(ObjectUtil.isNotEmpty(req.getStart())){
+        if (ObjectUtil.isNotEmpty(req.getStart())) {
             criteria.andStartEqualTo(req.getStart());
         }
-        if(ObjectUtil.isNotEmpty(req.getEnd())){
+        if (ObjectUtil.isNotEmpty(req.getEnd())) {
             criteria.andEndEqualTo(req.getEnd());
         }
         LOG.info("查询页码：{}", req.getPage());
@@ -72,12 +80,24 @@ public class Daily_Train_TicketService {
         return pageResp;
     }
 
+    /**
+     * 删除指定ID的列车票务信息
+     *
+     * @param id 要删除的列车票务信息的ID
+     */
     public void delete(Long id) {
         daily_Train_TicketMapper.deleteByPrimaryKey(id);
     }
 
+    /**
+     * 生成每日列车票务信息
+     *
+     * @param daily_Train 日列车对象，包含列车基本信息
+     * @param date 日期，用于生成特定日期的票务信息
+     * @param trainCode 列车车次，用于生成特定列车的票务信息
+     */
     @Transactional
-    public void genDaily(Daily_Train daily_Train,Date date, String trainCode) {
+    public void genDaily(Daily_Train daily_Train, Date date, String trainCode) {
         LOG.info("生成日期【{}】车次【{}】的站点信息开始", DateUtil.formatDate(date), trainCode);
 
         DateTime now = DateTime.now();
@@ -139,24 +159,35 @@ public class Daily_Train_TicketService {
                 daily_Train_TicketMapper.insert(dailyTrainTicket);
             }
         }
-        LOG.info("生成日期【{}】车次【{}】的站点信息完成", DateUtil.formatDate(date), trainCode);
+        LOG.info("生成日期【{}】车次【{}】的余票信息生成完毕", DateUtil.formatDate(date), trainCode);
 
 
     }
-        public Daily_Train_Ticket selectByUnique(Date date ,String trainCode ,String start , String end) {
-            Daily_Train_TicketExample Daily_Train_TicketExample = new Daily_Train_TicketExample();
-            Daily_Train_TicketExample.Criteria criteria = Daily_Train_TicketExample.createCriteria();
-            criteria
-                    .andDateEqualTo(date)
-                    .andTrainCodeEqualTo(trainCode)
-                    .andStartEqualTo(start)
-                    .andEndEqualTo(end);
 
-            List<Daily_Train_Ticket> list = daily_Train_TicketMapper.selectByExample(Daily_Train_TicketExample);
-            if (CollUtil.isEmpty(list)) {
-                return null;
-            }else{
-                return list.get(0);
-            }
+    /**
+     * 根据唯一条件查询列车票务信息
+     *
+     * @param date 日期
+     * @param trainCode 列车车次
+     * @param start 起始站
+     * @param end 终点站
+     * @return 查询到的列车票务信息对象，如果没有找到则返回null
+     */
+    public Daily_Train_Ticket selectByUnique(Date date, String trainCode, String start, String end) {
+        Daily_Train_TicketExample Daily_Train_TicketExample = new Daily_Train_TicketExample();
+        Daily_Train_TicketExample.Criteria criteria = Daily_Train_TicketExample.createCriteria();
+        criteria
+                .andDateEqualTo(date)
+                .andTrainCodeEqualTo(trainCode)
+                .andStartEqualTo(start)
+                .andEndEqualTo(end);
+
+        List<Daily_Train_Ticket> list = daily_Train_TicketMapper.selectByExample(Daily_Train_TicketExample);
+        if (CollUtil.isEmpty(list)) {
+            return null;
+        } else {
+            return list.get(0);
         }
+    }
 }
+

@@ -4,11 +4,67 @@ server:
     context-path: /business
 spring:
   datasource:
-    url: jdbc:mysql://localhost:3306/train-business?useUnicode=true&characterEncoding=UTF-8&useSSL=false&serverTimezone=Asia/Shanghai
+    url: jdbc:mysql://localhost:3306/train-business?useUnicode=true&characterEncoding=UTF-8&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true
     username: train-business
     password: 123456
   application:
     name: business
+  # Spring Cloud Stream（I01 事务消息探针）
+  cloud:
+    stream:
+      default-binder: rocketmq
+      function:
+        definition: txProbeConsumer;purchaseConfirmConsumer
+      bindings:
+        txProbeProducer-out-0:
+          destination: TX_PROBE_TOPIC
+          producer:
+            group: tx-probe-producer
+        txProbeConsumer-in-0:
+          destination: TX_PROBE_TOPIC
+          group: tx-probe-consumer
+        # I06 受理事务消息：ORDER_CONFIRM
+        purchaseConfirmProducer-out-0:
+          destination: order-confirm
+          producer:
+            group: business-order-confirm
+        # I08 ORDER_CONFIRM 消费组：重投 5 次后转 %DLQ%business-order-confirm
+        purchaseConfirmConsumer-in-0:
+          destination: order-confirm
+          group: business-order-confirm
+          consumer:
+            concurrency: 4
+            # 重投由消费端计数控制，关闭进程内重试，避免次数被放大
+            maxAttempts: 1
+      rocketmq:
+        binder:
+          name-server: ${rocketmq.name-server}
+        bindings:
+          txProbeProducer-out-0:
+            producer:
+              group: tx-probe-producer
+              producerType: Trans
+              transactionListener: txProbeTransactionListener
+              sendMsgTimeout: 3000
+          txProbeConsumer-in-0:
+            consumer:
+              group: tx-probe-consumer
+          # I06 受理事务消息：半消息 + 本地事务 + 回查
+          purchaseConfirmProducer-out-0:
+            producer:
+              group: business-order-confirm
+              producerType: Trans
+              transactionListener: purchaseConfirmTransactionListener
+              sendMsgTimeout: 3000
+          # I08 消费端：延迟等级 1（重投退避由 RocketMQ 负责）
+          purchaseConfirmConsumer-in-0:
+            consumer:
+              push:
+                maxReconsumeTimes: 5
+                delayLevelWhenNextConsume: 1
+  mvc:
+    pathmatch:
+      matching-strategy: ant_path_matcher
   redis:
     host: localhost
     port: 6379
@@ -37,6 +93,6 @@ mybatis:
 #  configuration:
 #    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
 rocketmq:
-  name-server: 192.168.89.128:9876
+  name-server: 127.0.0.1:9876
   producer:
     group: default

@@ -1,11 +1,13 @@
 package com.guo.common.controller;
 
+
 import com.guo.common.exception.ExceptionConsole;
 import com.guo.common.resp.CommonResp;
 import com.guo.common.util.HttpStatus;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.validation.BindException;
+import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseBody;
@@ -73,4 +75,15 @@ public class ControllerExceptionHandler {
         CommonResp commonResp1 = new CommonResp(false,message   , HttpStatus.BAD_REQUEST);
         return commonResp1;
     }
+
+    @ExceptionHandler(value = MethodArgumentNotValidException.class)
+    @ResponseBody
+    public CommonResp exceptionHandler(MethodArgumentNotValidException e)  {
+        String message = e.getBindingResult().getAllErrors().get(0).getDefaultMessage();
+        LOG.error("鏍￠獙寮傚父锛歿}",message);
+        CommonResp commonResp1 = new CommonResp(false,message, HttpStatus.BAD_REQUEST);
+        return commonResp1;
+    }
+
+
 }

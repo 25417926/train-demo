@@ -25,6 +25,17 @@ public class Confirm_Order {
 
     private String tickets;
 
+    /** 受理幂等键（I06 新增列） */
+    private String requestId;
+
+    private Long qualificationId;
+
+    private Date expireAt;
+
+    private String ticketStatus;
+
+    private Integer version;
+
     public Long getId() {
         return id;
     }
@@ -111,6 +122,46 @@ public class Confirm_Order {
 
     public void setTickets(String tickets) {
         this.tickets = tickets;
+    }
+
+    public String getRequestId() {
+        return requestId;
+    }
+
+    public void setRequestId(String requestId) {
+        this.requestId = requestId;
+    }
+
+    public Long getQualificationId() {
+        return qualificationId;
+    }
+
+    public void setQualificationId(Long qualificationId) {
+        this.qualificationId = qualificationId;
+    }
+
+    public Date getExpireAt() {
+        return expireAt;
+    }
+
+    public void setExpireAt(Date expireAt) {
+        this.expireAt = expireAt;
+    }
+
+    public String getTicketStatus() {
+        return ticketStatus;
+    }
+
+    public void setTicketStatus(String ticketStatus) {
+        this.ticketStatus = ticketStatus;
+    }
+
+    public Integer getVersion() {
+        return version;
+    }
+
+    public void setVersion(Integer version) {
+        this.version = version;
     }
 
     @Override

@@ -5,6 +5,8 @@ import java.util.Date;
 public class Ticket {
     private Long id;
 
+    private Long orderId;
+
     private Long memberId;
 
     private Long passengerId;
@@ -41,6 +43,14 @@ public class Ticket {
 
     public void setId(Long id) {
         this.id = id;
+    }
+
+    public Long getOrderId() {
+        return orderId;
+    }
+
+    public void setOrderId(Long orderId) {
+        this.orderId = orderId;
     }
 
     public Long getMemberId() {

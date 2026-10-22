@@ -6,6 +6,8 @@ import com.guo.business.service.Daily_Train_TicketService;
 import com.guo.common.resp.CommonResp;
 import com.guo.common.resp.PageResp;
 import com.guo.common.util.HttpStatus;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.web.bind.annotation.*;
 
 import javax.annotation.Resource;
@@ -17,6 +19,7 @@ import javax.validation.Valid;
 * @Date: 2024/12/12
 */
 
+@Tag(name = "余票查询(C 端)", description = "按日期/出发站/到达站查询每日余票")
 @RestController
 @RequestMapping("web/ticket")
 public class Daily_Train_TicketMemberController {

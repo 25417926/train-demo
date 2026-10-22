@@ -58,6 +58,11 @@ public class HttpStatus
     public static final int NOT_FOUND = 404;
 
     /**
+     * 资源已永久移除（旧接口下线）
+     */
+    public static final int GONE = 410;
+
+    /**
      * 不允许的http方法
      */
     public static final int BAD_METHOD = 405;

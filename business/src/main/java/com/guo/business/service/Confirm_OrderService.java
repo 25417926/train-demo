@@ -17,6 +17,7 @@ import com.guo.business.domain.*;
 import com.guo.business.mapper.Confirm_OrderMapper;
 import com.guo.business.req.*;
 import com.guo.business.resp.Confirm_OrderQueryResp;
+import com.guo.business.resp.UnpaidOrderResp;
 import com.guo.common.exception.ExceptionConsole;
 import com.guo.common.exception.ExceptionEnum;
 import com.guo.common.resp.PageResp;
@@ -53,10 +54,10 @@ public class Confirm_OrderService {
     private Daily_Train_SeatService Daily_Train_SeatService;
     @Resource
     private After_Confirm_OrderService After_Confirm_OrderService;
-
     @Resource
     private RedissonClient redissonClient;
-
+    @Resource
+    private Daily_Train_StationService daily_Train_StationService;
 
     /**
      * 保存确认订单信息
@@ -89,6 +90,11 @@ public class Confirm_OrderService {
         confirm_OrderExample.setOrderByClause("id desc");
         Confirm_OrderExample.Criteria criteria = confirm_OrderExample.createCriteria();
 
+        // 会员端传 memberId 时只查"我的订单"，后台不传则查全部
+        if (ObjectUtil.isNotNull(req.getMemberId())) {
+            criteria.andMemberIdEqualTo(req.getMemberId());
+        }
+
         LOG.info("查询页码：{}", req.getPage());
         LOG.info("每页条数：{}", req.getSize());
         PageHelper.startPage(req.getPage(), req.getSize());
@@ -101,7 +107,10 @@ public class Confirm_OrderService {
         List<Confirm_OrderQueryResp> list = BeanUtil.copyToList(confirm_OrderList, Confirm_OrderQueryResp.class)
                 .stream().peek(
                         resp -> {
-                            resp.setStatus(ConfirmOrderStatusEnum.fromCode(resp.getStatus(), null).getDesc());
+                            // I07：statusCode 返回原始状态码，status 保留中文描述以兼容旧前端
+                            ConfirmOrderStatusEnum status = ConfirmOrderStatusEnum.fromCode(resp.getStatus(), null);
+                            resp.setStatusCode(status.getCode());
+                            resp.setStatus(status.getDesc());
                         }
                 ).collect(Collectors.toList());
 
@@ -109,6 +118,19 @@ public class Confirm_OrderService {
         pageResp.setTotal(pageInfo.getTotal());
         pageResp.setList(list);
         return pageResp;
+    }
+
+    /**
+     * 未支付订单：锁座成功（S）、尚未出票（N）、支付未超时
+     */
+    public List<UnpaidOrderResp> queryUnpaid(Long memberId) {
+        List<UnpaidOrderResp> list = confirm_OrderMapper.selectUnpaidByMember(memberId);
+        Date now = new Date();
+        for (UnpaidOrderResp resp : list) {
+            long remaining = (resp.getExpireAt().getTime() - now.getTime()) / 1000;
+            resp.setRemainingSeconds(Math.max(remaining, 0));
+        }
+        return list;
     }
 
     /**
@@ -164,11 +186,10 @@ public class Confirm_OrderService {
                 PageHelper.startPage(1, 5);
                 List<Confirm_Order> confirm_OrderList = confirm_OrderMapper.selectByExampleWithBLOBs(confirm_OrderExample);
                 if (CollUtil.isEmpty(confirm_OrderList)) {
-                    LOG.info("无法确认原始订单");
+                    LOG.info("当前无待确认订单");
                     break;
-                    //throw new ExceptionConsole(ExceptionEnum.CONFIRM_ORDER_NOT_EXIST);
                 }
-                confirm_OrderList.forEach(confirmOrder -> {
+                for (Confirm_Order confirmOrder : confirm_OrderList) {
                     LOG.info("开始执行订单：{}", confirmOrder);
                     try {
                         sell(confirmOrder);
@@ -176,10 +197,17 @@ public class Confirm_OrderService {
                         if (e.getExceptionEnum().equals(ExceptionEnum.TICKET_NOT_ENOUGH)) {
                             LOG.info("本订单余票不足，继续处理下一订单");
                             confirmOrder.setStatus(ConfirmOrderStatusEnum.EMPTY.getCode());
-                            updateStatus(confirmOrder);
+                        } else {
+                            LOG.error("纭璁㈠崟澶勭悊澶辫触: {}", e.getExceptionEnum().getMessage(), e);
+                            confirmOrder.setStatus(ConfirmOrderStatusEnum.FAIL.getCode());
                         }
+                        updateStatusAndTicket(confirmOrder, "F");
+                    } catch (Exception e) {
+                        LOG.error("纭璁㈠崟澶勭悊寮傚父", e);
+                        confirmOrder.setStatus(ConfirmOrderStatusEnum.FAIL.getCode());
+                        updateStatusAndTicket(confirmOrder, "F");
                     }
-                });
+                }
             }
         } catch (InterruptedException e) {
             LOG.error("购票异常");
@@ -206,10 +234,39 @@ public class Confirm_OrderService {
         confirm_Order.setEnd(end);
         confirm_Order.setDailyTrainTicketId(req.getDailyTrainTicketId());
         confirm_Order.setTickets(tickets);
+
+        // 业务数据校验，如：车次是否存在，余票是否存在，车次是否在有效期内，tickets条数>0，同乘客同车次是否已买过
+        if (daily_Train_StationService.SelectByTrain(date, trainCode) <= 0) {
+            LOG.info("车次不存在");
+            throw new ExceptionConsole(ExceptionEnum.TRAIN_NOT_EXIST);
+        }
+        if (ObjectUtil.isNull(daily_Train_TicketService.selectByUnique(date, trainCode, start, end))) {
+            LOG.info("余票不存在");
+            throw new ExceptionConsole(ExceptionEnum.TICKET_NOT_EXIST);
+        }
+        if (CollUtil.isEmpty(tickets)) {
+            LOG.info("tickets条数<=0");
+            throw new ExceptionConsole(ExceptionEnum.PARAM_NOT_VALID);
+        }
+        if (CollUtil.isNotEmpty(tickets)) {
+            tickets.forEach(ticket -> {
+                Confirm_OrderExample confirm_OrderExample = new Confirm_OrderExample();
+                confirm_OrderExample.createCriteria()
+                        .andDateEqualTo(date)
+                        .andTrainCodeEqualTo(trainCode)
+                        .andStartEqualTo(start)
+                        .andEndEqualTo(end)
+                        .andMemberIdEqualTo(ticket.getPassengerId());
+                if (confirm_OrderMapper.countByExample(confirm_OrderExample) > 0) {
+                    LOG.info("同乘客同车次已买过");
+                    throw new ExceptionConsole(ExceptionEnum.TRAIN_TICKET_EXIST);
+                }
+            });
+        }
         //订单进入处理中
         req.setStatus(ConfirmOrderStatusEnum.PENDING.getCode());
         LOG.info("订单进入处理中，避免重复处理");
-        updateStatus(req);
+        updateStatusAndTicket(req, "I");
         //查出余票数据，需要得到真实库存
         Daily_Train_Ticket dailyTrainTicket = daily_Train_TicketService.selectByUnique(date, req.getTrainCode(), req.getStart(), req.getEnd());
         LOG.info("查出余票信息记录：{}", dailyTrainTicket);
@@ -242,6 +299,9 @@ public class Confirm_OrderService {
             for (Confirm_OrderTicketReq ticket : tickets) {
                 String seat = ticket.getSeat();
                 int index = list.indexOf(seat);
+                if (index < 0) {
+                    throw new ExceptionConsole(ExceptionEnum.PARAM_NOT_VALID);
+                }
                 abolutOffsetList.add(index);
                 LOG.info("座位：{}，绝对偏移值：{}", seat, index);
             }
@@ -276,6 +336,10 @@ public class Confirm_OrderService {
         }
         LOG.info("最终选座结果：{}", finalSeatList);
         // 执行存储确认订单操作
+        if (finalSeatList.size() != tickets.size()) {
+            LOG.info("seat selection incomplete, expected={}, actual={}", tickets.size(), finalSeatList.size());
+            throw new ExceptionConsole(ExceptionEnum.TICKET_NOT_ENOUGH);
+        }
         try {
             After_Confirm_OrderService.afterDoConfirm(dailyTrainTicket, finalSeatList, tickets, req);
         } catch (Exception e) {
@@ -296,6 +360,10 @@ public class Confirm_OrderService {
     public Integer queryLineCount(Long id) {
         // 根据ID获取确认订单
         Confirm_Order confirmOrder = confirm_OrderMapper.selectByPrimaryKey(id);
+        if (confirmOrder == null) {
+            LOG.error("订单不存在，id：{}", id);
+            return 0;
+        }
         // 根据订单状态代码获取状态枚举
         ConfirmOrderStatusEnum status = ConfirmOrderStatusEnum.fromCode(confirmOrder.getStatus(), null);
         // 使用split方法按照'('分割
@@ -327,10 +395,22 @@ public class Confirm_OrderService {
             case "CANCEL":
                 result = -6;
                 break;
-        };
-        // 如果结果为0，进一步查询数据库以获取相同条件的订单数量
-        if(result == -1){
-            Confirm_OrderExample confirm_OrderExample =new Confirm_OrderExample();
+            case "PAID":
+                result = -7;
+                break;
+            case "REFUNDED":
+                result = -8;
+                break;
+            case "CHANGED":
+                result = -9;
+                break;
+            default:
+                result = 0;
+                break;
+        }
+        // 如果结果为-1（INIT状态），进一步查询数据库以获取相同条件的订单数量
+        if (result == -1) {
+            Confirm_OrderExample confirm_OrderExample = new Confirm_OrderExample();
             confirm_OrderExample
                     .or()
                     .andDateEqualTo(confirmOrder.getDate())
@@ -344,7 +424,7 @@ public class Confirm_OrderService {
                     .andCreateTimeLessThan(confirmOrder.getCreateTime())
                     .andStatusEqualTo(ConfirmOrderStatusEnum.PENDING.getCode());
             return Math.toIntExact(confirm_OrderMapper.countByExample(confirm_OrderExample));
-        }else{
+        } else {
             return result;
         }
     }
@@ -463,8 +543,14 @@ public class Confirm_OrderService {
     private boolean calSell(Daily_Train_Seat Daily_Train_Seat, Integer startIndex, Integer endIndex) {
         // 00001, 00000
         String sell = Daily_Train_Seat.getSell();
+        int sellStartIndex = toSellStartIndex(startIndex);
+        int sellEndIndex = toSellEndIndex(endIndex);
+        if (sellStartIndex < 0 || sellEndIndex > sell.length() || sellStartIndex >= sellEndIndex) {
+            LOG.error("invalid sell range, sell={}, startIndex={}, endIndex={}", sell, startIndex, endIndex);
+            throw new ExceptionConsole(ExceptionEnum.FAILURE_TO_SAVE_TICKET);
+        }
         //  000, 000
-        String sellPart = sell.substring(startIndex, endIndex);
+        String sellPart = sell.substring(sellStartIndex, sellEndIndex);
         if (Integer.parseInt(sellPart) > 0) {
             LOG.info("座位{}在本次车站区间{}~{}已售过票，不可选中该座位", Daily_Train_Seat.getCarriageSeatIndex(), startIndex, endIndex);
             return false;
@@ -473,7 +559,7 @@ public class Confirm_OrderService {
             //  111,   111
             String curSell = sellPart.replace('0', '1');
             // 0111,  0111
-            curSell = StrUtil.fillBefore(curSell, '0', endIndex);
+            curSell = StrUtil.fillBefore(curSell, '0', sellEndIndex);
             // 01110, 01110
             curSell = StrUtil.fillAfter(curSell, '0', sell.length());
 
@@ -537,11 +623,23 @@ public class Confirm_OrderService {
         }
     }
 
-    private void updateStatus(Confirm_Order req) {
-        Confirm_Order updateForStatus = new Confirm_Order();
-        updateForStatus.setId(req.getId());
-        updateForStatus.setUpdateTime(new Date());
-        updateForStatus.setStatus(ConfirmOrderStatusEnum.SUCCESS.getCode());
-        confirm_OrderMapper.updateByPrimaryKeySelective(updateForStatus);
+    private void updateStatusAndTicket(Confirm_Order req, String ticketStatus) {
+        confirm_OrderMapper.updateStatusAndTicketStatus(
+                req.getId(), req.getStatus(), ticketStatus, new Date());
+    }
+
+    private String extractSeatColumn(String seat) {
+        if (StrUtil.isBlank(seat)) {
+            throw new ExceptionConsole(ExceptionEnum.PARAM_NOT_VALID);
+        }
+        return seat.substring(0, 1);
+    }
+
+    private int toSellStartIndex(Integer startIndex) {
+        return startIndex - 1;
+    }
+
+    private int toSellEndIndex(Integer endIndex) {
+        return endIndex - 1;
     }
 }

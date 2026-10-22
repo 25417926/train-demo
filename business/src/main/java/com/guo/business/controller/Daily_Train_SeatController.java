@@ -92,16 +92,16 @@ public class Daily_Train_SeatController {
     }
     @GetMapping("/test")
 public CommonResp genSeat() {
-    String dateStr = "2025-1-20";
-    String trainCode = "D1";
-
-    SimpleDateFormat sdf = new SimpleDateFormat("yyyy-M-d");
-    try {
-        Date date = sdf.parse(dateStr);
-        Daily_Train_SeatService.genDaily(date, trainCode);
-    } catch (ParseException e) {
-        return new CommonResp(false, "日期格式错误", HttpStatus.BAD_REQUEST);
-    }
+//    String dateStr = "2025-1-20";
+//    String trainCode = "D1";
+//
+//    SimpleDateFormat sdf = new SimpleDateFormat("yyyy-M-d");
+//    try {
+//        Date date = sdf.parse(dateStr);
+//        Daily_Train_SeatService.genDaily(date, trainCode);
+//    } catch (ParseException e) {
+//        return new CommonResp(false, "日期格式错误", HttpStatus.BAD_REQUEST);
+//    }
 
     return new CommonResp(true, "成功", HttpStatus.SUCCESS);
 }

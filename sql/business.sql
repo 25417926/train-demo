@@ -213,3 +213,50 @@ create table `sk_token` (
                             primary key (`id`),
                             unique key `date_train_code_unique` (`date`, `train_code`)
 ) engine=innodb default charset=utf8mb4 comment='秒杀令牌';
+
+drop table if exists `payment`;
+create table `payment` (
+                           `id` bigint not null comment 'id',
+                           `order_id` bigint not null comment '关联 confirm_order.id',
+                           `member_id` bigint not null comment '会员id',
+                           `amount` decimal(10, 2) not null comment '支付金额',
+                           `pay_channel` char(1) not null comment '支付渠道|A 支付宝 W 微信 B 银行卡',
+                           `pay_status` char(1) not null comment '支付状态|枚举[PaymentStatusEnum]',
+                           `pay_time` datetime(3) comment '支付时间',
+                           `trade_no` varchar(64) comment '第三方流水号',
+                           `create_time` datetime(3) comment '新增时间',
+                           `update_time` datetime(3) comment '修改时间',
+                           primary key (`id`),
+                           index `order_id_index` (`order_id`)
+) engine=innodb default charset=utf8mb4 comment='支付记录';
+
+drop table if exists `refund`;
+create table `refund` (
+                          `id` bigint not null comment 'id',
+                          `order_id` bigint not null comment '关联 confirm_order.id',
+                          `payment_id` bigint not null comment '关联 payment.id',
+                          `member_id` bigint not null comment '会员id',
+                          `amount` decimal(10, 2) not null comment '退款金额',
+                          `reason` varchar(200) comment '退款原因',
+                          `refund_status` char(1) not null comment '退款状态|枚举[RefundStatusEnum]',
+                          `refund_time` datetime(3) comment '退款时间',
+                          `create_time` datetime(3) comment '新增时间',
+                          `update_time` datetime(3) comment '修改时间',
+                          primary key (`id`),
+                          index `order_id_index` (`order_id`)
+) engine=innodb default charset=utf8mb4 comment='退款记录';
+
+drop table if exists `change_record`;
+create table `change_record` (
+                                 `id` bigint not null comment 'id',
+                                 `original_order_id` bigint not null comment '原订单id',
+                                 `new_order_id` bigint comment '改签后新订单id',
+                                 `member_id` bigint not null comment '会员id',
+                                 `change_type` char(1) not null comment '类型|R 退票 C 改签',
+                                 `change_status` char(1) not null comment '状态|枚举[ChangeStatusEnum]',
+                                 `fee` decimal(10, 2) comment '手续费',
+                                 `create_time` datetime(3) comment '新增时间',
+                                 `update_time` datetime(3) comment '修改时间',
+                                 primary key (`id`),
+                                 index `member_id_index` (`member_id`)
+) engine=innodb default charset=utf8mb4 comment='退改签记录';

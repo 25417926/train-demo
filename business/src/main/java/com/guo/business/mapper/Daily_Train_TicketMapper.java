@@ -2,8 +2,10 @@ package com.guo.business.mapper;
 
 import com.guo.business.domain.Daily_Train_Ticket;
 import com.guo.business.domain.Daily_Train_TicketExample;
+import java.util.Date;
 import java.util.List;
 import org.apache.ibatis.annotations.Param;
+import org.apache.ibatis.annotations.Select;
 
 public interface Daily_Train_TicketMapper {
     long countByExample(Daily_Train_TicketExample example);
@@ -27,4 +29,7 @@ public interface Daily_Train_TicketMapper {
     int updateByPrimaryKeySelective(Daily_Train_Ticket record);
 
     int updateByPrimaryKey(Daily_Train_Ticket record);
+
+    @Select("select distinct train_code from daily_train_ticket where `date` = #{date} order by train_code")
+    List<String> selectTrainCodesByDate(@Param("date") Date date);
 }

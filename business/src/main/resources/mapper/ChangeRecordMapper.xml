@@ -1,0 +1,91 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.guo.business.mapper.ChangeRecordMapper">
+  <resultMap id="BaseResultMap" type="com.guo.business.domain.ChangeRecord">
+    <id column="id" jdbcType="BIGINT" property="id" />
+    <result column="original_order_id" jdbcType="BIGINT" property="originalOrderId" />
+    <result column="new_order_id" jdbcType="BIGINT" property="newOrderId" />
+    <result column="member_id" jdbcType="BIGINT" property="memberId" />
+    <result column="change_type" jdbcType="CHAR" property="changeType" />
+    <result column="change_status" jdbcType="CHAR" property="changeStatus" />
+    <result column="fee" jdbcType="DECIMAL" property="fee" />
+    <result column="fail_reason" jdbcType="VARCHAR" property="failReason" />
+    <result column="create_time" jdbcType="TIMESTAMP" property="createTime" />
+    <result column="update_time" jdbcType="TIMESTAMP" property="updateTime" />
+  </resultMap>
+  <sql id="Base_Column_List">
+    id, original_order_id, new_order_id, member_id, change_type, change_status, fee, fail_reason, create_time, update_time
+  </sql>
+  <select id="selectByPrimaryKey" parameterType="java.lang.Long" resultMap="BaseResultMap">
+    select
+    <include refid="Base_Column_List" />
+    from change_record
+    where id = #{id,jdbcType=BIGINT}
+  </select>
+  <select id="selectByMember" resultMap="BaseResultMap">
+    select
+    <include refid="Base_Column_List" />
+    from change_record
+    where member_id = #{memberId,jdbcType=BIGINT}
+    order by id desc
+  </select>
+  <select id="selectByOriginalOrder" resultMap="BaseResultMap">
+    select
+    <include refid="Base_Column_List" />
+    from change_record
+    where original_order_id = #{originalOrderId,jdbcType=BIGINT}
+    order by id desc
+  </select>
+  <select id="selectAll" resultMap="BaseResultMap">
+    select
+    <include refid="Base_Column_List" />
+    from change_record
+    order by id desc
+  </select>
+  <select id="countAll" resultType="java.lang.Long">
+    select count(*) from change_record
+  </select>
+  <insert id="insert" parameterType="com.guo.business.domain.ChangeRecord">
+    insert into change_record (id, original_order_id, new_order_id,
+      member_id, change_type, change_status,
+      fee, fail_reason, create_time, update_time
+      )
+    values (#{id,jdbcType=BIGINT}, #{originalOrderId,jdbcType=BIGINT}, #{newOrderId,jdbcType=BIGINT},
+      #{memberId,jdbcType=BIGINT}, #{changeType,jdbcType=CHAR}, #{changeStatus,jdbcType=CHAR},
+      #{fee,jdbcType=DECIMAL}, #{failReason,jdbcType=VARCHAR}, #{createTime,jdbcType=TIMESTAMP}, #{updateTime,jdbcType=TIMESTAMP}
+      )
+  </insert>
+  <update id="updateByPrimaryKeySelective" parameterType="com.guo.business.domain.ChangeRecord">
+    update change_record
+    <set>
+      <if test="originalOrderId != null">
+        original_order_id = #{originalOrderId,jdbcType=BIGINT},
+      </if>
+      <if test="newOrderId != null">
+        new_order_id = #{newOrderId,jdbcType=BIGINT},
+      </if>
+      <if test="memberId != null">
+        member_id = #{memberId,jdbcType=BIGINT},
+      </if>
+      <if test="changeType != null">
+        change_type = #{changeType,jdbcType=CHAR},
+      </if>
+      <if test="changeStatus != null">
+        change_status = #{changeStatus,jdbcType=CHAR},
+      </if>
+      <if test="fee != null">
+        fee = #{fee,jdbcType=DECIMAL},
+      </if>
+      <if test="failReason != null">
+        fail_reason = #{failReason,jdbcType=VARCHAR},
+      </if>
+      <if test="createTime != null">
+        create_time = #{createTime,jdbcType=TIMESTAMP},
+      </if>
+      <if test="updateTime != null">
+        update_time = #{updateTime,jdbcType=TIMESTAMP},
+      </if>
+    </set>
+    where id = #{id,jdbcType=BIGINT}
+  </update>
+</mapper>

@@ -1,0 +1,106 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.guo.business.mapper.PaymentMapper">
+  <resultMap id="BaseResultMap" type="com.guo.business.domain.Payment">
+    <id column="id" jdbcType="BIGINT" property="id" />
+    <result column="order_id" jdbcType="BIGINT" property="orderId" />
+    <result column="member_id" jdbcType="BIGINT" property="memberId" />
+    <result column="amount" jdbcType="DECIMAL" property="amount" />
+    <result column="pay_channel" jdbcType="CHAR" property="payChannel" />
+    <result column="pay_status" jdbcType="CHAR" property="payStatus" />
+    <result column="pay_time" jdbcType="TIMESTAMP" property="payTime" />
+    <result column="trade_no" jdbcType="VARCHAR" property="tradeNo" />
+    <result column="fail_reason" jdbcType="VARCHAR" property="failReason" />
+    <result column="create_time" jdbcType="TIMESTAMP" property="createTime" />
+    <result column="update_time" jdbcType="TIMESTAMP" property="updateTime" />
+  </resultMap>
+  <sql id="Base_Column_List">
+    id, order_id, member_id, amount, pay_channel, pay_status, pay_time, trade_no, fail_reason, create_time, update_time
+  </sql>
+  <select id="selectByPrimaryKey" parameterType="java.lang.Long" resultMap="BaseResultMap">
+    select
+    <include refid="Base_Column_List" />
+    from payment
+    where id = #{id,jdbcType=BIGINT}
+  </select>
+  <select id="selectByOrderId" resultMap="BaseResultMap">
+    select
+    <include refid="Base_Column_List" />
+    from payment
+    where order_id = #{orderId,jdbcType=BIGINT}
+    order by id desc
+    limit 1
+  </select>
+  <select id="selectByMember" resultMap="BaseResultMap">
+    select
+    <include refid="Base_Column_List" />
+    from payment
+    where member_id = #{memberId,jdbcType=BIGINT}
+    <if test="payStatus != null and payStatus != ''">
+      and pay_status = #{payStatus,jdbcType=CHAR}
+    </if>
+    <if test="startTime != null">
+      and create_time &gt;= #{startTime,jdbcType=TIMESTAMP}
+    </if>
+    <if test="endTime != null">
+      and create_time &lt;= #{endTime,jdbcType=TIMESTAMP}
+    </if>
+    order by id desc
+  </select>
+  <select id="selectAll" resultMap="BaseResultMap">
+    select
+    <include refid="Base_Column_List" />
+    from payment
+    order by id desc
+  </select>
+  <select id="countAll" resultType="java.lang.Long">
+    select count(*) from payment
+  </select>
+  <insert id="insert" parameterType="com.guo.business.domain.Payment">
+    insert into payment (id, order_id, member_id,
+      amount, pay_channel, pay_status,
+      pay_time, trade_no, fail_reason, create_time, update_time
+      )
+    values (#{id,jdbcType=BIGINT}, #{orderId,jdbcType=BIGINT}, #{memberId,jdbcType=BIGINT},
+      #{amount,jdbcType=DECIMAL}, #{payChannel,jdbcType=CHAR}, #{payStatus,jdbcType=CHAR},
+      #{payTime,jdbcType=TIMESTAMP}, #{tradeNo,jdbcType=VARCHAR}, #{failReason,jdbcType=VARCHAR},
+      #{createTime,jdbcType=TIMESTAMP}, #{updateTime,jdbcType=TIMESTAMP}
+      )
+  </insert>
+  <update id="updateByPrimaryKeySelective" parameterType="com.guo.business.domain.Payment">
+    update payment
+    <set>
+      <if test="orderId != null">
+        order_id = #{orderId,jdbcType=BIGINT},
+      </if>
+      <if test="memberId != null">
+        member_id = #{memberId,jdbcType=BIGINT},
+      </if>
+      <if test="amount != null">
+        amount = #{amount,jdbcType=DECIMAL},
+      </if>
+      <if test="payChannel != null">
+        pay_channel = #{payChannel,jdbcType=CHAR},
+      </if>
+      <if test="payStatus != null">
+        pay_status = #{payStatus,jdbcType=CHAR},
+      </if>
+      <if test="payTime != null">
+        pay_time = #{payTime,jdbcType=TIMESTAMP},
+      </if>
+      <if test="tradeNo != null">
+        trade_no = #{tradeNo,jdbcType=VARCHAR},
+      </if>
+      <if test="failReason != null">
+        fail_reason = #{failReason,jdbcType=VARCHAR},
+      </if>
+      <if test="createTime != null">
+        create_time = #{createTime,jdbcType=TIMESTAMP},
+      </if>
+      <if test="updateTime != null">
+        update_time = #{updateTime,jdbcType=TIMESTAMP},
+      </if>
+    </set>
+    where id = #{id,jdbcType=BIGINT}
+  </update>
+</mapper>

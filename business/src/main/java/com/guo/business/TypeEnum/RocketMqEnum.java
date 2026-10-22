@@ -17,6 +17,8 @@ public enum RocketMqEnum {
     ORDER_CLOSE_TOPIC("order_close_topic","订单关闭"),
     //确认订单排队
     ORDER_CONFIRM("order_confirm","订单确认进入排队"),
+    //支付成功后出票
+    ORDER_ISSUE("order_issue","支付成功后出票"),
     //订单支付队列
     ORDER_PAY_QUEUE("order_pay_queue","订单支付队列"),
     //订单取消队列

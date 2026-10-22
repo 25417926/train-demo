@@ -3,7 +3,18 @@ package com.guo.batch.controller;
 import com.guo.batch.req.CronJobReq;
 import com.guo.batch.resp.CronJobResp;
 import com.guo.common.resp.CommonResp;
-import org.quartz.*;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import org.quartz.CronScheduleBuilder;
+import org.quartz.CronTrigger;
+import org.quartz.Job;
+import org.quartz.JobBuilder;
+import org.quartz.JobDetail;
+import org.quartz.JobKey;
+import org.quartz.Scheduler;
+import org.quartz.SchedulerException;
+import org.quartz.Trigger;
+import org.quartz.TriggerBuilder;
+import org.quartz.TriggerKey;
 import org.quartz.impl.matchers.GroupMatcher;
 import org.quartz.impl.triggers.CronTriggerImpl;
 import org.slf4j.Logger;
@@ -16,232 +27,250 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Locale;
+import java.util.Set;
 
-/**
- * 定时任务控制器，用于管理定时任务的创建和执行
- */
+@Tag(name = "定时任务", description = "Quartz 任务调度管理（新增/暂停/恢复/查询）")
 @RestController
 @RequestMapping(value = "/job")
 public class JobController {
 
-    // 日志对象，用于记录日志信息
-    private static Logger LOG = LoggerFactory.getLogger(JobController.class);
+    private static final Logger LOG = LoggerFactory.getLogger(JobController.class);
+    private static final String JOB_PACKAGE = "com.guo.batch.job.";
+    private static final String DAILY_TRAIN_JOB = JOB_PACKAGE + "DailyTrainJob";
+    private static final String TEST_JOB = JOB_PACKAGE + "testJob";
 
-    // 注入SchedulerFactoryBean，用于获取调度器实例
     @Autowired
     private SchedulerFactoryBean schedulerFactoryBean;
 
-    /**
-     * 执行定时任务
-     *
-     * @param cronJobReq 包含任务信息的请求对象
-     * @return 返回执行结果的响应对象
-     * @throws SchedulerException 如果调度过程中发生异常
-     */
     @RequestMapping(value = "/run")
     public CommonResp<Object> run(@RequestBody CronJobReq cronJobReq) throws SchedulerException {
-        // 获取任务类名和组名
-        String jobClassName = cronJobReq.getName();
+        String jobName = cronJobReq.getName();
         String jobGroupName = cronJobReq.getGroup();
-        // 记录任务执行开始日志
-        LOG.info("手动执行任务开始：{}, {}", jobClassName, jobGroupName);
-        // 通过调度器触发任务执行
-        schedulerFactoryBean.getScheduler().triggerJob(JobKey.jobKey(jobClassName, jobGroupName));
-        // 返回成功响应
+        LOG.info("manual run start: {}, {}", jobName, jobGroupName);
+        schedulerFactoryBean.getScheduler().triggerJob(JobKey.jobKey(jobName, jobGroupName));
         return new CommonResp<>();
     }
 
-    /**
-     * 添加定时任务
-     *
-     * @param cronJobReq 包含任务信息的请求对象
-     * @return 返回添加结果的响应对象
-     */
     @RequestMapping(value = "/add")
     public CommonResp add(@RequestBody CronJobReq cronJobReq) {
-        // 获取任务类名、组名、cron表达式和描述
-        String jobClassName = cronJobReq.getName();
+        String rawJobName = cronJobReq.getName();
         String jobGroupName = cronJobReq.getGroup();
         String cronExpression = cronJobReq.getCronExpression();
         String description = cronJobReq.getDescription();
-        // 记录任务创建开始日志
-        LOG.info("创建定时任务开始：{}，{}，{}，{}", jobClassName, jobGroupName, cronExpression, description);
-        // 初始化响应对象
+        LOG.info("create job start: {}, {}, {}, {}", rawJobName, jobGroupName, cronExpression, description);
         CommonResp commonResp = new CommonResp();
 
         try {
-            // 通过SchedulerFactory获取一个调度器实例
-            Scheduler sched = schedulerFactoryBean.getScheduler();
-            // 启动调度器
-            sched.start();
-            // 构建job信息
-            JobDetail jobDetail = JobBuilder.newJob((Class<? extends Job>) Class.forName(jobClassName))
-                    .withIdentity(jobClassName, jobGroupName).build();
-            // 表达式调度构建器(即任务执行的时间)
-            CronScheduleBuilder scheduleBuilder = CronScheduleBuilder.cronSchedule(cronExpression);
-            // 按新的cronExpression表达式构建一个新的trigger
-            CronTrigger trigger = TriggerBuilder.newTrigger()
-                    .withIdentity(jobClassName, jobGroupName)
-                    .withDescription(description)
-                    .withSchedule(scheduleBuilder).build();
-            // 将任务和触发器加入调度器
-            sched.scheduleJob(jobDetail, trigger);
+            Scheduler scheduler = schedulerFactoryBean.getScheduler();
+            scheduler.start();
 
+            Class<? extends Job> jobClass = resolveJobClass(rawJobName);
+            String jobName = normalizeJobName(rawJobName, jobClass);
+
+            JobDetail jobDetail = JobBuilder.newJob(jobClass)
+                    .withIdentity(jobName, jobGroupName)
+                    .build();
+            CronScheduleBuilder scheduleBuilder = CronScheduleBuilder.cronSchedule(cronExpression);
+            CronTrigger trigger = TriggerBuilder.newTrigger()
+                    .withIdentity(jobName, jobGroupName)
+                    .withDescription(description)
+                    .withSchedule(scheduleBuilder)
+                    .build();
+            scheduler.scheduleJob(jobDetail, trigger);
         } catch (SchedulerException e) {
-            // 记录创建任务失败日志
-            LOG.error("创建定时任务失败:" + e);
-            // 设置失败响应
+            LOG.error("create job failed", e);
             commonResp.setSuccess(false);
-            commonResp.setMessage("创建定时任务失败:调度异常");
+            commonResp.setMessage("创建定时任务失败: 调度异常");
         } catch (ClassNotFoundException e) {
-            // 记录创建任务失败日志
-            LOG.error("创建定时任务失败:" + e);
-            // 设置失败响应
+            LOG.error("create job failed", e);
             commonResp.setSuccess(false);
             commonResp.setMessage("创建定时任务失败：任务类不存在");
         }
-        // 记录任务创建结束日志
-        LOG.info("创建定时任务结束：{}", commonResp);
-        // 返回响应对象
+
+        LOG.info("create job end: {}", commonResp);
         return commonResp;
     }
-    // 暂停定时任务
+
     @RequestMapping(value = "/pause")
     public CommonResp pause(@RequestBody CronJobReq cronJobReq) {
-        String jobClassName = cronJobReq.getName();
+        String jobName = cronJobReq.getName();
         String jobGroupName = cronJobReq.getGroup();
-        LOG.info("暂停定时任务开始：{}，{}", jobClassName, jobGroupName);
+        LOG.info("pause job start: {}, {}", jobName, jobGroupName);
         CommonResp commonResp = new CommonResp();
         try {
-            // 获取调度器
-            Scheduler sched = schedulerFactoryBean.getScheduler();
-            // 暂停指定的定时任务
-            sched.pauseJob(JobKey.jobKey(jobClassName, jobGroupName));
+            Scheduler scheduler = schedulerFactoryBean.getScheduler();
+            scheduler.pauseJob(JobKey.jobKey(jobName, jobGroupName));
         } catch (SchedulerException e) {
-            LOG.error("暂停定时任务失败:" + e);
+            LOG.error("pause job failed", e);
             commonResp.setSuccess(false);
-            commonResp.setMessage("暂停定时任务失败:调度异常");
+            commonResp.setMessage("暂停定时任务失败: 调度异常");
         }
-        LOG.info("暂停定时任务结束：{}", commonResp);
+        LOG.info("pause job end: {}", commonResp);
         return commonResp;
     }
 
-    // 重启定时任务
     @RequestMapping(value = "/resume")
     public CommonResp resume(@RequestBody CronJobReq cronJobReq) {
-        String jobClassName = cronJobReq.getName();
+        String jobName = cronJobReq.getName();
         String jobGroupName = cronJobReq.getGroup();
-        LOG.info("重启定时任务开始：{}，{}", jobClassName, jobGroupName);
+        LOG.info("resume job start: {}, {}", jobName, jobGroupName);
         CommonResp commonResp = new CommonResp();
         try {
-            // 获取调度器
-            Scheduler sched = schedulerFactoryBean.getScheduler();
-            // 重启指定的定时任务
-            sched.resumeJob(JobKey.jobKey(jobClassName, jobGroupName));
+            Scheduler scheduler = schedulerFactoryBean.getScheduler();
+            scheduler.resumeJob(JobKey.jobKey(jobName, jobGroupName));
         } catch (SchedulerException e) {
-            LOG.error("重启定时任务失败:" + e);
+            LOG.error("resume job failed", e);
             commonResp.setSuccess(false);
-            commonResp.setMessage("重启定时任务失败:调度异常");
+            commonResp.setMessage("重启定时任务失败: 调度异常");
         }
-        LOG.info("重启定时任务结束：{}", commonResp);
+        LOG.info("resume job end: {}", commonResp);
         return commonResp;
     }
 
-    // 更新定时任务
     @RequestMapping(value = "/reschedule")
     public CommonResp reschedule(@RequestBody CronJobReq cronJobReq) {
-        String jobClassName = cronJobReq.getName();
+        String jobName = cronJobReq.getName();
         String jobGroupName = cronJobReq.getGroup();
         String cronExpression = cronJobReq.getCronExpression();
         String description = cronJobReq.getDescription();
-        LOG.info("更新定时任务开始：{}，{}，{}，{}", jobClassName, jobGroupName, cronExpression, description);
+        LOG.info("reschedule job start: {}, {}, {}, {}", jobName, jobGroupName, cronExpression, description);
         CommonResp commonResp = new CommonResp();
         try {
-            // 获取调度器
             Scheduler scheduler = schedulerFactoryBean.getScheduler();
-            TriggerKey triggerKey = TriggerKey.triggerKey(jobClassName, jobGroupName);
-            // 表达式调度构建器
+            TriggerKey triggerKey = TriggerKey.triggerKey(jobName, jobGroupName);
             CronScheduleBuilder scheduleBuilder = CronScheduleBuilder.cronSchedule(cronExpression);
-            CronTriggerImpl trigger1 = (CronTriggerImpl) scheduler.getTrigger(triggerKey);
-            trigger1.setStartTime(new Date()); // 重新设置开始时间
-            CronTrigger trigger = trigger1;
-
-            // 按新的cronExpression表达式重新构建trigger
-            trigger = trigger.getTriggerBuilder().withIdentity(triggerKey).withDescription(description).withSchedule(scheduleBuilder).build();
-
-            // 按新的trigger重新设置job执行
+            CronTriggerImpl currentTrigger = (CronTriggerImpl) scheduler.getTrigger(triggerKey);
+            currentTrigger.setStartTime(new Date());
+            CronTrigger trigger = currentTrigger.getTriggerBuilder()
+                    .withIdentity(triggerKey)
+                    .withDescription(description)
+                    .withSchedule(scheduleBuilder)
+                    .build();
             scheduler.rescheduleJob(triggerKey, trigger);
         } catch (Exception e) {
-            LOG.error("更新定时任务失败:" + e);
+            LOG.error("reschedule job failed", e);
             commonResp.setSuccess(false);
-            commonResp.setMessage("更新定时任务失败:调度异常");
+            commonResp.setMessage("更新定时任务失败: 调度异常");
         }
-        LOG.info("更新定时任务结束：{}", commonResp);
+        LOG.info("reschedule job end: {}", commonResp);
         return commonResp;
     }
 
-    // 删除定时任务
     @RequestMapping(value = "/delete")
     public CommonResp delete(@RequestBody CronJobReq cronJobReq) {
-        String jobClassName = cronJobReq.getName();
+        String jobName = cronJobReq.getName();
         String jobGroupName = cronJobReq.getGroup();
-        LOG.info("删除定时任务开始：{}，{}", jobClassName, jobGroupName);
+        LOG.info("delete job start: {}, {}", jobName, jobGroupName);
         CommonResp commonResp = new CommonResp();
         try {
-            // 获取调度器
             Scheduler scheduler = schedulerFactoryBean.getScheduler();
-            // 暂停触发器
-            scheduler.pauseTrigger(TriggerKey.triggerKey(jobClassName, jobGroupName));
-            // 取消定时任务的调度
-            scheduler.unscheduleJob(TriggerKey.triggerKey(jobClassName, jobGroupName));
-            // 删除定时任务
-            scheduler.deleteJob(JobKey.jobKey(jobClassName, jobGroupName));
+            scheduler.pauseTrigger(TriggerKey.triggerKey(jobName, jobGroupName));
+            scheduler.unscheduleJob(TriggerKey.triggerKey(jobName, jobGroupName));
+            scheduler.deleteJob(JobKey.jobKey(jobName, jobGroupName));
         } catch (SchedulerException e) {
-            LOG.error("删除定时任务失败:" + e);
+            LOG.error("delete job failed", e);
             commonResp.setSuccess(false);
-            commonResp.setMessage("删除定时任务失败:调度异常");
+            commonResp.setMessage("删除定时任务失败: 调度异常");
         }
-        LOG.info("删除定时任务结束：{}", commonResp);
+        LOG.info("delete job end: {}", commonResp);
         return commonResp;
     }
 
-    // 查询所有定时任务
-    @RequestMapping(value="/query")
+    @RequestMapping(value = "/query")
     public CommonResp query() {
-        LOG.info("查看所有定时任务开始");
+        LOG.info("query jobs start");
         CommonResp commonResp = new CommonResp();
-        List<CronJobResp> cronJobDtoList = new ArrayList();
+        List<CronJobResp> cronJobRespList = new ArrayList<>();
         try {
-            // 获取调度器
             Scheduler scheduler = schedulerFactoryBean.getScheduler();
-            // 遍历所有任务组
             for (String groupName : scheduler.getJobGroupNames()) {
                 for (JobKey jobKey : scheduler.getJobKeys(GroupMatcher.jobGroupEquals(groupName))) {
                     CronJobResp cronJobResp = new CronJobResp();
                     cronJobResp.setName(jobKey.getName());
                     cronJobResp.setGroup(jobKey.getGroup());
 
-                    // 获取任务的触发器
                     List<Trigger> triggers = (List<Trigger>) scheduler.getTriggersOfJob(jobKey);
                     CronTrigger cronTrigger = (CronTrigger) triggers.get(0);
                     cronJobResp.setNextFireTime(cronTrigger.getNextFireTime());
                     cronJobResp.setPreFireTime(cronTrigger.getPreviousFireTime());
                     cronJobResp.setCronExpression(cronTrigger.getCronExpression());
                     cronJobResp.setDescription(cronTrigger.getDescription());
-                    Trigger.TriggerState triggerState = scheduler.getTriggerState(cronTrigger.getKey());
-                    cronJobResp.setState(triggerState.name());
-
-                    cronJobDtoList.add(cronJobResp);
+                    cronJobResp.setState(scheduler.getTriggerState(cronTrigger.getKey()).name());
+                    cronJobRespList.add(cronJobResp);
                 }
             }
         } catch (SchedulerException e) {
-            LOG.error("查看定时任务失败:" + e);
+            LOG.error("query jobs failed", e);
             commonResp.setSuccess(false);
-            commonResp.setMessage("查看定时任务失败:调度异常");
+            commonResp.setMessage("查看定时任务失败: 调度异常");
         }
-        commonResp.setContent(cronJobDtoList);
-        LOG.info("查看定时任务结束：{}", commonResp);
+        commonResp.setContent(cronJobRespList);
+        LOG.info("query jobs end: {}", commonResp);
         return commonResp;
+    }
+
+    @SuppressWarnings("unchecked")
+    private Class<? extends Job> resolveJobClass(String rawJobName) throws ClassNotFoundException {
+        ClassNotFoundException lastException = null;
+        for (String candidate : buildJobClassCandidates(rawJobName)) {
+            try {
+                Class<?> jobClass = Class.forName(candidate);
+                if (Job.class.isAssignableFrom(jobClass)) {
+                    return (Class<? extends Job>) jobClass;
+                }
+            } catch (ClassNotFoundException e) {
+                lastException = e;
+            }
+        }
+        throw lastException == null ? new ClassNotFoundException(rawJobName) : new ClassNotFoundException(rawJobName, lastException);
+    }
+
+    private List<String> buildJobClassCandidates(String rawJobName) {
+        String jobName = rawJobName == null ? "" : rawJobName.trim();
+        Set<String> candidates = new LinkedHashSet<>();
+        String aliasTarget = resolveAlias(jobName);
+        if (aliasTarget != null) {
+            candidates.add(aliasTarget);
+        }
+        if (!jobName.isEmpty()) {
+            if (jobName.contains(".")) {
+                candidates.add(jobName);
+            } else {
+                candidates.add(JOB_PACKAGE + jobName);
+                candidates.add(jobName);
+            }
+        }
+        return new ArrayList<>(candidates);
+    }
+
+    private String resolveAlias(String jobName) {
+        String normalized = jobName.toLowerCase(Locale.ROOT);
+        switch (normalized) {
+            case "1":
+            case "dailytrainjob":
+            case "dailytrain":
+            case "daily-train":
+            case "daily_train":
+                return DAILY_TRAIN_JOB;
+            case "2":
+            case "testjob":
+            case "test":
+            case "test-job":
+            case "test_job":
+                return TEST_JOB;
+            default:
+                return null;
+        }
+    }
+
+    private String normalizeJobName(String rawJobName, Class<? extends Job> jobClass) {
+        String jobName = rawJobName == null ? "" : rawJobName.trim();
+        if (jobName.isEmpty() || jobName.contains(".") || resolveAlias(jobName) != null) {
+            return jobClass.getSimpleName();
+        }
+        return jobName;
     }
 }

@@ -1,13 +1,19 @@
-create table member
+# 在 train 库执行：mysql -uroot -p train < sql/member.sql
+
+drop table if exists `member`;
+create table `member`
 (
-    id     bigint      not null
+    id       bigint       not null
         primary key,
-    mobile varchar(11) null,
+    mobile   varchar(11)  null,
+    email    varchar(50)  null comment '邮箱',
+    password varchar(100) null comment '密码哈希',
     constraint member_mobile
         unique (mobile)
-);
+) engine=innodb default charset=utf8mb4 comment='会员';
 
-create table passenger
+drop table if exists `passenger`;
+create table `passenger`
 (
     id          bigint      not null comment 'id'
         primary key,
@@ -16,44 +22,46 @@ create table passenger
     id_card     varchar(18) not null comment '身份证',
     type        char        not null comment '旅客类型(枚举)',
     create_time datetime(3) null comment '新增时间',
-    update_time datetime(3) null comment '修改时间'
-);
-
-create index member_index_id
-    on passenger (member_id);
+    update_time datetime(3) null comment '修改时间',
+    index member_index_id (member_id)
+) engine=innodb default charset=utf8mb4 comment='乘客';
 
 drop table if exists `ticket`;
-create table `ticket` (
-                          `id` bigint not null comment 'id',
-                          `member_id` bigint not null comment '会员id',
-                          `passenger_id` bigint not null comment '乘客id',
-                          `passenger_name` varchar(20) comment '乘客姓名',
-                          `train_date` date not null comment '日期',
-                          `train_code` varchar(20) not null comment '车次编号',
-                          `carriage_index` int not null comment '箱序',
-                          `seat_row` char(2) not null comment '排号|01, 02',
-                          `seat_col` char(1) not null comment '列号|枚举[SeatColEnum]',
-                          `start_station` varchar(20) not null comment '出发站',
-                          `start_time` time not null comment '出发时间',
-                          `end_station` varchar(20) not null comment '到达站',
-                          `end_time` time not null comment '到站时间',
-                          `seat_type` char(1) not null comment '座位类型|枚举[SeatTypeEnum]',
-                          `create_time` datetime(3) comment '新增时间',
-                          `update_time` datetime(3) comment '修改时间',
-                          primary key (`id`),
-                          index `member_id_index` (`member_id`)
+create table `ticket`
+(
+    `id`             bigint not null comment 'id',
+    `member_id`      bigint not null comment '会员id',
+    `passenger_id`   bigint not null comment '乘客id',
+    `passenger_name` varchar(20) comment '乘客姓名',
+    `train_date`     date not null comment '日期',
+    `train_code`     varchar(20) not null comment '车次编号',
+    `carriage_index` int not null comment '箱序',
+    `seat_row`       char(2) not null comment '排号|01, 02',
+    `seat_col`       char(1) not null comment '列号|枚举[SeatColEnum]',
+    `start_station`  varchar(20) not null comment '出发站',
+    `start_time`     time not null comment '出发时间',
+    `end_station`    varchar(20) not null comment '到达站',
+    `end_time`       time not null comment '到站时间',
+    `seat_type`      char(1) not null comment '座位类型|枚举[SeatTypeEnum]',
+    `create_time`    datetime(3) comment '新增时间',
+    `update_time`    datetime(3) comment '修改时间',
+    primary key (`id`),
+    index `member_id_index` (`member_id`)
 ) engine=innodb default charset=utf8mb4 comment='车票';
 
-CREATE TABLE `undo_log` (
-                            `id` bigint(20) NOT NULL AUTO_INCREMENT,
-                            `branch_id` bigint(20) NOT NULL,
-                            `xid` varchar(100) NOT NULL,
-                            `context` varchar(128) NOT NULL,
-                            `rollback_info` longblob NOT NULL,
-                            `log_status` int(11) NOT NULL,
-                            `log_created` datetime NOT NULL,
-                            `log_modified` datetime NOT NULL,
-                            `ext` varchar(100) DEFAULT NULL,
-                            PRIMARY KEY (`id`),
-                            UNIQUE KEY `ux_undo_log` (`xid`,`branch_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8;
+# Seata AT 模式 undo_log（凡是参与分布式事务的库都要有）
+drop table if exists `undo_log`;
+create table `undo_log`
+(
+    `id`            bigint(20)   not null auto_increment,
+    `branch_id`     bigint(20)   not null,
+    `xid`           varchar(100) not null,
+    `context`       varchar(128) not null,
+    `rollback_info` longblob     not null,
+    `log_status`    int(11)      not null,
+    `log_created`   datetime     not null,
+    `log_modified`  datetime     not null,
+    `ext`           varchar(100) default null,
+    primary key (`id`),
+    unique key `ux_undo_log` (`xid`, `branch_id`)
+) engine=innodb auto_increment=1 default charset=utf8 comment='Seata 回滚日志';

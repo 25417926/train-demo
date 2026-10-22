@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.guo.auth.mapper.UserRoleRelationMapper">
+
+    <select id="selectRoleByUserId"  resultType="string">
+        select r.role_name from t_role r
+        left join t_user_role_rel ur on r.id = ur.role_id
+        left join member m on m.id = ur.user_id
+        where m.id = #{userId}
+        and r.is_deleted = 0
+    </select>
+</mapper>

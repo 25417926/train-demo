@@ -1,101 +1,95 @@
-<script >
+<template>
+  <div class="container">
 
+    <!-- 添加尺寸约束容器 -->
+    <div class="login-wrapper">
+      <login></login>
+    </div>
+  </div>
+</template>
 
+<script>
 import Login from "@/components/login/login.vue";
-import Register from "@/components/login/register.vue";
-import {ref} from "vue";
 
 export default {
   name: 'overView',
-  components: {Register, Login},
-  data() {
-      const current = ref(['login']);
-    return {
-      current,
-      fn: true
-    }
-  },
-  methods: {
-    flag() {
-      this.fn = !this.fn;
-    },
-  }
-}
+  components: {Login},
+};
 </script>
 
-<template>
-  <div class="container">
-    <nav>
-    <a-menu v-model:selectedKeys="current" mode="horizontal">
-      <a-menu-item class="item" key="login" @click="flag">
-        <template >
-          <mail-outlined />
-        </template>
-        登录
-      </a-menu-item>
-      <a-menu-item class="item" key="reg" @click="flag">
-        注册
-      </a-menu-item>
-    </a-menu>
-    </nav>
-    <login v-if="fn"></login>
-    <register v-else></register>
-
-  </div>
-
-</template>
-
-<style >
-//* 整体页面的样式初始化 */
-* {
-  padding: 0;
-  margin: 0;
-  box-sizing: border-box;
-}
-
+<style scoped>
+/* 整体页面优化 */
 body {
-  /* 让页面整体在浏览器视口垂直和水平居中 */
   min-height: 100vh;
   position: relative;
+  background: linear-gradient(135deg, #f0f2f5 0%, #e6e9ed 100%);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
 }
 
-/* 容器的样式 */
+.login-wrapper {
+  flex: 1;
+  min-height: 300px;
+  display: flex;
+  align-items: center;
+}
+
+/* 修改容器定位逻辑 */
 .container {
-  width: 400px;
-  max-width: 600px; /* 可以根据实际需求调整最大宽度 */
-  text-align: center; /* 内部文本内容默认居中对齐 */
-  border: 1px solid #ccc;
-  margin: 0 auto; /* 水平居中容器 */
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%); /* 通过绝对定位和位移来实现垂直和水平居中 */
+  width: 90%;
+  max-width: 420px;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  padding: 2rem;
+
+  /* 使用视口单位定位 */
+  position: fixed;
+  top: 50vh;
+  left: 50vw;
+  transform: translate(-50%, -50%);
+
+  /* 添加弹性布局 */
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+
+  /* 滚动控制 */
+  max-height: 90vh;
+  overflow-y: auto;
 }
 
-/* 导航栏的样式 */
+/* 导航栏升级 */
 nav {
-  text-align: center; /* 让导航栏内的菜单项文本等内容水平居中 */
-  margin-bottom: 15px;
-  border: 1px solid #ccc;
+  margin-bottom: 2rem;
+  padding: 1rem 0;
+  background: #fff;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
 }
 
-/* 菜单相关的样式调整 */
-.a-menu {
-  width: 100%;
-  max-width: 400px; /* 设置菜单最大宽度，防止内容过长撑开 */
-  margin: 0 auto; /* 水平居中菜单 */
+nav h2 {
+  color: #2c3e50;
+  font-size: 1.5rem;
+  font-weight: 600;
+  margin: 0;
+  letter-spacing: 0.5px;
 }
 
-.a-menu-item {
-  display: inline-block; /* 让菜单项可以水平排列并可以设置外边距等 */
-  margin: 0 10px; /* 可以根据实际需求调整菜单项之间的间距 */
+/* 响应式优化 */
+@media (max-width: 480px) {
+  .container {
+    width: 95%;
+    padding: 1.5rem;
+  }
+
+  nav h2 {
+    font-size: 1.3rem;
+  }
 }
 
-/* 登录和注册组件的样式（这里只是预留，你可根据实际组件内部样式完善） */
-login,
-register {
-  width: 100%;
-  max-width: 400px; /* 可以根据实际情况设置最大宽度 */
-  margin: 0 auto; /* 让组件在父容器内水平居中 */
+/* 动画增强 */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translate(-50%, -45%); }
+  to { opacity: 1; transform: translate(-50%, -50%); }
 }
 </style>

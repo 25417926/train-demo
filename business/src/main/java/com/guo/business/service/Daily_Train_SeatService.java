@@ -58,14 +58,14 @@ public class Daily_Train_SeatService {
         if (ObjectUtil.isNotNull(req.getTrainCode())) {
             criteria.andTrainCodeEqualTo(req.getTrainCode());
         }
-        LOG.info("查询页码：{}", req.getPage());
-        LOG.info("每页条数：{}", req.getSize());
+        LOG.debug("查询页码：{}", req.getPage());
+        LOG.debug("每页条数：{}", req.getSize());
         PageHelper.startPage(req.getPage(), req.getSize());
         List<Daily_Train_Seat> daily_Train_SeatList = daily_Train_SeatMapper.selectByExample(daily_Train_SeatExample);
 
         PageInfo<Daily_Train_Seat> pageInfo = new PageInfo<>(daily_Train_SeatList);
-        LOG.info("总行数：{}", pageInfo.getTotal());
-        LOG.info("总页数：{}", pageInfo.getPages());
+        LOG.debug("总行数：{}", pageInfo.getTotal());
+        LOG.debug("总页数：{}", pageInfo.getPages());
 
         List<Daily_Train_SeatQueryResp> list = BeanUtil.copyToList(daily_Train_SeatList, Daily_Train_SeatQueryResp.class);
 
@@ -94,9 +94,13 @@ public class Daily_Train_SeatService {
         List<Train_Station> train_stations = Train_StationService.selectByTrainCode(trainCode);
         //查出某日该车次的座位数据
         List<train_seat> trainStations = train_seatService.selectByTrainCode(trainCode);
+        if (train_stations.size() <= 1) {
+            LOG.error("该车次没有车站数据，请检查数据再操作");
+            throw new RuntimeException("该车次没有车站数据，请检查数据再操作");
+        }
         String sell = StrUtil.fillBefore("", '0', train_stations.size() - 1);
         if (CollUtil.isEmpty(trainStations)) {
-            LOG.info("该车次没有车站数据，日期【{}】车次【{}】的座位信息生成完毕", DateUtil.formatDate(date), trainCode);
+            LOG.debug("该车次没有车站数据，日期【{}】车次【{}】的座位信息生成完毕", DateUtil.formatDate(date), trainCode);
             return;
         }
         //生成该车次座位的数据
@@ -108,8 +112,8 @@ public class Daily_Train_SeatService {
             Daily_Train_Seat.setSell(sell);
             Daily_Train_Seat.setDate(date);
             daily_Train_SeatMapper.insert(Daily_Train_Seat);
-            LOG.info("生成车次【{}】厢序列=【{}】的座位信息完成", trainCode, Daily_Train_Seat.getCarriageIndex());
-            LOG.info("生成日期【{}】车次【{}】的座位信息完成", DateUtil.formatDate(date), trainCode);
+            LOG.debug("生成车次【{}】厢序列=【{}】的座位信息完成", trainCode, Daily_Train_Seat.getCarriageIndex());
+            LOG.debug("生成日期【{}】车次【{}】的座位信息完成", DateUtil.formatDate(date), trainCode);
         }
 
     }
@@ -141,7 +145,7 @@ public class Daily_Train_SeatService {
         long l = daily_Train_SeatMapper.countByExample(Daily_Train_SeatExample);
         // 如果统计结果为0，表示没有找到符合条件的座位信息，返回-1
         if (l == 0L) {
-            return -1;
+            return 0;
         }
         // 将统计结果转换为int类型并返回
         return (int) l;
@@ -164,7 +168,22 @@ public class Daily_Train_SeatService {
         seat.setId(daily_Train_Seat.getId());
         seat.setSell(daily_Train_Seat.getSell());
         seat.setUpdateTime(new Date());
-        daily_Train_SeatMapper.updateByPrimaryKeySelective(seat);
+        LOG.debug("更新座位信息：{}", seat);
         return daily_Train_SeatMapper.updateByPrimaryKeySelective(seat);
+    }
+
+    /**
+     * 按车厢/排号/列号反查座位（退票/退改签场景使用）
+     */
+    public Daily_Train_Seat selectByPosition(Date date, String trainCode, Integer carriageIndex, String row, String col) {
+        Daily_Train_SeatExample example = new Daily_Train_SeatExample();
+        example.createCriteria()
+                .andDateEqualTo(date)
+                .andTrainCodeEqualTo(trainCode)
+                .andCarriageIndexEqualTo(carriageIndex)
+                .andRowEqualTo(row)
+                .andColEqualTo(col);
+        List<Daily_Train_Seat> list = daily_Train_SeatMapper.selectByExample(example);
+        return CollUtil.isEmpty(list) ? null : list.get(0);
     }
 }
