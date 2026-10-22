@@ -14,6 +14,7 @@ import com.guo.business.inventory.ReserveResult;
 import com.guo.business.req.Confirm_OrderTicketReq;
 import com.guo.business.service.Daily_Train_TicketService;
 import com.guo.business.service.OrderCloseQueue;
+import com.guo.business.waitlist.WaitlistKey;
 import com.guo.common.util.SnowUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -40,8 +41,6 @@ public class PurchaseAcceptService {
 
     /** Idempotency-Key：8~64 位字母、数字、下划线或中划线（UUID 合法） */
     private static final Pattern IDEMPOTENCY_KEY_PATTERN = Pattern.compile("[A-Za-z0-9_-]{8,64}");
-
-    private static final String WAITLIST_COUNT_PREFIX = "waitlist:count:";
 
     /** 受理后出票窗口 5 分钟，与 PurchaseTxWriter 的 expire_at 对齐 */
     private static final long ORDER_EXPIRE_MS = 5 * 60 * 1000L;
@@ -205,8 +204,8 @@ public class PurchaseAcceptService {
 
     private boolean waitlistBlocked(String dateText, PurchaseApplyReq req, String seatType,
                                     int startIndex, int endIndex, int seatCount) {
-        String waitlistKey = WAITLIST_COUNT_PREFIX + dateText + ":" + req.getTrainCode() + ":"
-                + req.getStart() + ":" + req.getEnd() + ":" + seatType;
+        String waitlistKey = WaitlistKey.count(
+                WaitlistKey.bucket(dateText, req.getTrainCode(), req.getStart(), req.getEnd(), seatType));
         Object waiting = redis.opsForValue().get(waitlistKey);
         if (waiting == null || Long.parseLong(String.valueOf(waiting)) <= 0) {
             return false;

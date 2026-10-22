@@ -7,6 +7,7 @@ import com.github.pagehelper.PageHelper;
 import com.github.pagehelper.PageInfo;
 import com.guo.common.context.LoginMemberContext;
 import com.guo.common.resp.PageResp;
+import com.guo.common.resp.PassengerBriefResp;
 import com.guo.common.util.SnowUtil;
 import com.guo.member.TypeEnum.PassengerEnum;
 import com.guo.member.domain.Passenger;
@@ -100,6 +101,15 @@ public class PassengerService {
     }
     public void delete(Long id) {
         passengerMapper.deleteByPrimaryKey(id);
+    }
+
+    /**
+     * 内部 Feign：按会员查询乘客简要信息，供 business 校验候补申请归属。
+     */
+    public List<PassengerBriefResp> queryByMember(Long memberId) {
+        PassengerExample example = new PassengerExample();
+        example.createCriteria().andMemberIdEqualTo(memberId);
+        return BeanUtil.copyToList(passengerMapper.selectByExample(example), PassengerBriefResp.class);
     }
 
     public List<PassengerQueryResp> queryMine() {

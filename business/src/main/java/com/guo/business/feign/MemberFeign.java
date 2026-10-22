@@ -4,6 +4,7 @@ import com.guo.common.req.MemberTicketReq;
 import com.guo.common.req.TicketIssueReq;
 import com.guo.common.req.ValidReq;
 import com.guo.common.resp.CommonResp;
+import com.guo.common.resp.PassengerBriefResp;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.web.bind.annotation.*;
@@ -50,4 +51,10 @@ public interface MemberFeign {
      */
     @DeleteMapping("member/internal/feign/ticket/by-order/{orderId}")
     CommonResp<Integer> deleteTicketsByOrder(@PathVariable("orderId") Long orderId);
+
+    /**
+     * I15 按会员查询乘客简要信息（校验候补申请归属）
+     */
+    @GetMapping("member/internal/feign/passenger/by-member")
+    CommonResp<List<PassengerBriefResp>> listPassengersByMember(@RequestParam("memberId") Long memberId);
 }

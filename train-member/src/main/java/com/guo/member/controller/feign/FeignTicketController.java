@@ -5,9 +5,11 @@ import com.guo.common.req.MemberTicketReq;
 import com.guo.common.req.TicketIssueReq;
 import com.guo.common.req.ValidReq;
 import com.guo.common.resp.CommonResp;
+import com.guo.common.resp.PassengerBriefResp;
 import com.guo.common.util.HttpStatus;
 import com.guo.member.domain.Ticket;
 import com.guo.member.resp.TicketQueryResp;
+import com.guo.member.service.PassengerService;
 import com.guo.member.service.TicketService;
 import com.guo.member.service.ValidCodeService;
 import org.springframework.format.annotation.DateTimeFormat;
@@ -31,6 +33,17 @@ public class FeignTicketController {
     private TicketService ticketService;
     @Resource
     private ValidCodeService validCodeService;
+    @Resource
+    private PassengerService passengerService;
+
+    /**
+     * I15：按会员查询乘客简要信息，供 business 校验候补申请归属。
+     */
+    @GetMapping("/passenger/by-member")
+    public CommonResp<List<PassengerBriefResp>> listPassengersByMember(@RequestParam("memberId") Long memberId) {
+        List<PassengerBriefResp> passengers = passengerService.queryByMember(memberId);
+        return new CommonResp<>(true, "成功", passengers, HttpStatus.SUCCESS);
+    }
 
     /**
      * 处理乘客信息保存请求

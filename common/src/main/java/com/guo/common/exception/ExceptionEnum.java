@@ -47,6 +47,11 @@ public enum ExceptionEnum {
     REFUND_ALREADY_DONE(HttpStatus.CONFLICT, "订单已退款"),
     CHANGE_ALREADY_DONE(HttpStatus.CONFLICT, "订单已改签"),
     ORDER_MEMBER_ERROR(HttpStatus.CONFLICT, "订单用户与登录用户不一致"),
+    WAITLIST_NOT_EXIST(HttpStatus.NOT_FOUND, "候补申请不存在"),
+    WAITLIST_MEMBER_ERROR(HttpStatus.CONFLICT, "候补申请与登录用户不一致"),
+    WAITLIST_STATUS_ERROR(HttpStatus.CONFLICT, "候补状态不允许此操作"),
+    WAITLIST_PASSENGER_ERROR(HttpStatus.CONFLICT, "乘客不属于当前用户"),
+    WAITLIST_TICKET_NOT_EXIST(HttpStatus.NOT_FOUND, "车次区间不存在"),
     ADMIN_ONLY(HttpStatus.UNAUTHORIZED, "该账号无管理后台访问权限");
 
 
