@@ -10,6 +10,7 @@ import com.guo.business.TypeEnum.TrainTypeEnum;
 import com.guo.business.domain.Daily_Train;
 import com.guo.business.domain.Daily_TrainExample;
 import com.guo.business.domain.train;
+import com.guo.business.inventory.InventoryPreheatService;
 import com.guo.business.mapper.Daily_TrainMapper;
 import com.guo.business.req.Daily_TrainQueryReq;
 import com.guo.business.req.Daily_TrainSaveReq;
@@ -20,6 +21,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import javax.annotation.Resource;
 import java.util.Date;
@@ -47,6 +50,8 @@ public class Daily_TrainService {
     private Daily_Train_TicketService dailyTrainTicketService;
     @Resource
     private Sk_TokenService skTokenService;
+    @Resource
+    private InventoryPreheatService inventoryPreheatService;
 
     @Transactional
     public void save(Daily_TrainSaveReq req) {
@@ -145,5 +150,29 @@ public class Daily_TrainService {
         dailyTrainSeatService.genDaily(date, code);
         dailyTrainTicketService.genDaily(dailyTrain, date, code);
         skTokenService.genDaily(date, code);
+        preheatAfterCommit(date, code);
+    }
+
+    /**
+     * 每日数据落库后自动预热 Redis 库存 key；预热失败只记录日志，不影响车次生成。
+     */
+    private void preheatAfterCommit(Date date, String trainCode) {
+        Runnable task = () -> {
+            try {
+                inventoryPreheatService.preheatTrain(date, trainCode);
+            } catch (Exception e) {
+                LOG.error("库存预热失败，日期：{}，车次：{}", date, trainCode, e);
+            }
+        };
+        if (TransactionSynchronizationManager.isSynchronizationActive()) {
+            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+                @Override
+                public void afterCommit() {
+                    task.run();
+                }
+            });
+        } else {
+            task.run();
+        }
     }
 }
