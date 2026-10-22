@@ -8,6 +8,7 @@
     <result column="member_id" jdbcType="BIGINT" property="memberId" />
     <result column="amount" jdbcType="DECIMAL" property="amount" />
     <result column="reason" jdbcType="VARCHAR" property="reason" />
+    <result column="idempotent_key" jdbcType="VARCHAR" property="idempotentKey" />
     <result column="fail_reason" jdbcType="VARCHAR" property="failReason" />
     <result column="refund_status" jdbcType="CHAR" property="refundStatus" />
     <result column="refund_time" jdbcType="TIMESTAMP" property="refundTime" />
@@ -15,7 +16,7 @@
     <result column="update_time" jdbcType="TIMESTAMP" property="updateTime" />
   </resultMap>
   <sql id="Base_Column_List">
-    id, order_id, payment_id, member_id, amount, reason, fail_reason, refund_status, refund_time, create_time, update_time
+    id, order_id, payment_id, member_id, amount, reason, idempotent_key, fail_reason, refund_status, refund_time, create_time, update_time
   </sql>
   <select id="selectByPrimaryKey" parameterType="java.lang.Long" resultMap="BaseResultMap">
     select
@@ -29,6 +30,13 @@
     from refund
     where order_id = #{orderId,jdbcType=BIGINT}
     order by id desc
+  </select>
+  <select id="selectByIdempotentKey" resultMap="BaseResultMap">
+    select
+    <include refid="Base_Column_List" />
+    from refund
+    where idempotent_key = #{idempotentKey,jdbcType=VARCHAR}
+    limit 1
   </select>
   <select id="selectByMember" resultMap="BaseResultMap">
     select
@@ -48,13 +56,31 @@
   </select>
   <insert id="insert" parameterType="com.guo.business.domain.Refund">
     insert into refund (id, order_id, payment_id,
-      member_id, amount, reason, fail_reason,
+      member_id, amount, reason, idempotent_key, fail_reason,
       refund_status, refund_time, create_time, update_time
       )
     values (#{id,jdbcType=BIGINT}, #{orderId,jdbcType=BIGINT}, #{paymentId,jdbcType=BIGINT},
-      #{memberId,jdbcType=BIGINT}, #{amount,jdbcType=DECIMAL}, #{reason,jdbcType=VARCHAR}, #{failReason,jdbcType=VARCHAR},
+      #{memberId,jdbcType=BIGINT}, #{amount,jdbcType=DECIMAL}, #{reason,jdbcType=VARCHAR}, #{idempotentKey,jdbcType=VARCHAR}, #{failReason,jdbcType=VARCHAR},
       #{refundStatus,jdbcType=CHAR}, #{refundTime,jdbcType=TIMESTAMP}, #{createTime,jdbcType=TIMESTAMP}, #{updateTime,jdbcType=TIMESTAMP}
       )
+  </insert>
+  <insert id="insertOrResetRefunding" parameterType="com.guo.business.domain.Refund">
+    insert into refund (id, order_id, payment_id,
+      member_id, amount, reason, idempotent_key, fail_reason,
+      refund_status, refund_time, create_time, update_time
+      )
+    values (#{id,jdbcType=BIGINT}, #{orderId,jdbcType=BIGINT}, #{paymentId,jdbcType=BIGINT},
+      #{memberId,jdbcType=BIGINT}, #{amount,jdbcType=DECIMAL}, #{reason,jdbcType=VARCHAR}, #{idempotentKey,jdbcType=VARCHAR}, #{failReason,jdbcType=VARCHAR},
+      #{refundStatus,jdbcType=CHAR}, #{refundTime,jdbcType=TIMESTAMP}, #{createTime,jdbcType=TIMESTAMP}, #{updateTime,jdbcType=TIMESTAMP}
+      )
+    on duplicate key update
+      payment_id = values(payment_id),
+      amount = values(amount),
+      reason = values(reason),
+      fail_reason = null,
+      refund_status = values(refund_status),
+      refund_time = null,
+      update_time = values(update_time)
   </insert>
   <update id="updateByPrimaryKeySelective" parameterType="com.guo.business.domain.Refund">
     update refund

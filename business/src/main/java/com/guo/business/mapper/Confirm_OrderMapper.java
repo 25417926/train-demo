@@ -52,6 +52,15 @@ public interface Confirm_OrderMapper {
                         @Param("toStatus") String toStatus,
                         @Param("updateTime") Date updateTime);
 
+    @Update("update confirm_order set status = #{toStatus}, ticket_status = #{ticketStatus}, "
+            + "version = version + 1, update_time = #{updateTime} "
+            + "where id = #{id} and status = #{fromStatus}")
+    int updateStatusAndTicketCas(@Param("id") Long id,
+                                 @Param("fromStatus") String fromStatus,
+                                 @Param("toStatus") String toStatus,
+                                 @Param("ticketStatus") String ticketStatus,
+                                 @Param("updateTime") Date updateTime);
+
     @Select("select ticket_status from confirm_order where id = #{id}")
     String selectTicketStatus(@Param("id") Long id);
 

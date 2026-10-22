@@ -16,6 +16,8 @@ public class Refund {
 
     private String reason;
 
+    private String idempotentKey;
+
     private String refundStatus;
 
     private Date refundTime;
@@ -72,6 +74,14 @@ public class Refund {
 
     public void setReason(String reason) {
         this.reason = reason;
+    }
+
+    public String getIdempotentKey() {
+        return idempotentKey;
+    }
+
+    public void setIdempotentKey(String idempotentKey) {
+        this.idempotentKey = idempotentKey;
     }
 
     public String getFailReason() {

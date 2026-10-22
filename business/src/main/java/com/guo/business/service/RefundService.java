@@ -1,241 +1,208 @@
 package com.guo.business.service;
 
 import cn.hutool.core.bean.BeanUtil;
-import cn.hutool.core.collection.CollUtil;
-import cn.hutool.core.date.DateTime;
-import cn.hutool.core.util.NumberUtil;
 import cn.hutool.core.util.ObjectUtil;
 import cn.hutool.core.util.StrUtil;
 import com.github.pagehelper.PageHelper;
 import com.github.pagehelper.PageInfo;
-import com.guo.business.TypeEnum.ConfirmOrderStatusEnum;
+import com.guo.business.TypeEnum.OrderCloseReasonEnum;
 import com.guo.business.TypeEnum.RefundStatusEnum;
 import com.guo.business.domain.Confirm_Order;
-import com.guo.business.domain.Daily_Train_Seat;
-import com.guo.business.domain.Daily_Train_Ticket;
 import com.guo.business.domain.Payment;
 import com.guo.business.domain.Refund;
-import com.guo.business.feign.MemberFeign;
 import com.guo.business.mapper.Confirm_OrderMapper;
 import com.guo.business.mapper.PaymentMapper;
 import com.guo.business.mapper.RefundMapper;
-import com.guo.business.mapper.cust.CUST_Daily_Train_TicketMapper;
 import com.guo.business.req.RefundReq;
 import com.guo.business.resp.RefundResp;
 import com.guo.common.exception.ExceptionConsole;
 import com.guo.common.exception.ExceptionEnum;
 import com.guo.common.req.PageReq;
-import com.guo.common.resp.CommonResp;
 import com.guo.common.resp.PageResp;
 import com.guo.common.util.SnowUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.support.TransactionTemplate;
 
-import javax.annotation.Resource;
-import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
-import java.util.Map;
 
+/**
+ * I13 退款两阶段。
+ *
+ * <p>阶段一：订单 Y→G 并把退款流水置为处理中（幂等键 {@code REFUND:{orderId}}），
+ * 此时不释放任何库存与资格；阶段二成功才在同一事务内把订单置 R、写退款成功、
+ * 复用关单释放落账，提交后执行 {@code release.lua} 与会员车票删除；
+ * 阶段二失败则订单回退为 Y、流水置失败，库存与资格保持不变。</p>
+ */
 @Service
 public class RefundService {
 
     private static final Logger LOG = LoggerFactory.getLogger(RefundService.class);
 
-    @Resource
-    private RefundMapper refundMapper;
-    @Resource
-    private PaymentMapper paymentMapper;
-    @Resource
-    private Confirm_OrderMapper confirm_OrderMapper;
-    @Resource
-    private Daily_Train_TicketService daily_Train_TicketService;
-    @Resource
-    private Daily_Train_SeatService daily_Train_SeatService;
-    @Resource
-    private CUST_Daily_Train_TicketMapper cust_Daily_Train_TicketMapper;
-    @Resource
-    private PaymentService paymentService;
-    @Resource
-    private MemberFeign memberFeign;
+    private static final String STATUS_PAID = "Y";
+    private static final String STATUS_REFUNDING = "G";
+    private static final String STATUS_REFUNDED = "R";
+    private static final String TICKET_STATUS_ISSUED = "S";
+    private static final String TICKET_STATUS_NONE = "N";
+    private static final String REFUND_KEY_PREFIX = "REFUND:";
+    private static final int FAIL_REASON_MAX_LENGTH = 500;
 
-    @Transactional
+    private final RefundMapper refundMapper;
+    private final PaymentMapper paymentMapper;
+    private final Confirm_OrderMapper confirmOrderMapper;
+    private final PaymentService paymentService;
+    private final OrderCloseService orderCloseService;
+    private final TransactionTemplate transactionTemplate;
+
+    public RefundService(RefundMapper refundMapper,
+                         PaymentMapper paymentMapper,
+                         Confirm_OrderMapper confirmOrderMapper,
+                         PaymentService paymentService,
+                         OrderCloseService orderCloseService,
+                         PlatformTransactionManager transactionManager) {
+        this.refundMapper = refundMapper;
+        this.paymentMapper = paymentMapper;
+        this.confirmOrderMapper = confirmOrderMapper;
+        this.paymentService = paymentService;
+        this.orderCloseService = orderCloseService;
+        this.transactionTemplate = new TransactionTemplate(transactionManager);
+    }
+
     public RefundResp refund(RefundReq req, Long memberId) {
-        LOG.info("发起退款：{}", req);
+        Confirm_Order order = loadOrder(req.getOrderId(), memberId);
+        String idempotentKey = REFUND_KEY_PREFIX + order.getId();
 
-        Confirm_Order order = confirm_OrderMapper.selectByPrimaryKey(req.getOrderId());
+        // 已退款/退款中：幂等返回已有流水，不重复释放
+        if (STATUS_REFUNDED.equals(order.getStatus()) || STATUS_REFUNDING.equals(order.getStatus())) {
+            return existingRefund(order, idempotentKey);
+        }
+        if (!STATUS_PAID.equals(order.getStatus())) {
+            throw new ExceptionConsole(ExceptionEnum.ORDER_STATUS_ERROR);
+        }
+        if (!TICKET_STATUS_ISSUED.equals(order.getTicketStatus())) {
+            throw new ExceptionConsole(ExceptionEnum.TICKET_ISSUING);
+        }
+        Payment payment = paymentMapper.selectByOrderId(order.getId());
+        if (ObjectUtil.isNull(payment)) {
+            throw new ExceptionConsole(ExceptionEnum.PAYMENT_NOT_EXIST);
+        }
+
+        Refund refund = buildRefunding(order, payment, req, idempotentKey);
+        if (!prepareRefunding(order.getId(), refund)) {
+            // 并发下订单已被其他请求置为 G/R，返回对方的结果
+            return existingRefund(loadOrder(order.getId(), memberId), idempotentKey);
+        }
+
+        try {
+            RefundResp resp = finalizeSuccess(order, payment, refund);
+            LOG.info("订单[{}]退款完成", order.getId());
+            return resp;
+        } catch (RuntimeException e) {
+            LOG.error("订单[{}]退款失败，回滚订单与退款流水", order.getId(), e);
+            finalizeFailure(order.getId(), idempotentKey, e);
+            throw e;
+        }
+    }
+
+    private Confirm_Order loadOrder(Long orderId, Long memberId) {
+        Confirm_Order order = confirmOrderMapper.selectByPrimaryKey(orderId);
         if (ObjectUtil.isNull(order)) {
             throw new ExceptionConsole(ExceptionEnum.ORDER_NOT_EXIST);
         }
         if (!order.getMemberId().equals(memberId)) {
             throw new ExceptionConsole(ExceptionEnum.ORDER_MEMBER_ERROR);
         }
-        if (ConfirmOrderStatusEnum.REFUNDED.getCode().equals(order.getStatus())) {
-            throw new ExceptionConsole(ExceptionEnum.REFUND_ALREADY_DONE);
+        return order;
+    }
+
+    private RefundResp existingRefund(Confirm_Order order, String idempotentKey) {
+        Refund existing = refundMapper.selectByIdempotentKey(idempotentKey);
+        if (existing != null) {
+            LOG.info("订单[{}]重复退款申请，返回已有流水 status={}", order.getId(), existing.getRefundStatus());
+            return BeanUtil.copyProperties(existing, RefundResp.class);
         }
-        if (!ConfirmOrderStatusEnum.PAID.getCode().equals(order.getStatus())) {
+        if (STATUS_REFUNDING.equals(order.getStatus())) {
             throw new ExceptionConsole(ExceptionEnum.ORDER_STATUS_ERROR);
         }
-        // 支付成功后才异步出票，未出票时不能退款
-        if (!"S".equals(confirm_OrderMapper.selectTicketStatus(order.getId()))) {
-            throw new ExceptionConsole(ExceptionEnum.TICKET_ISSUING);
-        }
+        throw new ExceptionConsole(ExceptionEnum.REFUND_ALREADY_DONE);
+    }
 
-        Payment payment = paymentMapper.selectByOrderId(order.getId());
-        if (ObjectUtil.isNull(payment)) {
-            throw new ExceptionConsole(ExceptionEnum.PAYMENT_NOT_EXIST);
-        }
-
-        Daily_Train_Ticket dailyTicket = daily_Train_TicketService.selectByUnique(
-                order.getDate(), order.getTrainCode(), order.getStart(), order.getEnd());
-        if (ObjectUtil.isNull(dailyTicket)) {
-            throw new ExceptionConsole(ExceptionEnum.TICKET_NOT_EXIST);
-        }
-
-        CommonResp<List<Map<String, Object>>> resp = memberFeign.listByOrder(order.getId());
-        List<Map<String, Object>> ticketList = ObjectUtil.isNotNull(resp) ? resp.getContent() : null;
-        if (CollUtil.isEmpty(ticketList)) {
-            LOG.error("refund tickets not found, orderId={}", order.getId());
-            throw new ExceptionConsole(ExceptionEnum.FAILURE_TO_SAVE_TICKET);
-        }
-
-        List<RefundTicketContext> refundTickets = buildRefundTickets(order, ticketList);
-        for (RefundTicketContext refundTicket : refundTickets) {
-            rollbackSell(refundTicket.seat, dailyTicket.getStartIndex(), dailyTicket.getEndIndex());
-            daily_Train_SeatService.SeatForUpdate(refundTicket.seat);
-
-            int[] influence = calcInfluence(
-                    refundTicket.seat.getSell(),
-                    dailyTicket.getStartIndex(),
-                    dailyTicket.getEndIndex()
-            );
-            cust_Daily_Train_TicketMapper.increaseCountBySell(
-                    order.getDate(),
-                    order.getTrainCode(),
-                    refundTicket.seat.getSeatType(),
-                    influence[0],
-                    influence[1],
-                    influence[2],
-                    influence[3]
-            );
-        }
-
-        // I10：按订单精确删除本单车票，避免逐个 id 删除时误删或漏删
-        memberFeign.deleteTicketsByOrder(order.getId());
-
-        paymentService.markRefunded(payment.getId());
-
-        DateTime now = DateTime.now();
-        // 退票成功后车票已删除，订单标记为已退款，ticket_status 同步回到未出票
-        confirm_OrderMapper.updateStatusAndTicketStatus(
-                order.getId(), ConfirmOrderStatusEnum.REFUNDED.getCode(), "N", now);
-
+    private Refund buildRefunding(Confirm_Order order, Payment payment, RefundReq req, String idempotentKey) {
+        Date now = new Date();
         Refund refund = new Refund();
         refund.setId(SnowUtil.getSnowflakeNextId());
         refund.setOrderId(order.getId());
         refund.setPaymentId(payment.getId());
-        refund.setMemberId(memberId);
+        refund.setMemberId(order.getMemberId());
         refund.setAmount(payment.getAmount());
         refund.setReason(req.getReason());
-        refund.setRefundStatus(RefundStatusEnum.SUCCESS.getCode());
-        refund.setRefundTime(now);
+        refund.setIdempotentKey(idempotentKey);
+        refund.setRefundStatus(RefundStatusEnum.INIT.getCode());
         refund.setCreateTime(now);
         refund.setUpdateTime(now);
-        refundMapper.insert(refund);
-        LOG.info("订单[{}]退款完成", order.getId());
-
-        return BeanUtil.copyProperties(refund, RefundResp.class);
+        return refund;
     }
 
-    private List<RefundTicketContext> buildRefundTickets(Confirm_Order order, List<Map<String, Object>> ticketList) {
-        List<RefundTicketContext> refundTickets = new ArrayList<>(ticketList.size());
-        for (Map<String, Object> ticket : ticketList) {
-            Integer carriageIndex = readRequiredInteger(ticket, "carriageIndex");
-            String seatRow = readRequiredString(ticket, "seatRow");
-            String seatCol = readRequiredString(ticket, "seatCol");
-
-            Daily_Train_Seat seat = daily_Train_SeatService.selectByPosition(
-                    order.getDate(), order.getTrainCode(), carriageIndex, seatRow, seatCol);
-            if (ObjectUtil.isNull(seat)) {
-                LOG.error(
-                        "refund seat not found, orderId={}, carriageIndex={}, seatRow={}, seatCol={}",
-                        order.getId(), carriageIndex, seatRow, seatCol
-                );
-                throw new ExceptionConsole(ExceptionEnum.FAILURE_TO_SAVE_TICKET);
+    /**
+     * 阶段一：订单 Y→G 与 REFUNDING 流水同一事务，失败返回 false（并发已被处理）。
+     */
+    private boolean prepareRefunding(Long orderId, Refund refund) {
+        Boolean prepared = transactionTemplate.execute(status -> {
+            if (confirmOrderMapper.updateStatusCas(orderId, STATUS_PAID, STATUS_REFUNDING, new Date()) != 1) {
+                return false;
             }
-
-            refundTickets.add(new RefundTicketContext(seat));
-        }
-        return refundTickets;
+            refundMapper.insertOrResetRefunding(refund);
+            return true;
+        });
+        return Boolean.TRUE.equals(prepared);
     }
 
-    private void rollbackSell(Daily_Train_Seat seat, Integer startIndex, Integer endIndex) {
-        String sell = seat.getSell();
-        int sellStartIndex = startIndex - 1;
-        int sellEndIndex = endIndex - 1;
-
-        StringBuilder maskBuilder = new StringBuilder();
-        for (int i = 0; i < sell.length(); i++) {
-            maskBuilder.append((i >= sellStartIndex && i < sellEndIndex) ? '1' : '0');
-        }
-        String mask = maskBuilder.toString();
-        long newSell = NumberUtil.binaryToInt(sell) & (~NumberUtil.binaryToInt(mask));
-        String newSellStr = NumberUtil.getBinaryStr(newSell);
-        newSellStr = StrUtil.fillBefore(newSellStr, '0', sell.length());
-        LOG.info("回滚座位 {} 的 sell：{} -> {}", seat.getCarriageSeatIndex(), sell, newSellStr);
-        seat.setSell(newSellStr);
-    }
-
-    private int[] calcInfluence(String newSell, Integer startIndex, Integer endIndex) {
-        char[] sellChars = newSell.toCharArray();
-        int sellStartIndex = startIndex - 1;
-        int sellEndIndex = endIndex - 1;
-
-        int minStartIndex = 1;
-        for (int i = sellStartIndex - 1; i >= 0; i--) {
-            if (sellChars[i] == '1') {
-                minStartIndex = i + 2;
-                break;
+    /**
+     * 阶段二成功：订单 G→R、退款成功、释放落账同一事务，提交后 Lua 释放与删票。
+     */
+    private RefundResp finalizeSuccess(Confirm_Order order, Payment payment, Refund refund) {
+        Date now = new Date();
+        OrderCloseService.CloseContext context = transactionTemplate.execute(status -> {
+            if (confirmOrderMapper.updateStatusAndTicketCas(order.getId(), STATUS_REFUNDING,
+                    STATUS_REFUNDED, TICKET_STATUS_NONE, now) != 1) {
+                throw new IllegalStateException("订单状态已变更，无法完成退款, orderId=" + order.getId());
             }
-        }
-
-        int maxStartIndex = endIndex - 1;
-        int minEndIndex = startIndex + 1;
-        int maxEndIndex = sellChars.length + 1;
-        for (int i = sellEndIndex; i < sellChars.length; i++) {
-            if (sellChars[i] == '1') {
-                maxEndIndex = i + 1;
-                break;
+            paymentService.markRefunded(payment.getId());
+            if (refundMapper.markSuccess(refund.getIdempotentKey(), now, now) != 1) {
+                throw new IllegalStateException("退款流水状态已变更, orderId=" + order.getId());
             }
+            return orderCloseService.releaseInTransaction(order, OrderCloseReasonEnum.REFUND);
+        });
+
+        orderCloseService.releaseAfterCommit(context);
+
+        Refund latest = refundMapper.selectByIdempotentKey(refund.getIdempotentKey());
+        if (latest == null) {
+            refund.setRefundStatus(RefundStatusEnum.SUCCESS.getCode());
+            refund.setRefundTime(now);
+            latest = refund;
         }
-        return new int[]{minStartIndex, maxStartIndex, minEndIndex, maxEndIndex};
+        return BeanUtil.copyProperties(latest, RefundResp.class);
     }
 
-    private Integer readRequiredInteger(Map<String, Object> ticket, String fieldName) {
-        Object value = ticket.get(fieldName);
-        if (value instanceof Number) {
-            return ((Number) value).intValue();
+    /**
+     * 阶段二失败：订单 G→Y、流水置失败，库存与资格保持原状。
+     */
+    private void finalizeFailure(Long orderId, String idempotentKey, RuntimeException cause) {
+        Date now = new Date();
+        try {
+            transactionTemplate.executeWithoutResult(status -> {
+                confirmOrderMapper.updateStatusAndTicketCas(orderId, STATUS_REFUNDING, STATUS_PAID,
+                        TICKET_STATUS_ISSUED, now);
+                refundMapper.markFailed(idempotentKey,
+                        StrUtil.sub(String.valueOf(cause.getMessage()), 0, FAIL_REASON_MAX_LENGTH), now);
+            });
+        } catch (Exception e) {
+            LOG.error("退款失败回滚异常，需人工处理 orderId={}", orderId, e);
         }
-        if (value instanceof String && StrUtil.isNotBlank((String) value)) {
-            return Integer.parseInt((String) value);
-        }
-        LOG.error("ticket field {} is invalid, value={}", fieldName, value);
-        throw new ExceptionConsole(ExceptionEnum.FAILURE_TO_SAVE_TICKET);
-    }
-
-    private String readRequiredString(Map<String, Object> ticket, String fieldName) {
-        Object value = ticket.get(fieldName);
-        if (ObjectUtil.isNull(value)) {
-            LOG.error("ticket field {} is null", fieldName);
-            throw new ExceptionConsole(ExceptionEnum.FAILURE_TO_SAVE_TICKET);
-        }
-        String text = value.toString();
-        if (StrUtil.isBlank(text)) {
-            LOG.error("ticket field {} is blank", fieldName);
-            throw new ExceptionConsole(ExceptionEnum.FAILURE_TO_SAVE_TICKET);
-        }
-        return text;
     }
 
     public List<Refund> queryByMember(Long memberId) {
@@ -251,13 +218,5 @@ public class RefundService {
         pageResp.setTotal(pageInfo.getTotal());
         pageResp.setList(respList);
         return pageResp;
-    }
-
-    private static class RefundTicketContext {
-        private final Daily_Train_Seat seat;
-
-        private RefundTicketContext(Daily_Train_Seat seat) {
-            this.seat = seat;
-        }
     }
 }

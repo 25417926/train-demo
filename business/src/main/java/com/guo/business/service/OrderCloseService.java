@@ -125,6 +125,23 @@ public class OrderCloseService {
     }
 
     /**
+     * 事务内完成释放落账（资格、hold、账本回滚、释放流水、outbox），不做订单状态 CAS。
+     *
+     * <p>退款成功链路复用该方法，由调用方在同一事务内把订单置为 R。</p>
+     */
+    public CloseContext releaseInTransaction(Confirm_Order order, OrderCloseReasonEnum reason) {
+        return doReleaseSteps(order, reason);
+    }
+
+    /**
+     * 事务提交后执行 Lua 释放与会员车票删除。
+     */
+    public void releaseAfterCommit(CloseContext context) {
+        releaseQuietly(context);
+        deleteTicketsQuietly(context);
+    }
+
+    /**
      * 用户取消：校验订单归属与可关闭状态，重复取消按幂等成功返回。
      */
     public OrderCloseResult cancel(Long orderId, Long memberId) {
@@ -157,16 +174,22 @@ public class OrderCloseService {
             return null;
         }
         String toStatus = OrderCloseReasonEnum.CANCEL == reason ? STATUS_CANCEL : STATUS_CLOSED;
-        boolean ticketDeleteRequired = ticketIssued(order.getTicketStatus());
         if (orderCloseMapper.closeOrder(orderId, toStatus, reason.name()) == 0) {
             return null;
         }
+        CloseContext context = doReleaseSteps(order, reason);
+        context.setToStatus(toStatus);
+        return context;
+    }
+
+    private CloseContext doReleaseSteps(Confirm_Order order, OrderCloseReasonEnum reason) {
+        boolean ticketDeleteRequired = ticketIssued(order.getTicketStatus());
 
         // hold 必须在置 R 之前读取，同时作为回滚账本与 Redis 释放的参数来源
-        List<InventoryHold> holds = inventoryHoldMapper.selectHeldByOrderId(orderId);
+        List<InventoryHold> holds = inventoryHoldMapper.selectHeldByOrderId(order.getId());
         rollbackLedger(order, holds);
-        orderCloseMapper.releaseQualifications(orderId);
-        orderCloseMapper.releaseHolds(orderId, new Date());
+        orderCloseMapper.releaseQualifications(order.getId());
+        orderCloseMapper.releaseHolds(order.getId(), new Date());
         insertReleaseRecord(order, reason, holds.size());
         insertInventoryReleasedOutbox(order, reason, holds.size());
         if (ticketDeleteRequired) {
@@ -176,7 +199,6 @@ public class OrderCloseService {
         CloseContext context = new CloseContext();
         context.setOrder(order);
         context.setReason(reason);
-        context.setToStatus(toStatus);
         context.setHolds(holds);
         context.setTickets(parseTickets(order.getTickets()));
         context.setSeatCount(holds.size());
@@ -579,7 +601,7 @@ public class OrderCloseService {
     /**
      * 一次关单的上下文：事务内组装，提交后用于 Redis 释放。
      */
-    private static class CloseContext {
+    public static class CloseContext {
 
         private Confirm_Order order;
         private OrderCloseReasonEnum reason;

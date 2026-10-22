@@ -12,6 +12,11 @@
     <result column="status" jdbcType="CHAR" property="status" />
     <result column="create_time" jdbcType="TIMESTAMP" property="createTime" />
     <result column="update_time" jdbcType="TIMESTAMP" property="updateTime" />
+    <result column="request_id" jdbcType="VARCHAR" property="requestId" />
+    <result column="qualification_id" jdbcType="BIGINT" property="qualificationId" />
+    <result column="expire_at" jdbcType="TIMESTAMP" property="expireAt" />
+    <result column="ticket_status" jdbcType="CHAR" property="ticketStatus" />
+    <result column="version" jdbcType="INTEGER" property="version" />
   </resultMap>
   <resultMap extends="BaseResultMap" id="ResultMapWithBLOBs" type="com.guo.business.domain.Confirm_Order">
     <result column="tickets" jdbcType="LONGVARCHAR" property="tickets" />
@@ -76,7 +81,7 @@
   </sql>
   <sql id="Base_Column_List">
     id, member_id, `date`, train_code, `start`, `end`, daily_train_ticket_id, `status`, 
-    create_time, update_time
+    create_time, update_time, request_id, qualification_id, expire_at, ticket_status, `version`
   </sql>
   <sql id="Blob_Column_List">
     tickets
