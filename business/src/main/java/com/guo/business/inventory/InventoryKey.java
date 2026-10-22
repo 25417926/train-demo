@@ -1,8 +1,10 @@
 package com.guo.business.inventory;
 
 import cn.hutool.core.date.DateUtil;
+import com.guo.business.TypeEnum.TrainCarriageTypeEnum;
 
 import java.util.Date;
+import java.util.Locale;
 
 /**
  * Redis 库存 key 统一定义（I04）。
@@ -21,6 +23,9 @@ public final class InventoryKey {
     private static final String POOL_PREFIX = "inv:pool";
     private static final String QUAL_PREFIX = "qual";
     private static final String SEG_FIELD_PREFIX = "seg:";
+    private static final String HOLD_PREFIX = "hold";
+    private static final String PURCHASE_REQ_PREFIX = "purchase:req";
+    private static final String RELEASE_PREFIX = "rel";
 
     private InventoryKey() {
     }
@@ -60,6 +65,52 @@ public final class InventoryKey {
 
     public static String segField(int segIndex) {
         return SEG_FIELD_PREFIX + segIndex;
+    }
+
+    /**
+     * 席别编码（1/2/3/4）对应的余票 hash 字段（ydz/edz/rw/yw）。
+     */
+    public static String ticketField(String seatType) {
+        return TrainCarriageTypeEnum.fromCode(seatType, null).name().toLowerCase(Locale.ROOT);
+    }
+
+    /**
+     * 作为 Lua 参数使用的 key 前缀，末尾带冒号。
+     */
+    public static String qualificationPrefix(String date, String trainCode) {
+        return QUAL_PREFIX + ":" + date + ":" + trainCode + ":";
+    }
+
+    public static String seatPrefix(String date, String trainCode) {
+        return SEAT_PREFIX + ":" + date + ":" + trainCode + ":";
+    }
+
+    /**
+     * 预扣凭据：hold:{holdToken}，hash 保存订单、座位、区间与乘客，TTL 5 分钟。
+     */
+    public static String hold(String holdToken) {
+        return HOLD_PREFIX + ":" + holdToken;
+    }
+
+    /**
+     * 作为 Lua 参数使用的 hold key 前缀，末尾带冒号。
+     */
+    public static String holdPrefix() {
+        return HOLD_PREFIX + ":";
+    }
+
+    /**
+     * 受理幂等状态：purchase:req:{requestId}。
+     */
+    public static String purchaseRequest(String requestId) {
+        return PURCHASE_REQ_PREFIX + ":" + requestId;
+    }
+
+    /**
+     * 释放幂等标记：rel:{releaseKey}。
+     */
+    public static String releaseMark(String releaseKey) {
+        return RELEASE_PREFIX + ":" + releaseKey;
     }
 
     public static String ticketPattern(String date, String trainCode) {
