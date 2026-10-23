@@ -61,10 +61,46 @@
           </span>
       </template>
       <template v-if="column.dataIndex === 'operation'">
-        <a-button type="primary" @click="onOrder(record)">预定</a-button>
+        <a-space>
+          <a-button type="primary" @click="onOrder(record)">预定</a-button>
+          <a-button @click="onWaitlist(record)">候补</a-button>
+        </a-space>
       </template>
     </template>
   </a-table>
+
+  <!-- 候补申请入口 -->
+  <a-modal v-model:visible="waitlistVisible"
+           title="申请候补"
+           ok-text="提交申请"
+           cancel-text="取消"
+           :confirm-loading="waitlistLoading"
+           @ok="handleWaitlist">
+    <a-descriptions :column="2" size="small" bordered style="margin-bottom: 16px">
+      <a-descriptions-item label="日期">{{ waitlistForm.date }}</a-descriptions-item>
+      <a-descriptions-item label="车次">{{ waitlistForm.trainCode }}</a-descriptions-item>
+      <a-descriptions-item label="区间">{{ waitlistForm.start }} ~ {{ waitlistForm.end }}</a-descriptions-item>
+    </a-descriptions>
+    <a-form :label-col="{ span: 5 }" :wrapper-col="{ span: 17 }">
+      <a-form-item label="席别" required>
+        <a-select v-model:value="waitlistForm.seatType" placeholder="请选择候补席别" style="width: 100%">
+          <a-select-option v-for="item in waitlistSeatOptions" :key="item.code" :value="item.code">
+            {{ item.label }}
+          </a-select-option>
+        </a-select>
+      </a-form-item>
+      <a-form-item label="乘车人" required>
+        <a-select v-model:value="waitlistForm.passengerId" placeholder="请选择乘车人" style="width: 100%"
+                  :not-found-content="'暂无乘车人，请先到乘车人管理添加'">
+          <a-select-option v-for="item in passengers" :key="item.id" :value="item.id">
+            {{ item.name }}（{{ item.idCard }}）
+          </a-select-option>
+        </a-select>
+      </a-form-item>
+      <a-alert message="按申请先后排队，有票释放后自动补位，补位订单需在 5 分钟内完成支付。"
+               type="info" show-icon />
+    </a-form>
+  </a-modal>
 </template>
 
 <script>
@@ -72,11 +108,20 @@ import {defineComponent, ref, onMounted} from 'vue';
 
 // import {message} from "ant-design-vue";
 import {getDaily_Train_TicketList} from "@/api/Daily_Train_Ticket"
+import {queryMinePassenger} from "@/api/passenger";
+import {applyWaitlist} from "@/api/waitlist";
 import RailWayPlatFormDrop from "@/components/RailWayPlatFormDrop.vue";
 import dayjs from "dayjs";
 import {message} from "ant-design-vue";
 import {useRouter} from "vue-router";
 import { useStore } from 'vuex';
+
+const WAITLIST_SEAT_TYPES = [
+  { code: "1", desc: "一等座", field: "ydz" },
+  { code: "2", desc: "二等座", field: "edz" },
+  { code: "3", desc: "软卧", field: "rw" },
+  { code: "4", desc: "硬卧", field: "yw" }
+];
 export default defineComponent({
   name: "daily-train-ticket-view",
   components: {RailWayPlatFormDrop},
@@ -247,6 +292,75 @@ export default defineComponent({
       router.push('/Order')
 
     }
+
+    /* 候补申请入口 */
+    const waitlistVisible = ref(false);
+    const waitlistLoading = ref(false);
+    const waitlistSeatOptions = ref([]);
+    const passengers = ref([]);
+    const waitlistForm = ref({
+      date: undefined,
+      trainCode: undefined,
+      start: undefined,
+      end: undefined,
+      seatType: undefined,
+      passengerId: undefined
+    });
+
+    const loadPassengers = async () => {
+      const res = await queryMinePassenger();
+      if (res && res.code === 200) {
+        passengers.value = res.content || [];
+      }
+    };
+
+    const onWaitlist = async (record) => {
+      waitlistForm.value = {
+        date: record.date,
+        trainCode: record.trainCode,
+        start: record.start,
+        end: record.end,
+        seatType: undefined,
+        passengerId: undefined
+      };
+      waitlistSeatOptions.value = WAITLIST_SEAT_TYPES.map(item => {
+        const count = Number(record[item.field]);
+        let label = item.desc;
+        if (!Number.isNaN(count)) {
+          label = count > 0 ? `${item.desc}（余 ${count} 张）` : `${item.desc}（无票）`;
+        }
+        return { code: item.code, label };
+      });
+      waitlistVisible.value = true;
+      if (passengers.value.length === 0) {
+        await loadPassengers();
+      }
+    };
+
+    const handleWaitlist = async () => {
+      if (!waitlistForm.value.seatType) {
+        message.error("请选择候补席别");
+        return;
+      }
+      if (!waitlistForm.value.passengerId) {
+        message.error("请选择乘车人");
+        return;
+      }
+      waitlistLoading.value = true;
+      try {
+        const res = await applyWaitlist(waitlistForm.value);
+        if (res && res.code === 200) {
+          const seqNo = res.content && res.content.seqNo ? `，排队号 ${res.content.seqNo}` : "";
+          message.success(`${res.message || "候补申请成功"}${seqNo}`);
+          waitlistVisible.value = false;
+        } else if (res) {
+          message.error(res.message || "候补申请失败");
+        }
+      } finally {
+        waitlistLoading.value = false;
+      }
+    };
+
     onMounted(() => {
       params.value =store.state.Session_params.params || {}
       if(window.Tool.isNotEmpty(params.value)){
@@ -274,7 +388,14 @@ export default defineComponent({
       params,
       calDuration,
       onOrder,
-      DailyTicker
+      DailyTicker,
+      waitlistVisible,
+      waitlistLoading,
+      waitlistSeatOptions,
+      waitlistForm,
+      passengers,
+      onWaitlist,
+      handleWaitlist
     };
   },
 });

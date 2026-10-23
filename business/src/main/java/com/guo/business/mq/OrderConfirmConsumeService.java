@@ -59,7 +59,7 @@ public class OrderConfirmConsumeService {
         try {
             process(body, requestId);
             stringRedisTemplate.delete(ATTEMPT_PREFIX + requestId);
-            LOG.info("ORDER_CONFIRM 消费成功 requestId={}", requestId);
+            LOG.debug("ORDER_CONFIRM 消费成功 requestId={}", requestId);
         } catch (Exception e) {
             // 失败时释放去重键，保证下一次重投仍会执行
             stringRedisTemplate.delete(dedupKey);

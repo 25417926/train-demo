@@ -38,6 +38,7 @@
             <a-menu-item key="ticket"><router-link to="/ticket">余票查询</router-link></a-menu-item>
             <a-menu-item key="/my-ticket"><router-link to="/my-ticket">我的车票</router-link></a-menu-item>
             <a-menu-item key="/my-order"><router-link to="/my-order">我的订单</router-link></a-menu-item>
+            <a-menu-item key="/my-waitlist"><router-link to="/my-waitlist">我的候补</router-link></a-menu-item>
           </a-sub-menu>
         </a-menu>
       </a-layout-sider>

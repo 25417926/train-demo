@@ -12,7 +12,7 @@
     <template #bodyCell="{ column, record }">
       <template v-if="column.dataIndex === 'operation'">
         <a-space>
-          <a v-if="record.status === '成功'" @click="onPay(record)">支付</a>
+          <a v-if="record.status === '成功' || record.status === '候补待支付'" @click="onPay(record)">支付</a>
           <a v-if="record.status === '已支付'" style="color: orange" @click="onRefund(record)">退票</a>
           <a v-if="record.status === '已支付'" style="color: green" @click="onChange(record)">改签</a>
         </a-space>

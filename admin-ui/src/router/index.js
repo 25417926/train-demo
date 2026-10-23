@@ -53,6 +53,7 @@ const routes = [
                     { path: 'payment', component: () => import('@/views/businessView/payment.vue') },
                     { path: 'refund', component: () => import('@/views/businessView/refund.vue') },
                     { path: 'change-record', component: () => import('@/views/businessView/change-record.vue') },
+                    { path: 'waitlist', component: () => import('@/views/businessView/waitlist.vue') },
                 ],
             },
 

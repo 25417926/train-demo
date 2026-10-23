@@ -191,6 +191,44 @@ public class WaitlistService {
         return pageResp;
     }
 
+    /**
+     * I17 后台候补列表：按日期/车次/区间/席别/状态筛选，分页返回。
+     */
+    public PageResp<WaitlistResp> queryAdmin(PageReq pageReq, Date date, String trainCode,
+                                             String start, String end, String seatType, String status) {
+        PageHelper.startPage(pageReq.getPage(), pageReq.getSize());
+        List<Waitlist_Application> list = waitlistMapper.selectByQuery(date,
+                trimToNull(trainCode), trimToNull(start), trimToNull(end),
+                trimToNull(seatType), trimToNull(status));
+        return toPageResp(list);
+    }
+
+    /**
+     * I17 后台人工取消：不校验操作人，仅允许取消排队中（W）的申请，复用会员取消逻辑。
+     */
+    public WaitlistApplyResp cancelByAdmin(Long applicationId) {
+        if (applicationId == null) {
+            throw new ExceptionConsole(ExceptionEnum.PARAM_NOT_VALID);
+        }
+        Waitlist_Application application = waitlistMapper.selectById(applicationId);
+        if (application == null) {
+            throw new ExceptionConsole(ExceptionEnum.WAITLIST_NOT_EXIST);
+        }
+        return cancel(applicationId, application.getMemberId());
+    }
+
+    private PageResp<WaitlistResp> toPageResp(List<Waitlist_Application> list) {
+        PageInfo<Waitlist_Application> pageInfo = new PageInfo<>(list);
+        PageResp<WaitlistResp> pageResp = new PageResp<>();
+        pageResp.setTotal(pageInfo.getTotal());
+        pageResp.setList(list.stream().map(WaitlistResp::of).collect(Collectors.toList()));
+        return pageResp;
+    }
+
+    private String trimToNull(String value) {
+        return StrUtil.isBlank(value) ? null : value.trim();
+    }
+
     private Waitlist_Application buildApplication(String requestId, Long memberId, WaitlistApplyReq req,
                                                   String passengerName, String dateText, String seatType,
                                                   String activeKey) {

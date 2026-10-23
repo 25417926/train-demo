@@ -186,6 +186,31 @@ class WaitlistServiceTest {
         verify(waitlistMapper, never()).insert(any(Waitlist_Application.class));
     }
 
+    @Test
+    void adminCancelWaitingApplicationDequeues() {
+        Waitlist_Application waiting = existingApplication();
+        when(waitlistMapper.selectById(7001L)).thenReturn(waiting);
+        when(waitlistMapper.cancel(eq(7001L), eq(MEMBER_ID), any(Date.class))).thenReturn(1);
+        redis.opsForZSet().add(queueKey(), "7001", 5);
+        redis.opsForValue().set(countKey(), "1");
+
+        WaitlistApplyResp resp = waitlistService.cancelByAdmin(7001L);
+
+        assertEquals("C", resp.getStatus());
+        assertEquals(0L, redis.opsForZSet().zCard(queueKey()));
+        assertEquals("0", redis.opsForValue().get(countKey()));
+    }
+
+    @Test
+    void adminCancelRejectsAlreadyMatchedApplication() {
+        Waitlist_Application matched = existingApplication();
+        matched.setStatus("D");
+        when(waitlistMapper.selectById(7001L)).thenReturn(matched);
+
+        assertThrows(ExceptionConsole.class, () -> waitlistService.cancelByAdmin(7001L));
+        verify(waitlistMapper, never()).cancel(anyLong(), anyLong(), any(Date.class));
+    }
+
     private WaitlistApplyReq request() {
         WaitlistApplyReq req = new WaitlistApplyReq();
         req.setDate(date());

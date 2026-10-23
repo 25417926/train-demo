@@ -41,6 +41,7 @@
             <a-menu-item key="/business/payment"><router-link to="/business/payment">支付记录</router-link></a-menu-item>
             <a-menu-item key="/business/refund"><router-link to="/business/refund">退款记录</router-link></a-menu-item>
             <a-menu-item key="/business/change-record"><router-link to="/business/change-record">退改签记录</router-link></a-menu-item>
+            <a-menu-item key="/business/waitlist"><router-link to="/business/waitlist">候补列表</router-link></a-menu-item>
           </a-sub-menu>
 
           <a-sub-menu key="batch">

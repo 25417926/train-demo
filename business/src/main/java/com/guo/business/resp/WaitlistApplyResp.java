@@ -1,5 +1,7 @@
 package com.guo.business.resp;
 
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import com.fasterxml.jackson.databind.ser.std.ToStringSerializer;
 import com.guo.business.TypeEnum.WaitlistStatusEnum;
 import com.guo.business.domain.Waitlist_Application;
 import lombok.Getter;
@@ -12,6 +14,7 @@ import lombok.Setter;
 @Setter
 public class WaitlistApplyResp {
 
+    @JsonSerialize(using = ToStringSerializer.class)
     private Long applicationId;
 
     private Long seqNo;

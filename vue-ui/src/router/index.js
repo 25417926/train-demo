@@ -60,6 +60,13 @@ const routes = [
           requireAuth:true
         },
 
+      },
+      {
+        path: 'my-waitlist',
+        component: () => import('@/views/HomeView/my-waitlist.vue'),
+        meta: {
+          requireAuth: true
+        },
       }
     ]
   },

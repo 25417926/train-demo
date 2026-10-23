@@ -1,5 +1,6 @@
 package com.guo.business.req;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -14,6 +15,7 @@ import java.util.Date;
 @Setter
 public class WaitlistApplyReq {
 
+    @JsonFormat(pattern = "yyyy-MM-dd", timezone = "GMT+8")
     @NotNull(message = "乘车日期不能为空")
     private Date date;
 
