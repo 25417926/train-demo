@@ -68,7 +68,7 @@ public class TicketCreateConsumeService {
         try {
             process(body, orderId);
             stringRedisTemplate.delete(ATTEMPT_PREFIX + key);
-            LOG.info("TICKET_CREATE 消费成功 orderId={}", key);
+            LOG.debug("TICKET_CREATE 消费成功 orderId={}", key);
         } catch (Exception e) {
             stringRedisTemplate.delete(dedupKey);
             int attempts = nextAttempt(key);

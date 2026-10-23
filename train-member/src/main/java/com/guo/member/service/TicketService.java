@@ -49,7 +49,7 @@ public class TicketService {
             ticketReq.setOrderId(req.getOrderId());
             inserted += saveQuietly(ticketReq, now);
         }
-        LOG.info("订单[{}]出票完成：新增 {} 张，已存在 {} 张",
+        LOG.debug("订单[{}]出票完成：新增 {} 张，已存在 {} 张",
                 req.getOrderId(), inserted, req.getTickets().size() - inserted);
         return inserted;
     }

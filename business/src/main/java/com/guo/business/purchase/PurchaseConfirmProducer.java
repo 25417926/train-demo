@@ -1,5 +1,6 @@
 package com.guo.business.purchase;
 
+import com.guo.business.observability.TraceContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.cloud.stream.function.StreamBridge;
@@ -38,6 +39,8 @@ public class PurchaseConfirmProducer {
                 .withPayload(context.toMessageJson())
                 .setHeader(HEADER_TRANSACTIONAL_ARGS, args)
                 .setHeader("KEYS", String.valueOf(context.getOrderId()))
+                .setHeader(TraceContext.MQ_TRACE_HEADER, TraceContext.traceIdOrNew())
+                .setHeader(TraceContext.MQ_REQUEST_HEADER, context.getRequestId())
                 .build();
         try {
             boolean sent = streamBridge.send(OUTPUT_BINDING, message);
@@ -45,7 +48,7 @@ public class PurchaseConfirmProducer {
             Exception failure = args.get(PurchaseAcceptContext.ARG_FAILURE) instanceof Exception
                     ? (Exception) args.get(PurchaseAcceptContext.ARG_FAILURE)
                     : null;
-            LOG.info("受理事务消息发送 requestId={} orderId={} sent={} persisted={}",
+            LOG.debug("受理事务消息发送 requestId={} orderId={} sent={} persisted={}",
                     context.getRequestId(), context.getOrderId(), sent, persisted);
             return new PurchaseSendResult(sent, persisted, failure);
         } catch (Exception e) {

@@ -137,7 +137,7 @@ public class PurchaseTxWriter {
         outbox.setUpdateTime(now);
         purchaseAcceptMapper.insertOutbox(outbox);
 
-        LOG.info("受理本地事务提交 requestId={} orderId={} passengers={}",
+        LOG.debug("受理本地事务提交 requestId={} orderId={} passengers={}",
                 ctx.getRequestId(), ctx.getOrderId(), ctx.getPassengerIds().size());
     }
 

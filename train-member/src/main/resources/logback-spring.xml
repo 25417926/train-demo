@@ -41,15 +41,32 @@
         </filter>
     </appender>
 
+    <!-- I21 高并发出票：控制台输出改为异步，避免输出锁竞争 -->
+    <appender name="ASYNC_STDOUT" class="ch.qos.logback.classic.AsyncAppender">
+        <appender-ref ref="STDOUT" />
+        <queueSize>8192</queueSize>
+        <discardingThreshold>0</discardingThreshold>
+        <neverBlock>true</neverBlock>
+    </appender>
+
+    <!-- I21：TRACE_FILE 覆盖所有级别，异步化避免消费线程同步写文件 -->
+    <appender name="ASYNC_TRACE" class="ch.qos.logback.classic.AsyncAppender">
+        <appender-ref ref="TRACE_FILE" />
+        <queueSize>16384</queueSize>
+        <discardingThreshold>0</discardingThreshold>
+        <neverBlock>true</neverBlock>
+        <includeCallerData>false</includeCallerData>
+    </appender>
+
     <root level="ERROR">
         <appender-ref ref="ERROR_FILE" />
     </root>
 
     <root level="TRACE">
-        <appender-ref ref="TRACE_FILE" />
+        <appender-ref ref="ASYNC_TRACE" />
     </root>
 
     <root level="INFO">
-        <appender-ref ref="STDOUT" />
+        <appender-ref ref="ASYNC_STDOUT" />
     </root>
 </configuration>

@@ -26,6 +26,11 @@
             <groupId>org.springframework.cloud</groupId>
             <artifactId>spring-cloud-starter-openfeign</artifactId>
         </dependency>
+        <!-- I21 出票回写使用池化 HTTP 连接，避免高并发下频繁建连 -->
+        <dependency>
+            <groupId>io.github.openfeign</groupId>
+            <artifactId>feign-httpclient</artifactId>
+        </dependency>
         <!-- openfeign默认使用的是loadBalance的负载均衡器-->
         <dependency>
             <groupId>org.springframework.cloud</groupId>

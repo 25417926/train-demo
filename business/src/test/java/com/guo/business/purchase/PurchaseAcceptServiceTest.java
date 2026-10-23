@@ -79,7 +79,8 @@ class PurchaseAcceptServiceTest {
                 .thenReturn(dailyTrainTicket);
 
         acceptService = new PurchaseAcceptService(inventoryService, ticketService, txWriter, producer,
-                new com.guo.business.service.OrderCloseQueue(redis), redis);
+                new com.guo.business.service.OrderCloseQueue(redis), redis,
+                new com.guo.business.metrics.PurchaseAcceptMetrics(new io.micrometer.core.instrument.simple.SimpleMeterRegistry()));
 
         cleanUp();
         Map<String, String> ticket = new HashMap<>();

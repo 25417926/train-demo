@@ -4,7 +4,8 @@ spring:
     port: 6379
     lettuce:
       pool:
-        max-active: 8  # 连接池最大连接数
+        # I21 单机出票扩容：消费并发提升后需同步扩容连接池
+        max-active: 32  # 连接池最大连接数
         max-wait: -1ms  # 最大阻塞等待时间，-1表示无限制
-        max-idle: 8  # 最大空闲连接数
-        min-idle: 0  # 最小空闲连接数
+        max-idle: 16  # 最大空闲连接数
+        min-idle: 8  # 最小空闲连接数

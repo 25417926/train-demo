@@ -150,7 +150,25 @@ public class Sk_TokenService {
  * @return 如果成功获取令牌则返回true，否则返回false
  */
 public boolean validToken(Date date, String trainCode, Long memberId) {
-    LOG.info("获取令牌开始");
+    LOG.debug("获取令牌开始");
+    // 快路径：缓存中还有令牌时直接 DECR，不抢锁、也不先 GET。
+    // 原实现每个请求都要抢 Redisson 锁（lockKey 含 memberId，同一会员的请求被完全串行化），
+    // 96 并发实测受理 p50 被锁排队拉到 180ms；令牌大闸只做削峰、不作为正确性依据，可容忍极小超发。
+    String countKey = LockKeyPreEnum.SK_TOKEN_COUNT.getCode() + date + "-" + trainCode;
+    Long left = redisTemplate.opsForValue().decrement(countKey, 1);
+    if (left != null && left >= 0) {
+        if (left % 100 == 0) {
+            // 低频刷新过期时间与库内令牌数（1:1 抵扣），避免每个请求一次 EXPIRE / UPDATE
+            redisTemplate.expire(countKey, 100, TimeUnit.MINUTES);
+            CUST_Sk_TokenMapper.decrease(date, trainCode, 100);
+        }
+        return true;
+    }
+    // 缓存缺失或已耗尽：归还刚多扣的这一次，交给慢路径从库里补令牌
+    if (left != null) {
+        redisTemplate.opsForValue().increment(countKey, 1);
+        redisTemplate.expire(countKey, 60, TimeUnit.SECONDS);
+    }
     // 构造锁的键值，用于在Redis中唯一标识此次令牌请求
     String lockKey = LockKeyPreEnum.SK_TOKEN_LOCK.getCode() + date + "-" + trainCode + "-" + memberId;
     RLock lock = null;
@@ -176,7 +194,7 @@ public boolean validToken(Date date, String trainCode, Long memberId) {
             LOG.debug("缓存内有RedisTokenCount:{}", RedisTokenCount);
             // 检查令牌数量是否大于0
             if (Integer.parseInt(RedisTokenCount.toString()) > 0) {
-                LOG.info("RedisTokenCount:{}", RedisTokenCount);
+                LOG.debug("RedisTokenCount:{}", RedisTokenCount);
                 // 减少令牌计数，并更新其过期时间
                 Long decrement = redisTemplate.opsForValue().decrement(SkTokenCountKey, 1);
                 redisTemplate.expire(SkTokenCountKey, 100, TimeUnit.MINUTES);
@@ -184,7 +202,7 @@ public boolean validToken(Date date, String trainCode, Long memberId) {
                     LOG.error("获取令牌失败{}", SkTokenCountKey);
                     return false;
                 } else {
-                    LOG.info("获取令牌成功{},令牌剩余{}", SkTokenCountKey, decrement);
+                    LOG.debug("获取令牌成功{},令牌剩余{}", SkTokenCountKey, decrement);
                     // 当令牌剩余数量是5的倍数时，调用减少令牌大闸的数量
                     if (decrement % 5 == 0) {
                         CUST_Sk_TokenMapper.decrease(date, trainCode, 5);

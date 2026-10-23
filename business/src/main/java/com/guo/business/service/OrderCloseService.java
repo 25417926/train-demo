@@ -17,9 +17,12 @@ import com.guo.business.inventory.ReleaseResult;
 import com.guo.business.mapper.Confirm_OrderMapper;
 import com.guo.business.mapper.InventoryHoldMapper;
 import com.guo.business.mapper.OrderCloseMapper;
+import com.guo.business.observability.TraceContext;
 import com.guo.business.purchase.model.OrderOutboxRecord;
 import com.guo.business.purchase.model.SeatRecord;
 import com.guo.business.req.Confirm_OrderTicketReq;
+import com.guo.business.waitlist.WaitlistMatchEvent;
+import com.guo.business.waitlist.WaitlistMatchProducer;
 import com.guo.common.exception.ExceptionConsole;
 import com.guo.common.exception.ExceptionEnum;
 import com.guo.common.util.SnowUtil;
@@ -71,6 +74,7 @@ public class OrderCloseService {
     private final Daily_Train_TicketService dailyTrainTicketService;
     private final MemberFeign memberFeign;
     private final OrderCloseQueue orderCloseQueue;
+    private final WaitlistMatchProducer waitlistMatchProducer;
     private final StringRedisTemplate redis;
     private final TransactionTemplate transactionTemplate;
 
@@ -81,6 +85,7 @@ public class OrderCloseService {
                              Daily_Train_TicketService dailyTrainTicketService,
                              MemberFeign memberFeign,
                              OrderCloseQueue orderCloseQueue,
+                             WaitlistMatchProducer waitlistMatchProducer,
                              StringRedisTemplate redis,
                              PlatformTransactionManager transactionManager) {
         this.confirmOrderMapper = confirmOrderMapper;
@@ -90,6 +95,7 @@ public class OrderCloseService {
         this.dailyTrainTicketService = dailyTrainTicketService;
         this.memberFeign = memberFeign;
         this.orderCloseQueue = orderCloseQueue;
+        this.waitlistMatchProducer = waitlistMatchProducer;
         this.redis = redis;
         this.transactionTemplate = new TransactionTemplate(transactionManager);
     }
@@ -109,19 +115,25 @@ public class OrderCloseService {
             throw new IllegalArgumentException("关单参数不完整");
         }
 
-        CloseContext context = transactionTemplate.execute(status -> doClose(orderId, reason));
-        if (context == null) {
-            orderCloseQueue.cancel(orderId);
-            LOG.info("订单已关闭或不存在，重复关闭无副作用 orderId={} reason={}", orderId, reason.name());
-            return OrderCloseResult.alreadyClosed(orderId, reason);
-        }
+        // I18：定时关单线程没有 HTTP 上下文，补一个 traceId 让释放链路日志可串联
+        try (TraceContext.Scope ignored = TraceContext.openIfAbsent()) {
+            CloseContext context = transactionTemplate.execute(status -> doClose(orderId, reason));
+            if (context == null) {
+                orderCloseQueue.cancel(orderId);
+                LOG.info("订单已关闭或不存在，重复关闭无副作用 orderId={} reason={}", orderId, reason.name());
+                return OrderCloseResult.alreadyClosed(orderId, reason);
+            }
 
-        boolean redisReleased = releaseQuietly(context);
-        deleteTicketsQuietly(context);
-        orderCloseQueue.cancel(orderId);
-        LOG.info("订单关闭完成 orderId={} reason={} seats={} redisReleased={} status={}",
-                orderId, reason.name(), context.getSeatCount(), redisReleased, context.getToStatus());
-        return OrderCloseResult.closed(orderId, reason, context.getReleasedSeats(), redisReleased);
+            // 释放阶段带上原受理 requestId，便于按 requestId 串联“受理 → 消息 → 消费 → 释放”
+            try (TraceContext.Scope orderScope = TraceContext.withRequestId(context.getOrder().getRequestId())) {
+                boolean redisReleased = releaseQuietly(context);
+                deleteTicketsQuietly(context);
+                orderCloseQueue.cancel(orderId);
+                LOG.info("订单关闭完成 orderId={} reason={} seats={} redisReleased={} status={}",
+                        orderId, reason.name(), context.getSeatCount(), redisReleased, context.getToStatus());
+                return OrderCloseResult.closed(orderId, reason, context.getReleasedSeats(), redisReleased);
+            }
+        }
     }
 
     /**
@@ -137,8 +149,10 @@ public class OrderCloseService {
      * 事务提交后执行 Lua 释放与会员车票删除。
      */
     public void releaseAfterCommit(CloseContext context) {
-        releaseQuietly(context);
-        deleteTicketsQuietly(context);
+        try (TraceContext.Scope ignored = TraceContext.withRequestId(context.getOrder().getRequestId())) {
+            releaseQuietly(context);
+            deleteTicketsQuietly(context);
+        }
     }
 
     /**
@@ -373,14 +387,38 @@ public class OrderCloseService {
         try {
             ReleaseResult result = inventoryService.release(command);
             context.setReleasedSeats(result.getReleasedSeats());
-            return result.getCode() == InventoryResultCode.OK
+            boolean success = result.getCode() == InventoryResultCode.OK
                     || result.getCode() == InventoryResultCode.ALREADY;
+            if (success && result.getReleasedSeats() > 0) {
+                publishWaitlistMatch(context, command, result.getReleasedSeats());
+            }
+            return success;
         } catch (Exception e) {
             LOG.error("关单 Redis 释放失败，等待对账兜底 orderId={} releaseKey={}",
                     context.getOrder().getId(), command.getReleaseKey(), e);
             markReleaseFailed(command.getReleaseKey());
             return false;
         }
+    }
+
+    /**
+     * I16：真实归还库存后发布 INVENTORY_RELEASED 事件，触发同票档候补补位。
+     *
+     * <p>eventId 与 outbox 审计记录一致，供消费端 {@code wl:evt} 幂等去重。</p>
+     */
+    private void publishWaitlistMatch(CloseContext context, ReleaseCommand command, int releasedSeats) {
+        Confirm_Order order = context.getOrder();
+        WaitlistMatchEvent event = new WaitlistMatchEvent();
+        event.setEventId(EVENT_TYPE_RELEASED + ":" + order.getId() + ":" + context.getReason().getCode());
+        event.setOrderId(order.getId());
+        event.setReason(context.getReason().getCode());
+        event.setDate(InventoryKey.formatDate(order.getDate()));
+        event.setTrainCode(order.getTrainCode());
+        event.setStart(order.getStart());
+        event.setEnd(order.getEnd());
+        event.setSeatType(command.getSeatType());
+        event.setReleasedSeats(releasedSeats);
+        waitlistMatchProducer.publish(event);
     }
 
     private void markReleaseFailed(String releaseKey) {
@@ -418,26 +456,11 @@ public class OrderCloseService {
                     holdPassengerIds, holdSeatIds);
         }
 
-        // 凭据已过期：按 Redis 座位占用反查属于本订单的座位
-        List<String> scannedSeatIds = scanSeatIds(order);
-        if (scannedSeatIds.isEmpty()) {
-            return null;
-        }
-        List<String> passengerIds = passengerIdsFromTickets(context.getTickets());
-        if (passengerIds.isEmpty()) {
-            LOG.warn("订单无乘客信息，跳过 Redis 释放 orderId={}", order.getId());
-            return null;
-        }
-        Daily_Train_Ticket ticket = dailyTrainTicketService.selectByUnique(
-                order.getDate(), order.getTrainCode(), order.getStart(), order.getEnd());
-        if (ticket == null || ticket.getStartIndex() == null || ticket.getEndIndex() == null) {
-            LOG.warn("订单余票行缺失，跳过 Redis 释放 orderId={}", order.getId());
-            return null;
-        }
-        String seatType = context.getTickets().isEmpty()
-                ? null : context.getTickets().get(0).getSeatTypeCode();
-        return command(releaseKey, order.getId(), order.getDate(), order.getTrainCode(), seatType,
-                ticket.getStartIndex(), ticket.getEndIndex(), passengerIds, scannedSeatIds);
+        // DB hold 与 Redis 凭据都不存在：座位账本已丢失，跳过 Redis 座位释放。
+        // 原实现用 KEYS + 全量 HGETALL 反查座位，单次关单要扫 2 万+ 座位 key（slowlog 实测 88ms/次），
+        // Redis 单线程会被打满，进而拖垮受理链路；残留座位 hash 交给库存对账按“期望无占用”清理。
+        LOG.warn("订单无 hold 账本与凭据，跳过 Redis 座位释放 orderId={}", order.getId());
+        return null;
     }
 
     private ReleaseCommand command(String releaseKey, Long orderId, Date date, String trainCode,
@@ -479,29 +502,6 @@ public class OrderCloseService {
             LOG.warn("读取 hold 凭据失败 orderId={}", orderId, e);
             return Collections.emptyMap();
         }
-    }
-
-    /**
-     * 扫描座位 hash，找出 seg 值等于本订单号的座位。
-     */
-    private List<String> scanSeatIds(Confirm_Order order) {
-        List<String> seatIds = new ArrayList<>();
-        String prefix = InventoryKey.seatPrefix(InventoryKey.formatDate(order.getDate()), order.getTrainCode());
-        try {
-            Set<String> keys = redis.keys(prefix + "*");
-            if (keys == null) {
-                return seatIds;
-            }
-            for (String key : keys) {
-                Map<Object, Object> entries = redis.opsForHash().entries(key);
-                if (entries.containsValue(String.valueOf(order.getId()))) {
-                    seatIds.add(key.substring(prefix.length()));
-                }
-            }
-        } catch (Exception e) {
-            LOG.warn("扫描 Redis 座位占用失败 orderId={}", order.getId(), e);
-        }
-        return seatIds;
     }
 
     private List<String> passengerIds(List<InventoryHold> holds) {

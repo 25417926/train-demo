@@ -53,6 +53,17 @@ public class InventoryReconcileService {
 
     private static final int SCAN_BATCH = 500;
 
+    /**
+     * 孤儿 key 清理（SCAN 全库）间隔。SCAN 带 MATCH 仍会遍历整个 keyspace，
+     * 百万级 key 时单次 SCAN 调用阻塞 Redis 10~16ms；每分钟跑 3 个 pattern 会持续
+     * 拉高所有受理请求的 p99，因此把全库清扫降为 10 分钟一次，分钟级只做已知 key 的比对。
+     */
+    private static final long SWEEP_INTERVAL_MS = 10 * 60 * 1000L;
+
+    /** 本轮是否做全库 SCAN 清扫（由 reconcileDate 按间隔决定） */
+    private boolean sweepThisPass = true;
+    private long lastSweepAt = 0L;
+
     private static final String FIELD_YDZ = "ydz";
     private static final String FIELD_EDZ = "edz";
     private static final String FIELD_RW = "rw";
@@ -64,6 +75,7 @@ public class InventoryReconcileService {
     private final Daily_Train_SeatMapper dailyTrainSeatMapper;
     private final InventoryHoldMapper inventoryHoldMapper;
     private final StringRedisTemplate redis;
+    private final TicketDeltaLedger ticketDeltaLedger;
 
     /** redis_inventory_drift{scope} 的当前值 */
     private final AtomicLong ticketDriftMetric = new AtomicLong();
@@ -75,11 +87,13 @@ public class InventoryReconcileService {
                                      Daily_Train_SeatMapper dailyTrainSeatMapper,
                                      InventoryHoldMapper inventoryHoldMapper,
                                      StringRedisTemplate redis,
+                                     TicketDeltaLedger ticketDeltaLedger,
                                      MeterRegistry meterRegistry) {
         this.dailyTrainTicketMapper = dailyTrainTicketMapper;
         this.dailyTrainSeatMapper = dailyTrainSeatMapper;
         this.inventoryHoldMapper = inventoryHoldMapper;
         this.redis = redis;
+        this.ticketDeltaLedger = ticketDeltaLedger;
         Gauge.builder("redis_inventory_drift", ticketDriftMetric, AtomicLong::doubleValue)
                 .tag("scope", "ticket").register(meterRegistry);
         Gauge.builder("redis_inventory_drift", seatDriftMetric, AtomicLong::doubleValue)
@@ -97,11 +111,18 @@ public class InventoryReconcileService {
         String dateText = InventoryKey.formatDate(date);
         List<String> trainCodes = dailyTrainTicketMapper.selectTrainCodesByDate(date);
 
+        // 全库清扫按 10 分钟一次的节奏做，分钟级对账不做 SCAN
+        long now = System.currentTimeMillis();
+        boolean sweep = now - lastSweepAt >= SWEEP_INTERVAL_MS;
+        if (sweep) {
+            lastSweepAt = now;
+        }
+
         InventoryReconcileReport total = new InventoryReconcileReport();
         total.setDate(dateText);
         total.setTrainCode("ALL");
         for (String trainCode : trainCodes) {
-            total.add(reconcileTrain(date, trainCode));
+            total.add(reconcileTrain(date, trainCode, sweep));
         }
         total.setElapsedMs((System.nanoTime() - begin) / 1_000_000L);
 
@@ -116,8 +137,13 @@ public class InventoryReconcileService {
      * 单车次对账：ticket / seat 差异回写 Redis，seat_ledger 差异只记录。
      */
     public InventoryReconcileReport reconcileTrain(Date date, String trainCode) {
+        return reconcileTrain(date, trainCode, true);
+    }
+
+    private InventoryReconcileReport reconcileTrain(Date date, String trainCode, boolean sweep) {
         long begin = System.nanoTime();
         String dateText = InventoryKey.formatDate(date);
+        sweepThisPass = sweep;
 
         List<Daily_Train_Ticket> tickets = selectTickets(date, trainCode);
         List<Daily_Train_Seat> seats = selectSeats(date, trainCode);
@@ -157,6 +183,13 @@ public class InventoryReconcileService {
             dbKeys.add(key);
 
             Map<String, String> expected = ticketFields(ticket);
+            // 出票扣减走内存写合并，尚未落库时库值偏高；此时以库为准回写会把 Redis 余票改回旧值（超卖），
+            // 因此该行有在途扣减时跳过，等 flush 完成后的下一轮对账再比对
+            if (hasPendingDelta(ticket.getId(), expected.keySet())) {
+                LOG.debug("对账跳过在途扣减 date={} trainCode={} range=[{}, {}) ticketId={}",
+                        dateText, trainCode, ticket.getStartIndex(), ticket.getEndIndex(), ticket.getId());
+                continue;
+            }
             Map<Object, Object> actual = redis.opsForHash().entries(key);
             for (Map.Entry<String, String> entry : expected.entrySet()) {
                 String actualValue = actual.get(entry.getKey()) == null
@@ -361,6 +394,18 @@ public class InventoryReconcileService {
         return seatIds;
     }
 
+    /**
+     * 该余票行是否存在尚未落库的出票扣减。
+     */
+    private boolean hasPendingDelta(Long ticketId, Set<String> fields) {
+        for (String field : fields) {
+            if (ticketDeltaLedger.pending(ticketId, field) > 0) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     private Map<String, String> ticketFields(Daily_Train_Ticket ticket) {
         Map<String, String> fields = new LinkedHashMap<>();
         if (ticket.getYdz() != null) {
@@ -415,6 +460,10 @@ public class InventoryReconcileService {
     }
 
     private Set<String> scanKeys(String pattern) {
+        if (!sweepThisPass) {
+            // 分钟级对账不做全库 SCAN，孤儿 key 交给 10 分钟一次的清扫
+            return Collections.emptySet();
+        }
         Set<String> keys = new LinkedHashSet<>();
         ScanOptions options = ScanOptions.scanOptions().match(pattern).count(SCAN_BATCH).build();
         Cursor<byte[]> cursor = redis.executeWithStickyConnection(

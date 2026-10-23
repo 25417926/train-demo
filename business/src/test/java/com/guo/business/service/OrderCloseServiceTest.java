@@ -14,6 +14,7 @@ import com.guo.business.mapper.InventoryHoldMapper;
 import com.guo.business.mapper.OrderCloseMapper;
 import com.guo.business.purchase.model.SeatRecord;
 import com.guo.business.req.Confirm_OrderTicketReq;
+import com.guo.business.waitlist.WaitlistMatchProducer;
 import com.guo.common.exception.ExceptionConsole;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -60,6 +61,7 @@ class OrderCloseServiceTest {
     private Daily_Train_TicketService dailyTrainTicketService;
     private MemberFeign memberFeign;
     private OrderCloseQueue orderCloseQueue;
+    private WaitlistMatchProducer waitlistMatchProducer;
     private StringRedisTemplate redis;
     private HashOperations<String, Object, Object> hashOps;
     private OrderCloseService service;
@@ -73,6 +75,7 @@ class OrderCloseServiceTest {
         dailyTrainTicketService = mock(Daily_Train_TicketService.class);
         memberFeign = mock(MemberFeign.class);
         orderCloseQueue = mock(OrderCloseQueue.class);
+        waitlistMatchProducer = mock(WaitlistMatchProducer.class);
         redis = mock(StringRedisTemplate.class);
         hashOps = mock(HashOperations.class);
         when(redis.opsForHash()).thenReturn(hashOps);
@@ -82,7 +85,8 @@ class OrderCloseServiceTest {
                 .thenReturn(new SimpleTransactionStatus());
 
         service = new OrderCloseService(confirmOrderMapper, orderCloseMapper, inventoryHoldMapper,
-                inventoryService, dailyTrainTicketService, memberFeign, orderCloseQueue, redis, txManager);
+                inventoryService, dailyTrainTicketService, memberFeign, orderCloseQueue,
+                waitlistMatchProducer, redis, txManager);
     }
 
     @Test
@@ -116,6 +120,7 @@ class OrderCloseServiceTest {
         verify(orderCloseMapper, times(1)).increaseTicket(TICKET_ID, "ydz", 1);
         verify(orderCloseMapper, times(1)).casSeatSell(SEAT_ID, "000", 0);
         verify(inventoryService, times(1)).release(any(ReleaseCommand.class));
+        verify(waitlistMatchProducer, times(1)).publish(any());
         verify(memberFeign, times(1)).deleteTicketsByOrder(ORDER_ID);
         verify(orderCloseMapper, times(1)).markOutboxSent("TICKET_DELETE:" + ORDER_ID);
 

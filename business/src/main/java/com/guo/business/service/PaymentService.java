@@ -72,9 +72,11 @@ public class PaymentService {
         if (!order.getMemberId().equals(memberId)) {
             throw new ExceptionConsole(ExceptionEnum.ORDER_MEMBER_ERROR);
         }
-        // 仅"锁座成功、待支付"的订单可支付；出票在支付成功后异步完成
-        if (!ConfirmOrderStatusEnum.SUCCESS.getCode().equals(order.getStatus())) {
-            if (ConfirmOrderStatusEnum.PAID.getCode().equals(order.getStatus())) {
+        // 锁座成功（S）与候补补位（H）两类待支付订单均可支付；出票在支付成功后异步完成
+        String fromStatus = order.getStatus();
+        if (!ConfirmOrderStatusEnum.SUCCESS.getCode().equals(fromStatus)
+                && !ConfirmOrderStatusEnum.WAITLIST_PAY.getCode().equals(fromStatus)) {
+            if (ConfirmOrderStatusEnum.PAID.getCode().equals(fromStatus)) {
                 throw new ExceptionConsole(ExceptionEnum.PAYMENT_ALREADY_DONE);
             }
             throw new ExceptionConsole(ExceptionEnum.ORDER_STATUS_ERROR);
@@ -109,7 +111,7 @@ public class PaymentService {
 
         // 推进订单状态到 PAID：CAS 防止并发下订单已被超时关闭后仍支付成功
         if (confirm_OrderMapper.updateStatusCas(order.getId(),
-                ConfirmOrderStatusEnum.SUCCESS.getCode(), ConfirmOrderStatusEnum.PAID.getCode(), now) != 1) {
+                fromStatus, ConfirmOrderStatusEnum.PAID.getCode(), now) != 1) {
             LOG.warn("订单【{}】支付时状态已变更（可能已超时关闭），支付回滚", order.getId());
             throw new ExceptionConsole(ExceptionEnum.ORDER_STATUS_ERROR);
         }

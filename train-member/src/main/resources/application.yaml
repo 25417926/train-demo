@@ -1,5 +1,14 @@
 # I10 TICKET_CREATE 消费（其余配置在 Nacos member-dev.properties）
+# 本地未启用 Nacos 配置时仍需加载 XML 映射（TicketMapper.insertIgnore 等）
+mybatis:
+  mapper-locations: classpath:mapper/**/*.xml
 spring:
+  datasource:
+    hikari:
+      # I21 单机出票扩容：消费并发 16，连接池需高于并发数
+      maximum-pool-size: 32
+      minimum-idle: 8
+      connection-timeout: 3000
   cloud:
     stream:
       function:
@@ -9,7 +18,8 @@ spring:
           destination: ticket-create
           group: member-ticket-create
           consumer:
-            concurrency: 2
+            # I21 单机出票扩容：与 ticket-create 主题队列数（16）对齐
+            concurrency: 16
             # 重投由消费端计数控制，关闭进程内重试，避免次数被放大
             maxAttempts: 1
       rocketmq:
@@ -21,3 +31,13 @@ spring:
               push:
                 maxReconsumeTimes: 5
                 delayLevelWhenNextConsume: 1
+# I21 出票回写 business 的 Feign 连接池（默认 HttpURLConnection 无池化）
+feign:
+  httpclient:
+    max-connections: 200
+    max-connections-per-route: 100
+  client:
+    config:
+      default:
+        connectTimeout: 2000
+        readTimeout: 3000

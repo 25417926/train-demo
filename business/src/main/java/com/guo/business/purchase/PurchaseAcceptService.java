@@ -11,6 +11,8 @@ import com.guo.business.inventory.InventoryService;
 import com.guo.business.inventory.ReleaseCommand;
 import com.guo.business.inventory.ReserveCommand;
 import com.guo.business.inventory.ReserveResult;
+import com.guo.business.metrics.PurchaseAcceptMetrics;
+import com.guo.business.observability.TraceContext;
 import com.guo.business.req.Confirm_OrderTicketReq;
 import com.guo.business.service.Daily_Train_TicketService;
 import com.guo.business.service.OrderCloseQueue;
@@ -51,23 +53,42 @@ public class PurchaseAcceptService {
     private final PurchaseConfirmProducer purchaseConfirmProducer;
     private final OrderCloseQueue orderCloseQueue;
     private final StringRedisTemplate redis;
+    private final PurchaseAcceptMetrics metrics;
 
     public PurchaseAcceptService(InventoryService inventoryService,
                                  Daily_Train_TicketService dailyTrainTicketService,
                                  PurchaseTxWriter purchaseTxWriter,
                                  PurchaseConfirmProducer purchaseConfirmProducer,
                                  OrderCloseQueue orderCloseQueue,
-                                 StringRedisTemplate redis) {
+                                 StringRedisTemplate redis,
+                                 PurchaseAcceptMetrics metrics) {
         this.inventoryService = inventoryService;
         this.dailyTrainTicketService = dailyTrainTicketService;
         this.purchaseTxWriter = purchaseTxWriter;
         this.purchaseConfirmProducer = purchaseConfirmProducer;
         this.orderCloseQueue = orderCloseQueue;
         this.redis = redis;
+        this.metrics = metrics;
     }
 
     public PurchaseApplyResp accept(PurchaseApplyReq req, Long memberId, String idempotencyKey) {
-        String requestId = validateIdempotencyKey(idempotencyKey);
+        long begin = System.nanoTime();
+        try {
+            String requestId = validateIdempotencyKey(idempotencyKey);
+            // I18：受理线程绑定 traceId/requestId，事务消息与消费日志沿用同一链路
+            try (TraceContext.Scope ignored = TraceContext.open(TraceContext.currentTraceId(), requestId)) {
+                return doAccept(req, memberId, requestId, begin);
+            }
+        } catch (PurchaseException e) {
+            metrics.recordRejected(e.getErrorCode().name(), begin);
+            throw e;
+        } catch (RuntimeException e) {
+            metrics.recordRejected("UNEXPECTED", begin);
+            throw e;
+        }
+    }
+
+    private PurchaseApplyResp doAccept(PurchaseApplyReq req, Long memberId, String requestId, long begin) {
         if (req == null || memberId == null) {
             throw new PurchaseException(PurchaseErrorCode.PARAM_INVALID, "受理参数不完整");
         }
@@ -79,6 +100,7 @@ public class PurchaseAcceptService {
         PurchaseApplyResp replay = findByRedis(requestId);
         if (replay != null) {
             LOG.info("受理幂等命中 requestId={} orderId={}", requestId, replay.getOrderId());
+            metrics.recordDuplicate(begin);
             return replay;
         }
 
@@ -105,6 +127,7 @@ public class PurchaseAcceptService {
         ReserveResult reserved = inventoryService.reserve(reserveCommand(
                 requestId, orderId, req, seatType, startIndex, endIndex, tickets));
         if (reserved.getCode() == InventoryResultCode.DUPLICATE) {
+            metrics.recordDuplicate(begin);
             return existingOrder(requestId, reserved.getOrderId());
         }
         if (reserved.getCode() == InventoryResultCode.NO_TICKET) {
@@ -129,11 +152,13 @@ public class PurchaseAcceptService {
                 LOG.warn("受理事务消息未确认但本地事务已提交 requestId={} orderId={}",
                         requestId, committedOrderId);
                 scheduleClose(committedOrderId);
+                metrics.recordSuccess(begin);
                 return PurchaseApplyResp.accepted(requestId, committedOrderId);
             }
             throw new PurchaseException(PurchaseErrorCode.ACCEPT_FAILED);
         }
         scheduleClose(orderId);
+        metrics.recordSuccess(begin);
         return PurchaseApplyResp.accepted(requestId, orderId);
     }
 
@@ -277,7 +302,10 @@ public class PurchaseAcceptService {
      */
     private void rollback(PurchaseAcceptContext context) {
         ReleaseCommand release = new ReleaseCommand();
-        release.setReleaseKey("ACCEPT-" + context.getRequestId());
+        // I19 演练暴露：releaseKey 若只按 requestId 生成，同键重试会命中上一次的释放标记，
+        // 导致本次预扣的资格/座位不被释放，后续重试永久返回 DUPLICATE_PURCHASE。
+        // 每次受理的 orderId 唯一，用它区分到具体一次预扣。
+        release.setReleaseKey("ACCEPT-" + context.getRequestId() + "-" + context.getOrderId());
         release.setOrderId(String.valueOf(context.getOrderId()));
         release.setDate(cn.hutool.core.date.DateUtil.parse(context.getDateText()));
         release.setTrainCode(context.getTrainCode());

@@ -10,6 +10,7 @@ import com.guo.business.inventory.ConfirmCommand;
 import com.guo.business.inventory.InventoryKey;
 import com.guo.business.inventory.InventoryService;
 import com.guo.business.inventory.ReleaseCommand;
+import com.guo.business.inventory.TicketDeltaLedger;
 import com.guo.business.mapper.OrderConfirmPersistMapper;
 import com.guo.business.purchase.model.InventoryHoldRecord;
 import com.guo.business.purchase.model.OrderOutboxRecord;
@@ -53,6 +54,7 @@ public class OrderConfirmTicketService {
     private final TicketCreateProducer ticketCreateProducer;
     private final TicketIssueService ticketIssueService;
     private final OrderCloseQueue orderCloseQueue;
+    private final TicketDeltaLedger ticketDeltaLedger;
 
     public OrderConfirmTicketService(OrderConfirmPersistMapper persistMapper,
                                      InventoryService inventoryService,
@@ -60,7 +62,8 @@ public class OrderConfirmTicketService {
                                      PlatformTransactionManager transactionManager,
                                      TicketCreateProducer ticketCreateProducer,
                                      TicketIssueService ticketIssueService,
-                                     OrderCloseQueue orderCloseQueue) {
+                                     OrderCloseQueue orderCloseQueue,
+                                     TicketDeltaLedger ticketDeltaLedger) {
         this.persistMapper = persistMapper;
         this.inventoryService = inventoryService;
         this.redis = redis;
@@ -68,6 +71,7 @@ public class OrderConfirmTicketService {
         this.ticketCreateProducer = ticketCreateProducer;
         this.ticketIssueService = ticketIssueService;
         this.orderCloseQueue = orderCloseQueue;
+        this.ticketDeltaLedger = ticketDeltaLedger;
     }
 
     public void handle(Long orderId, String requestId, String holdToken) {
@@ -101,11 +105,8 @@ public class OrderConfirmTicketService {
             return;
         }
 
-        // 上一次投递已提交过事务但未 ACK：直接跳过
-        if (persistMapper.countHoldsByOrderId(orderId) > 0) {
-            LOG.info("ORDER_CONFIRM inventory_hold 已存在，跳过 orderId={}", orderId);
-            return;
-        }
+        // 注意：事务成功时 markSuccess 与 insertHold 同事务提交，订单已 S 即代表占座账本已落库，
+        // 因此无需每单再查一次 inventory_hold（原 countHoldsByOrderId 为高频冗余查询）。
 
         Map<Object, Object> hold = redis.opsForHash().entries(InventoryKey.hold(holdToken));
         if (hold.isEmpty() || !String.valueOf(orderId).equals(str(hold.get("orderId")))) {
@@ -217,11 +218,6 @@ public class OrderConfirmTicketService {
             }
         }
 
-        for (Map.Entry<String, Integer> entry : countBySeatType(tickets).entrySet()) {
-            persistMapper.decreaseTicket(order.getDailyTrainTicketId(),
-                    ticketField(entry.getKey()), entry.getValue());
-        }
-
         persistMapper.consumeQualifications(order.getId());
 
         if (persistMapper.markSuccess(order.getId(), expireAt) != 1) {
@@ -229,6 +225,13 @@ public class OrderConfirmTicketService {
         }
 
         insertTicketCreateOutbox(order, now);
+
+        // 全车次共用的余票行是热点：事务内不再直接扣减，改为登记到写合并账本，
+        // 由 TicketDeltaLedger 每 100ms 合并更新一次，避免所有确认事务争抢同一行锁
+        for (Map.Entry<String, Integer> entry : countBySeatType(tickets).entrySet()) {
+            ticketDeltaLedger.decrease(order.getDailyTrainTicketId(),
+                    ticketField(entry.getKey()), entry.getValue());
+        }
     }
 
     /**
