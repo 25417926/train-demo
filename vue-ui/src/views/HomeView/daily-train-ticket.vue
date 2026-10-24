@@ -34,6 +34,7 @@
         <span v-if="record.ydz <= 0 ">
         --
           </span>
+        <div v-if="record.ydzWaitlist > 0" style="color:#fa8c16">候补{{ record.ydzWaitlist }}人</div>
       </template>
       <template v-if="column.dataIndex === 'edz' ">
          <span v-if="record.edz >0">
@@ -42,6 +43,7 @@
         <span v-if="record.edz <= 0 ">
         --
           </span>
+        <div v-if="record.edzWaitlist > 0" style="color:#fa8c16">候补{{ record.edzWaitlist }}人</div>
       </template>
       <template v-if="column.dataIndex === 'rw' ">
         <span v-if="record.rw > 0 ">
@@ -50,6 +52,7 @@
         <span v-if="record.rw <= 0 ">
         --
           </span>
+        <div v-if="record.rwWaitlist > 0" style="color:#fa8c16">候补{{ record.rwWaitlist }}人</div>
 
       </template>
       <template v-if="column.dataIndex === 'yw' ">
@@ -59,6 +62,7 @@
         <span v-if="record.yw <= 0 ">
         --
           </span>
+        <div v-if="record.ywWaitlist > 0" style="color:#fa8c16">候补{{ record.ywWaitlist }}人</div>
       </template>
       <template v-if="column.dataIndex === 'operation'">
         <a-space>

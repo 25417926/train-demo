@@ -64,7 +64,7 @@ public CommonResp<PageResp<Daily_Train_TicketQueryResp>> list(@Valid Daily_Train
     //req.setMemberId(LoginMemberContext.getId());
 
     // 调用乘客服务查询列表方法，获取乘客信息列表
-    PageResp<Daily_Train_TicketQueryResp> list = Daily_Train_TicketService.QueryList(req);
+    PageResp<Daily_Train_TicketQueryResp> list = Daily_Train_TicketService.QueryListForMember(req);
 
         // 创建并返回一个通用响应对象，包含查询结果列表
         CommonResp<PageResp<Daily_Train_TicketQueryResp>> commonResp = new CommonResp(true, "成功", list, HttpStatus.SUCCESS);

@@ -181,6 +181,8 @@ class WaitlistMatcherTest {
         Waitlist_Application application = application(4L, 9L);
         when(waitlistMapper.selectById(4L)).thenReturn(application);
         redis.opsForZSet().add(WaitlistKey.retry(bucket()), "4", System.currentTimeMillis() - 1_000);
+        // 推进器按索引 Set 遍历票档，不再 KEYS 扫描
+        redis.opsForSet().add(WaitlistKey.retryIndex(), bucket());
 
         promoter.promote();
 
@@ -196,10 +198,46 @@ class WaitlistMatcherTest {
         cancelled.setStatus("C");
         when(waitlistMapper.selectById(5L)).thenReturn(cancelled);
         redis.opsForZSet().add(WaitlistKey.retry(bucket()), "5", System.currentTimeMillis() - 1_000);
+        redis.opsForSet().add(WaitlistKey.retryIndex(), bucket());
 
         promoter.promote();
 
         assertEquals(0L, redis.opsForZSet().zCard(WaitlistKey.retry(bucket())));
+        assertEquals(0L, redis.opsForZSet().zCard(queueKey()));
+    }
+
+    @Test
+    void pendingBucketIsDrainedAfterLockReleased() {
+        Waitlist_Application application = application(10L, 1L);
+        enqueue(application);
+        stubPersist(application);
+        when(inventoryService.reserve(any(ReserveCommand.class))).thenReturn(ok());
+        redis.opsForValue().set(WaitlistKey.matchLock(bucket()), "other-token", Duration.ofSeconds(30));
+
+        assertEquals(0, matcher.onRelease(event("P-1")), "锁被占用时先登记待补位");
+        assertEquals("1", redis.opsForValue().get(WaitlistKey.matchPending(bucket())));
+
+        // 持锁方结束后由巡检兜底消费，事件不能被丢弃
+        redis.delete(WaitlistKey.matchLock(bucket()));
+        matcher.drainPending();
+
+        assertEquals(0L, redis.opsForZSet().zCard(queueKey()), "待补位标记最终被消费");
+        verify(waitlistMapper).markMatched(eq(10L), anyLong(), any(Date.class), any(Date.class));
+        assertNull(redis.opsForValue().get(WaitlistKey.matchPending(bucket())));
+    }
+
+    @Test
+    void batchReleaseConsumesMoreThanOneRound() {
+        int total = 150;
+        for (int i = 1; i <= total; i++) {
+            Waitlist_Application application = application((long) i, (long) i);
+            enqueue(application);
+            stubPersist(application);
+        }
+        when(inventoryService.reserve(any(ReserveCommand.class))).thenReturn(ok());
+
+        assertEquals(total, matcher.onRelease(event("B-1")),
+                "单个释放事件连续推进多轮，批量释放不会被截断在 100 个");
         assertEquals(0L, redis.opsForZSet().zCard(queueKey()));
     }
 
@@ -292,8 +330,10 @@ class WaitlistMatcherTest {
         keys.addAll(redis.keys("waitlist:*" + bucket() + "*"));
         keys.addAll(redis.keys("wl:evt:*"));
         keys.addAll(redis.keys("waitlist:fail:*"));
+        keys.add(WaitlistKey.matchPendingIndex());
         if (!keys.isEmpty()) {
             redis.delete(keys);
         }
+        redis.opsForSet().remove(WaitlistKey.retryIndex(), bucket());
     }
 }

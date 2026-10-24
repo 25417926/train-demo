@@ -19,6 +19,8 @@ public final class WaitlistKey {
     private static final String RETRY_INDEX = "waitlist:retry:buckets";
     private static final String FAIL_PREFIX = "waitlist:fail:";
     private static final String MATCH_LOCK_PREFIX = "waitlist:match:key:";
+    private static final String MATCH_PENDING_PREFIX = "waitlist:match:pending:";
+    private static final String MATCH_PENDING_INDEX = "waitlist:match:pending:buckets";
     private static final String EVENT_PREFIX = "wl:evt:";
 
     private WaitlistKey() {
@@ -66,5 +68,18 @@ public final class WaitlistKey {
     /** 退避队列扫描用索引 Set：member 为有退避队列的票档 bucket */
     public static String retryIndex() {
         return RETRY_INDEX;
+    }
+
+    /**
+     * 待补位标记：抢锁失败说明同票档已有一轮在跑，先登记由持锁方或巡检继续消费，
+     * 避免批量释放的事件被直接丢弃。
+     */
+    public static String matchPending(String bucket) {
+        return MATCH_PENDING_PREFIX + bucket;
+    }
+
+    /** 待补位标记索引 Set：member 为有 pending 标记的票档 bucket */
+    public static String matchPendingIndex() {
+        return MATCH_PENDING_INDEX;
     }
 }

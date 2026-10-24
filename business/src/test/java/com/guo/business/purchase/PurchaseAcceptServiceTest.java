@@ -5,6 +5,7 @@ import com.guo.business.inventory.InventoryKey;
 import com.guo.business.inventory.InventoryService;
 import com.guo.business.req.Confirm_OrderTicketReq;
 import com.guo.business.service.Daily_Train_TicketService;
+import com.guo.business.waitlist.WaitlistKey;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -33,6 +34,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -159,6 +161,37 @@ class PurchaseAcceptServiceTest {
         assertFalse(redis.hasKey(InventoryKey.purchaseRequest(idempotencyKey)), "幂等状态不应残留");
     }
 
+    @Test
+    void waitlistBacklogBlocksOrdinaryPurchaseEvenWithStock() {
+        // 座位刚释放、余票充足，但票档仍有候补排队：普通下单必须被拒，余票留给匹配器
+        String bucket = WaitlistKey.bucket(DATE_TEXT, TRAIN_CODE, "北京", "上海", SEAT_TYPE);
+        redis.opsForValue().set(WaitlistKey.count(bucket), "3");
+        assertEquals("1", redis.opsForHash().get(ticketKey(), "ydz"), "预置余票充足");
+
+        PurchaseException e = assertThrows(PurchaseException.class,
+                () -> acceptService.accept(request(7301L), 9001L, "test-key-waitlist-0001"));
+        assertEquals(PurchaseErrorCode.WAITLIST_PRIORITY, e.getErrorCode());
+
+        verify(producer, never()).send(any(PurchaseAcceptContext.class));
+        assertEquals("1", redis.opsForHash().get(ticketKey(), "ydz"), "被拒时不得预扣余票");
+        assertEquals(1L, redis.opsForList().size(poolKey()), "座位仍留在候选池");
+        assertNull(redis.opsForValue().get(InventoryKey.qualification(DATE_TEXT, TRAIN_CODE, 7301L)),
+                "被拒时不得写资格");
+    }
+
+    @Test
+    void waitlistDrainedAllowsOrdinaryPurchase() {
+        // 候补清空后闸门放开，普通下单恢复
+        String bucket = WaitlistKey.bucket(DATE_TEXT, TRAIN_CODE, "北京", "上海", SEAT_TYPE);
+        redis.opsForValue().set(WaitlistKey.count(bucket), "0");
+
+        PurchaseApplyResp resp = acceptService.accept(request(7302L), 9001L, "test-key-waitlist-0002");
+
+        assertEquals("I", resp.getStatus());
+        verify(producer, times(1)).send(any(PurchaseAcceptContext.class));
+        assertEquals("0", redis.opsForHash().get(ticketKey(), "ydz"), "余票正常扣减");
+    }
+
     private PurchaseApplyReq request(long passengerId) {
         Confirm_OrderTicketReq ticket = new Confirm_OrderTicketReq();
         ticket.setPassengerId(passengerId);
@@ -195,6 +228,7 @@ class PurchaseAcceptServiceTest {
         keys.addAll(redis.keys("purchase:req:test-key-*"));
         keys.addAll(redis.keys("hold:HOLD-*"));
         keys.addAll(redis.keys("rel:ACCEPT-*"));
+        keys.addAll(redis.keys("waitlist:count:*"));
         keys.add(InventoryKey.ORDER_CLOSE);
         if (!keys.isEmpty()) {
             redis.delete(keys);

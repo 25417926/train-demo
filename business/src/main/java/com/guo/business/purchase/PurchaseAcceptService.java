@@ -115,10 +115,9 @@ public class PurchaseAcceptService {
         }
         int startIndex = dailyTrainTicket.getStartIndex();
         int endIndex = dailyTrainTicket.getEndIndex();
-        int seatCount = tickets.size();
 
-        // 3. 候补优先：票档有余票缺口且有候补等待时，引导用户走候补
-        if (waitlistBlocked(dateText, req, seatType, startIndex, endIndex, seatCount)) {
+        // 3. 候补优先：票档只要还有候补在排队，普通下单一律拒绝，余票交给匹配器消费
+        if (waitlistBlocked(dateText, req, seatType)) {
             throw new PurchaseException(PurchaseErrorCode.WAITLIST_PRIORITY);
         }
 
@@ -227,21 +226,18 @@ public class PurchaseAcceptService {
         throw new PurchaseException(PurchaseErrorCode.DUPLICATE_PURCHASE);
     }
 
-    private boolean waitlistBlocked(String dateText, PurchaseApplyReq req, String seatType,
-                                    int startIndex, int endIndex, int seatCount) {
+    /**
+     * 候补优先准入：该票档只要还有候补在排队，普通下单就拒绝。
+     *
+     * <p>I16 初版只在"余票不足以满足本单"时才拦，释放回补余票后闸门随即失效，
+     * 刚释放的座位会被普通下单先抢走，形成候补与普通并行。这里改为按排队数准入：
+     * 释放出来的余票只由候补匹配器消费，队列清空后普通下单自动恢复。</p>
+     */
+    private boolean waitlistBlocked(String dateText, PurchaseApplyReq req, String seatType) {
         String waitlistKey = WaitlistKey.count(
                 WaitlistKey.bucket(dateText, req.getTrainCode(), req.getStart(), req.getEnd(), seatType));
         Object waiting = redis.opsForValue().get(waitlistKey);
-        if (waiting == null || Long.parseLong(String.valueOf(waiting)) <= 0) {
-            return false;
-        }
-        Object available = redis.opsForHash().get(
-                InventoryKey.ticket(dateText, req.getTrainCode(), startIndex, endIndex),
-                InventoryKey.ticketField(seatType));
-        if (available == null) {
-            return false;
-        }
-        return Integer.parseInt(String.valueOf(available)) < seatCount;
+        return waiting != null && Long.parseLong(String.valueOf(waiting)) > 0;
     }
 
     private ReserveCommand reserveCommand(String requestId, long orderId, PurchaseApplyReq req,

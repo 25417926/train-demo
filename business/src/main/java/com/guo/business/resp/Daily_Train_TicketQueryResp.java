@@ -108,6 +108,17 @@ public class Daily_Train_TicketQueryResp {
     private BigDecimal ywPrice;
 
     /**
+     * 候补等待人数（C 端余票查询返回，余票字段已按人数折算）
+     */
+    private Integer ydzWaitlist;
+
+    private Integer edzWaitlist;
+
+    private Integer rwWaitlist;
+
+    private Integer ywWaitlist;
+
+    /**
      * 新增时间
      */
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss",timezone = "GMT+8")
@@ -269,6 +280,38 @@ public class Daily_Train_TicketQueryResp {
 
     public void setYwPrice(BigDecimal ywPrice) {
         this.ywPrice = ywPrice;
+    }
+
+    public Integer getYdzWaitlist() {
+        return ydzWaitlist;
+    }
+
+    public void setYdzWaitlist(Integer ydzWaitlist) {
+        this.ydzWaitlist = ydzWaitlist;
+    }
+
+    public Integer getEdzWaitlist() {
+        return edzWaitlist;
+    }
+
+    public void setEdzWaitlist(Integer edzWaitlist) {
+        this.edzWaitlist = edzWaitlist;
+    }
+
+    public Integer getRwWaitlist() {
+        return rwWaitlist;
+    }
+
+    public void setRwWaitlist(Integer rwWaitlist) {
+        this.rwWaitlist = rwWaitlist;
+    }
+
+    public Integer getYwWaitlist() {
+        return ywWaitlist;
+    }
+
+    public void setYwWaitlist(Integer ywWaitlist) {
+        this.ywWaitlist = ywWaitlist;
     }
 
     public Date getCreateTime() {

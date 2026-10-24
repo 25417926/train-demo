@@ -28,6 +28,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.core.script.DefaultRedisScript;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.support.TransactionTemplate;
@@ -42,6 +43,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.Date;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 
 /**
@@ -68,6 +70,10 @@ public class WaitlistMatcher {
 
     /** 单轮最多匹配的申请数，防止事件风暴下长时间持锁 */
     private static final int MAX_MATCH_PER_ROUND = 100;
+    /** 单个事件最多推进的轮数：批量释放时余票可能远超 100，需要连续消费 */
+    private static final int MAX_ROUNDS_PER_EVENT = 10;
+    /** 待补位标记 TTL，兜底清理异常残留 */
+    private static final Duration PENDING_TTL = Duration.ofSeconds(60);
     /** 连续失败达到该次数转退避 */
     private static final int MAX_FAIL_TIMES = 3;
     /** 退避时长 30 秒 */
@@ -141,36 +147,153 @@ public class WaitlistMatcher {
 
         String bucket = event.bucket();
         String lockKey = WaitlistKey.matchLock(bucket);
-        String token = UUID.randomUUID().toString();
-        Boolean locked = redis.opsForValue().setIfAbsent(lockKey, token, LOCK_TTL);
-        if (!Boolean.TRUE.equals(locked)) {
-            LOG.info("同票档已有一轮匹配在执行，事件被合并 eventId={} bucket={}", eventId, bucket);
-            return 0;
-        }
-
         int matched = 0;
-        try {
-            for (int i = 0; i < MAX_MATCH_PER_ROUND; i++) {
-                String applicationId = pop(bucket);
-                if (applicationId == null) {
-                    break;
-                }
-                Outcome outcome = matchOne(bucket, applicationId);
-                if (outcome == Outcome.MATCHED) {
-                    matched++;
-                    continue;
-                }
-                if (outcome == Outcome.SKIP) {
-                    continue;
-                }
-                // NO_STOCK / SEAT_CONFLICT / 异常：本轮结束，等待退避或下一次释放事件
+
+        // 批量释放的座位可能远超单轮上限：跑满一轮后若仍有 pending 标记（期间又有事件/抢锁失败）
+        // 或队列还有申请，就继续下一轮，避免"只补 100 个、其余长期暴露给普通下单"
+        for (int round = 0; round < MAX_ROUNDS_PER_EVENT; round++) {
+            String token = UUID.randomUUID().toString();
+            Boolean locked = redis.opsForValue().setIfAbsent(lockKey, token, LOCK_TTL);
+            if (!Boolean.TRUE.equals(locked)) {
+                // 同票档已有一轮在执行：登记 pending 交给持锁方收尾继续，事件不再丢弃
+                markPending(bucket);
+                LOG.info("同票档已有一轮匹配在执行，事件合并为待补位 eventId={} bucket={}", eventId, bucket);
                 break;
             }
-        } finally {
-            unlock(lockKey, token);
+            boolean full;
+            try {
+                BatchResult result = matchBatch(bucket);
+                matched += result.matched;
+                full = result.full;
+            } finally {
+                unlock(lockKey, token);
+            }
+            // 跑满单轮说明还有申请在排队（批量释放），继续推进；否则仅在有 pending 标记时再跑一轮
+            if (!full && !consumePending(bucket)) {
+                break;
+            }
         }
         LOG.info("候补匹配完成 eventId={} bucket={} matched={}", eventId, bucket, matched);
         return matched;
+    }
+
+    /**
+     * 单轮消费：按 seq_no 依次补位，遇到无票/座位冲突结束本轮并等待退避。
+     */
+    private BatchResult matchBatch(String bucket) {
+        int matched = 0;
+        int attempts = 0;
+        for (; attempts < MAX_MATCH_PER_ROUND; attempts++) {
+            String applicationId = pop(bucket);
+            if (applicationId == null) {
+                break;
+            }
+            Outcome outcome = matchOne(bucket, applicationId);
+            if (outcome == Outcome.MATCHED) {
+                matched++;
+                continue;
+            }
+            if (outcome == Outcome.SKIP) {
+                continue;
+            }
+            // NO_STOCK / SEAT_CONFLICT / 异常：本轮结束，等待退避或下一次释放事件
+            break;
+        }
+        // 跑满上限且未因无票中断，说明队列可能还有申请，需要继续下一轮
+        return new BatchResult(matched, attempts >= MAX_MATCH_PER_ROUND);
+    }
+
+    private static final class BatchResult {
+        private final int matched;
+        private final boolean full;
+
+        private BatchResult(int matched, boolean full) {
+            this.matched = matched;
+            this.full = full;
+        }
+    }
+
+    /**
+     * 登记待补位标记：抢锁失败时不再丢事件，由持锁方收尾或巡检继续消费。
+     */
+    private void markPending(String bucket) {
+        try {
+            redis.opsForSet().add(WaitlistKey.matchPendingIndex(), bucket);
+            redis.opsForValue().set(WaitlistKey.matchPending(bucket), "1", PENDING_TTL);
+        } catch (RuntimeException e) {
+            LOG.warn("待补位标记写入失败 bucket={}", bucket, e);
+        }
+    }
+
+    /**
+     * 消费待补位标记：存在则清掉并返回 true，调用方继续下一轮。
+     */
+    private boolean consumePending(String bucket) {
+        try {
+            if (!Boolean.TRUE.equals(redis.hasKey(WaitlistKey.matchPending(bucket)))) {
+                redis.opsForSet().remove(WaitlistKey.matchPendingIndex(), bucket);
+                return false;
+            }
+            clearPending(bucket);
+            return true;
+        } catch (RuntimeException e) {
+            LOG.warn("待补位标记读取失败 bucket={}", bucket, e);
+            return false;
+        }
+    }
+
+    private void clearPending(String bucket) {
+        redis.delete(WaitlistKey.matchPending(bucket));
+        redis.opsForSet().remove(WaitlistKey.matchPendingIndex(), bucket);
+    }
+
+    /**
+     * 兜底巡检：抢锁失败后的 pending 标记若没被持锁方消费（例如标记写入晚于解锁），
+     * 每 2 秒重新投递一次本票档补位，保证事件最终被处理。
+     */
+    @Scheduled(fixedDelayString = "${train.waitlist.pending-poll-ms:2000}")
+    public void drainPending() {
+        Set<String> buckets;
+        try {
+            buckets = redis.opsForSet().members(WaitlistKey.matchPendingIndex());
+        } catch (RuntimeException e) {
+            LOG.error("候补待补位索引读取失败", e);
+            return;
+        }
+        if (buckets == null || buckets.isEmpty()) {
+            return;
+        }
+        for (String bucket : buckets) {
+            if (StrUtil.isBlank(bucket)) {
+                continue;
+            }
+            if (!Boolean.TRUE.equals(redis.hasKey(WaitlistKey.matchPending(bucket)))) {
+                redis.opsForSet().remove(WaitlistKey.matchPendingIndex(), bucket);
+                continue;
+            }
+            WaitlistMatchEvent event = eventFromBucket(bucket);
+            if (event == null) {
+                LOG.warn("待补位票档 key 非法，已清理 bucket={}", bucket);
+                clearPending(bucket);
+                continue;
+            }
+            onRelease(event);
+        }
+    }
+
+    private WaitlistMatchEvent eventFromBucket(String bucket) {
+        String[] parts = bucket.split(":");
+        if (parts.length != 5) {
+            return null;
+        }
+        WaitlistMatchEvent event = new WaitlistMatchEvent();
+        event.setEventId("PENDING:" + bucket + ":" + SnowUtil.getSnowflakeNextId());
+        event.setDate(parts[0]);
+        event.setTrainCode(parts[1]);
+        event.setStart(parts[2]);
+        event.setEnd(parts[3]);
+        event.setSeatType(parts[4]);
+        return event;
     }
 
     private Outcome matchOne(String bucket, String applicationIdText) {

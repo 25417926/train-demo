@@ -10,19 +10,23 @@ import com.github.pagehelper.PageInfo;
 import com.guo.business.TypeEnum.TrainCarriageTypeEnum;
 import com.guo.business.TypeEnum.TrainTypeEnum;
 import com.guo.business.domain.*;
+import com.guo.business.inventory.InventoryKey;
 import com.guo.business.mapper.Daily_Train_TicketMapper;
 import com.guo.business.req.Daily_Train_TicketQueryReq;
 import com.guo.business.resp.Daily_Train_TicketQueryResp;
+import com.guo.business.waitlist.WaitlistKey;
 import com.guo.common.resp.PageResp;
 import com.guo.common.util.SnowUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import javax.annotation.Resource;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
@@ -40,6 +44,11 @@ public class Daily_Train_TicketService {
     private Train_StationService Train_StationService;
     @Resource
     private Daily_Train_SeatService Daily_Train_SeatService;
+    @Resource
+    private StringRedisTemplate redis;
+
+    /** 与 ydz/edz/rw/yw 一一对应的席别编码 */
+    private static final String[] WAITLIST_SEAT_TYPES = {"1", "2", "3", "4"};
 
     /**
      * 查询列车票务信息列表
@@ -78,6 +87,64 @@ public class Daily_Train_TicketService {
         pageResp.setTotal(pageInfo.getTotal());
         pageResp.setList(list);
         return pageResp;
+    }
+
+    /**
+     * C 端余票查询：按票档扣除候补等待人数，避免"释放后显示充足、实际被候补优先消费"。
+     *
+     * <p>不修改库内余票，只在响应里折算可售数量并回传 waitlistCount，后台列表仍用 {@link #QueryList}。</p>
+     */
+    public PageResp<Daily_Train_TicketQueryResp> QueryListForMember(Daily_Train_TicketQueryReq req) {
+        PageResp<Daily_Train_TicketQueryResp> pageResp = QueryList(req);
+        adjustWaitlist(pageResp.getList());
+        return pageResp;
+    }
+
+    private void adjustWaitlist(List<Daily_Train_TicketQueryResp> list) {
+        if (CollUtil.isEmpty(list)) {
+            return;
+        }
+        // 每行 4 个席别，一次 multiGet 拿完，避免逐行往返
+        List<String> keys = new ArrayList<>(list.size() * WAITLIST_SEAT_TYPES.length);
+        for (Daily_Train_TicketQueryResp row : list) {
+            String dateText = InventoryKey.formatDate(row.getDate());
+            for (String seatType : WAITLIST_SEAT_TYPES) {
+                keys.add(WaitlistKey.count(WaitlistKey.bucket(
+                        dateText, row.getTrainCode(), row.getStart(), row.getEnd(), seatType)));
+            }
+        }
+        List<String> counts = redis.opsForValue().multiGet(keys);
+
+        int index = 0;
+        for (Daily_Train_TicketQueryResp row : list) {
+            row.setYdzWaitlist(waitlistCount(counts, index++));
+            row.setEdzWaitlist(waitlistCount(counts, index++));
+            row.setRwWaitlist(waitlistCount(counts, index++));
+            row.setYwWaitlist(waitlistCount(counts, index++));
+            row.setYdz(available(row.getYdz(), row.getYdzWaitlist()));
+            row.setEdz(available(row.getEdz(), row.getEdzWaitlist()));
+            row.setRw(available(row.getRw(), row.getRwWaitlist()));
+            row.setYw(available(row.getYw(), row.getYwWaitlist()));
+        }
+    }
+
+    private static Integer waitlistCount(List<String> counts, int index) {
+        if (counts == null || counts.size() <= index) {
+            return 0;
+        }
+        String value = counts.get(index);
+        if (value == null || value.trim().isEmpty()) {
+            return 0;
+        }
+        return Integer.parseInt(value);
+    }
+
+    /** 可售余票 = 库内余票 - 候补等待人数，最低为 0 */
+    private static Integer available(Integer total, Integer waiting) {
+        if (total == null) {
+            return null;
+        }
+        return Math.max(total - (waiting == null ? 0 : waiting), 0);
     }
 
     /**
